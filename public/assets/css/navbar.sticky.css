@@ -1,0 +1,28 @@
+.navbar.sticky-top {
+    top: -100px;
+    transition: .5s;
+    background-color: #FFFFFF;
+    /*box-shadow: 0px 3px 6px #00000029;*/
+}
+
+.navbar .navbar-brand {
+    display: flex;
+    align-items: center;
+    padding: 5px 0;
+}
+
+.navbar .navbar-brand img {
+    max-height: 70px;
+}
+
+
+.navbar .navbar-nav .nav-link {
+    margin-right: 25px;
+    margin-inline-end: 25px;
+    /*padding: 20px 0;*/
+    /*color: #FFFFFF;*/
+    /*font-size: 16px;*/
+    /*font-weight: 500;*/
+    text-transform: uppercase;
+    outline: none;
+}

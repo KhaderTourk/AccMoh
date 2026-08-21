@@ -1,0 +1,26 @@
+{
+  "name": "AccMa — إدارة مالية",
+  "short_name": "AccMa",
+  "description": "لوحة تحكم مالية شخصية مع دعم العمل بدون إنترنت",
+  "start_url": "/cp/offline",
+  "scope": "/cp/",
+  "display": "standalone",
+  "dir": "rtl",
+  "lang": "ar",
+  "background_color": "#f8fafc",
+  "theme_color": "#08A46D",
+  "icons": [
+    {
+      "src": "/assets/icons/accma-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/icons/accma-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

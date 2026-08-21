@@ -1,0 +1,333 @@
+/* style.css - نظام تصميم موحد للمشروع */
+
+/* ========== 1. تصميم المواصفات (Design Tokens) ========== */
+:root {
+  --primary: #0ba66d;
+  --primary-glow: rgba(11, 166, 109, 0.3);
+  --bg-dark: #121212;
+  --bg-light: #f8fafc;
+  --card-dark: #1e1e1e;
+
+  /* توحيد أحجام الخطوط (مقياس عالمي متوسط) */
+  --text-xs: 0.75rem;      /* 12px */
+  --text-sm: 0.875rem;    /* 14px */
+  --text-base: 1rem;       /* 16px */
+  --text-lg: 1.125rem;    /* 18px */
+  --text-xl: 1.25rem;     /* 20px */
+  --text-2xl: 1.5rem;     /* 24px */
+  --text-3xl: 1.875rem;   /* 30px */
+  --text-4xl: 2.25rem;    /* 36px */
+  --text-5xl: 3rem;       /* 48px */
+
+  /* توحيد المسافات (أقسام وصفحات) */
+  --section-padding-y: 4rem;   /* 64px - py-16 */
+  --section-padding-y-md: 5rem;
+  --section-padding-y-lg: 6rem;
+  --container-padding-x: 1.5rem;
+  --container-padding-x-md: 2rem;
+  --container-padding-x-lg: 2.5rem;
+  --container-max: 1280px;
+  --section-gap: 4rem;
+}
+
+/* 2. التنسيق العام للجسم (خط أساسي موحد) */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: "Cairo", "Tajawal", sans-serif;
+  font-size: var(--text-base);
+  scroll-behavior: smooth;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* 3. الحاويات والمسافات الموحدة */
+.main-container,
+.container-custom,
+.custom-container,
+.page-container {
+  max-width: var(--container-max);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--container-padding-x);
+  padding-right: var(--container-padding-x);
+  width: 100%;
+}
+@media (min-width: 768px) {
+  .main-container, .container-custom, .custom-container, .page-container {
+    padding-left: var(--container-padding-x-md);
+    padding-right: var(--container-padding-x-md);
+  }
+}
+@media (min-width: 1024px) {
+  .main-container, .container-custom, .custom-container, .page-container {
+    padding-left: var(--container-padding-x-lg);
+    padding-right: var(--container-padding-x-lg);
+  }
+}
+
+/* مسافات الأقسام الموحدة (أعلى/أسفل) */
+.section-padding {
+  padding-top: var(--section-padding-y);
+  padding-bottom: var(--section-padding-y);
+}
+@media (min-width: 768px) {
+  .section-padding { padding-top: var(--section-padding-y-md); padding-bottom: var(--section-padding-y-md); }
+}
+@media (min-width: 1024px) {
+  .section-padding { padding-top: var(--section-padding-y-lg); padding-bottom: var(--section-padding-y-lg); }
+}
+
+/* الألوان الموحدة للنص والحدود (وضع نهاري/ليلي) - استخدم في Tailwind: text-slate-800 dark:text-slate-200 للنص الأساسي، text-slate-600 dark:text-slate-400 للنص الثانوي، border-slate-200 dark:border-white/10 للحدود */
+.text-body { color: #334155; }
+.dark .text-body { color: #e2e8f0; }
+.text-muted { color: #64748b; }
+.dark .text-muted { color: #94a3b8; }
+.border-standard { border-color: #e2e8f0; }
+.dark .border-standard { border-color: rgba(255,255,255,0.1); }
+
+.layout-container {
+  max-width: 1140px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+@media (min-width: 1024px) {
+  .layout-container {
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+
+/* 4. الأشكال الهندسية المتجاوبة (Parallel Shapes) */
+.parallel-bar {
+  border: 4px solid white;
+  background-color: #e2e8f0;
+  box-shadow: 0 0 25px var(--primary-glow);
+  width: 140px;
+  height: 320px;
+  border-top-left-radius: 60px;
+  border-bottom-right-radius: 60px;
+  transform: rotate(-30deg);
+  overflow: hidden;
+  position: relative;
+  transition: all 0.5s ease;
+}
+
+.dark .parallel-bar {
+  border-color: #1e293b;
+  background-color: #1e293b;
+}
+
+@media (min-width: 768px) {
+  .parallel-bar {
+    width: 180px;
+    height: 400px;
+    border-top-left-radius: 80px;
+  }
+}
+@media (min-width: 1024px) {
+  .parallel-bar {
+    width: 200px;
+    height: 420px;
+    border-top-left-radius: 90px;
+  }
+}
+
+.parallel-cyrcle {
+  position: absolute;
+  border: 4px solid white;
+  box-shadow: 0 0 25px var(--primary-glow);
+  background-color: #e2e8f0;
+  border-radius: 9999px;
+  overflow: hidden;
+  z-index: 20;
+  width: 140px;
+  height: 140px;
+  transition: all 0.5s ease;
+}
+
+.dark .parallel-cyrcle {
+  border-color: #1e293b;
+  background-color: #1e293b;
+}
+
+@media (min-width: 768px) {
+  .parallel-cyrcle {
+    width: 200px;
+    height: 200px;
+  }
+}
+@media (min-width: 1024px) {
+  .parallel-cyrcle {
+    width: 220px;
+    height: 220px;
+  }
+}
+
+.cyrcle-1 {
+  left: 2%;
+  top: 58%;
+}
+.cyrcle-2 {
+  right: 2%;
+  bottom: 48%;
+}
+
+/* 5. التأثيرات الحركية والصور */
+.rotated-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: rotate(30deg) scale(1.6);
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-15px); }
+}
+.float-animation {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* 6. تأثيرات الـ Glass */
+.glass-nav {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background-color: rgba(255, 255, 255, 0.85);
+}
+.dark .glass-nav {
+  background-color: rgba(18, 18, 18, 0.85);
+}
+
+.hero-gradient {
+  background: linear-gradient(180deg, rgba(18, 18, 18, 0.7) 0%, rgba(18, 18, 18, 0.95) 100%);
+}
+
+.hero-gradient-canaani {
+  background: linear-gradient(135deg, rgba(11, 166, 109, 0.08) 0%, rgba(18, 18, 18, 1) 100%);
+}
+
+/* 7. السكرول بار المخصص */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 10px;
+}
+
+/* enable */
+.hero-enable-bg {
+  background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)),
+    url("https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=1200");
+  background-size: cover;
+  background-position: center;
+}
+
+.cta-gradient {
+  background: linear-gradient(135deg, #064e3b 0%, #121212 100%);
+}
+
+/* product-card */
+.product-card {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+.product-card:hover {
+  box-shadow: 0 0 30px rgba(11, 166, 109, 0.15);
+  background-color: rgba(255, 255, 255, 0.02);
+  border-radius: 1.5rem;
+  transform: translateY(-8px);
+}
+.product-card-image-container {
+  overflow: hidden;
+  transition: all 0.5s ease;
+}
+.product-card:hover .product-card-image-container img {
+  transform: scale(1.1);
+}
+.product-card:hover .product-title {
+  color: #0ba66d;
+}
+.product-card:hover .product-price {
+  color: #0ba66d;
+  filter: brightness(1.2);
+}
+
+/* umbrella */
+.hero-gradient-umbrella {
+  background: linear-gradient(rgba(18, 18, 18, 0.88), rgba(18, 18, 18, 0.98)),
+    url("https://images.unsplash.com/photo-1541829070764-84a7d30dee6d?auto=format&fit=crop&q=80&w=2000");
+  background-size: cover;
+  background-position: center;
+}
+
+/* grants */
+.primary-gradient-grants {
+  background: linear-gradient(135deg, #0ba66d 0%, #088a5b 100%);
+}
+.btn-glow-grants {
+  box-shadow: 0 4px 14px 0 rgba(11, 166, 109, 0.3);
+}
+.btn-glow-grants:hover {
+  box-shadow: 0 0 25px 0 rgba(11, 166, 109, 0.6);
+}
+.scholarship-card {
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.scholarship-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 0 40px -10px rgba(11, 166, 109, 0.4);
+  border-color: rgba(11, 166, 109, 0.5);
+}
+.dark .scholarship-card:hover {
+  box-shadow: 0 0 50px -12px rgba(11, 166, 109, 0.5);
+}
+.scholarship-card:hover .btn-apply {
+  box-shadow: 0 0 30px 0 rgba(11, 166, 109, 0.7);
+  transform: scale(1.03);
+}
+
+/* success-partner */
+.hero-gradient-sucess-partner {
+  background: linear-gradient(180deg, rgba(18, 18, 18, 0.7) 0%, rgba(18, 18, 18, 0.95) 100%),
+    url("https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80");
+  background-size: cover;
+  background-position: center;
+}
+.light .hero-gradient-sucess-partner {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.8) 0%, rgba(248, 250, 252, 0.95) 100%),
+    url("https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80");
+  background-size: cover;
+  background-position: center;
+}
+
+.material-symbols-outlined {
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+  vertical-align: middle;
+}
+
+/* أسهم وأيقونات اتجاهية: انعكاس صحيح في RTL (عربي) و LTR (إنجليزي) */
+[dir="rtl"] .icon-directional,
+.icon-directional.rtl-flip {
+  transform: rotate(180deg);
+}
+[dir="rtl"] .icon-directional.inline {
+  display: inline-block;
+}
+
+/* news */
+.hero-gradient-news {
+  background: linear-gradient(rgba(18, 18, 18, 0.8), rgba(18, 18, 18, 0.8)),
+    url("https://images.unsplash.com/photo-1523240715634-d1c651177e4d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80");
+  background-size: cover;
+  background-position: center;
+}
+
+.space-y-28 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(3.5rem * calc(1 - var(--tw-space-y-reverse))) !important;
+  margin-bottom: calc(7rem * var(--tw-space-y-reverse));
+}

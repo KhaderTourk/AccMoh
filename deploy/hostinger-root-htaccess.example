@@ -1,0 +1,16 @@
+<?php
+
+/**
+ * Hostinger helper (optional):
+ * If the domain Document Root cannot be pointed to /public,
+ * place this file as public_html/.htaccess and put the Laravel
+ * project one level up in a folder named "accma", then copy
+ * public/* into public_html and adjust index.php paths.
+ *
+ * Preferred: set Document Root directly to the Laravel /public folder.
+ */
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>

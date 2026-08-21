@@ -1,0 +1,97 @@
+/* لوحة التحكم — جمعية أصدقاء جامعة بيرزيت */
+.cp-admin {
+    font-family: 'Tajawal', sans-serif;
+}
+
+/* التأكد من عمل التمرير والتفاعل - منع أي عنصر من تعطيل الصفحة */
+html.cp-admin {
+    overflow: auto !important;
+    overflow-x: hidden;
+}
+
+html.cp-admin body {
+    overflow: auto !important;
+    overflow-x: hidden;
+    pointer-events: auto !important;
+}
+
+html.cp-admin .cp-wrap,
+html.cp-admin .cp-main {
+    pointer-events: auto !important;
+}
+
+.cp-sidebar {
+    -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 1023px) {
+    .cp-sidebar.translate-x-full {
+        transform: translateX(100%);
+    }
+}
+
+.cp-nav-item .material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* تحسين اللمس على الموبايل */
+@media (hover: none) {
+    .cp-nav-item:active {
+        background: rgba(8, 164, 109, 0.15);
+    }
+}
+
+/* لون الإجراءات الأساسي */
+.cp-main a[href].text-primary,
+.cp-nav-item.bg-primary\/10 {
+    --tw-text-opacity: 1;
+}
+.dark .cp-nav-item.bg-primary\/20 {
+    background: rgba(8, 164, 109, 0.2);
+}
+
+/* أقسام القائمة القابلة للطي */
+.cp-nav-section {
+    border-top: 1px solid rgb(226 232 240);
+}
+.dark .cp-nav-section {
+    border-top-color: rgb(51 65 85);
+}
+.cp-section-toggle {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: rgb(100 116 139);
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: color 0.2s, background 0.2s;
+}
+.dark .cp-section-toggle {
+    color: rgb(100 116 139);
+}
+.cp-section-toggle:hover {
+    color: rgb(8 164 109);
+    background: rgba(8, 164, 109, 0.08);
+}
+.cp-section-toggle .cp-chevron {
+    transition: transform 0.2s ease;
+    font-size: 1.125rem;
+}
+.cp-nav-section.cp-collapsed .cp-chevron {
+    transform: rotate(-90deg);
+}
+.cp-section-content {
+    overflow: hidden;
+    max-height: 1200px;
+    transition: max-height 0.25s ease;
+}
+.cp-nav-section.cp-collapsed .cp-section-content {
+    max-height: 0 !important;
+}
