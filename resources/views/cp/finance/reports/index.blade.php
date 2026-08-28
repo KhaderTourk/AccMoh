@@ -2,11 +2,40 @@
 @section('title', 'التقارير')
 @section('content')
 <div class="space-y-8">
-    <form class="flex flex-wrap gap-2 items-end">
-        <div><label class="text-xs">من</label><input type="date" name="from" value="{{ $from }}" class="rounded-xl border px-3 py-2 dark:bg-slate-700 block"></div>
-        <div><label class="text-xs">إلى</label><input type="date" name="to" value="{{ $to }}" class="rounded-xl border px-3 py-2 dark:bg-slate-700 block"></div>
-        <button class="px-4 py-2 rounded-xl bg-primary text-white">تطبيق الفترة</button>
-    </form>
+    <div class="flex flex-wrap justify-between gap-3 items-start">
+        <div class="space-y-2">
+            <form class="flex flex-wrap gap-2 items-end">
+                <div><label class="text-xs">من</label><input type="date" name="from" value="{{ $from }}" class="rounded-xl border px-3 py-2 dark:bg-slate-700 block"></div>
+                <div><label class="text-xs">إلى</label><input type="date" name="to" value="{{ $to }}" class="rounded-xl border px-3 py-2 dark:bg-slate-700 block"></div>
+                <button class="px-4 py-2 rounded-xl bg-primary text-white">تطبيق الفترة</button>
+            </form>
+            @include('cp.partials.date-range-shortcuts')
+        </div>
+        <a href="{{ route('cp.reports.export-pdf', request()->query()) }}" class="px-4 py-2 rounded-xl border text-sm">تصدير PDF</a>
+    </div>
+
+    @if(tenantBusinessEnabled() && count($profitRows))
+    <section>
+        <h2 class="font-bold text-lg mb-3">أرباح الفترة</h2>
+        <div class="grid md:grid-cols-2 gap-4">
+            @foreach($profitRows as $row)
+            <div class="rounded-2xl border bg-white dark:bg-slate-800 p-5 space-y-2 text-sm">
+                <h3 class="font-bold text-base">{{ $row['currency']->name }}</h3>
+                <p>دفعات العملاء: <strong>{{ $row['currency']->format($row['payments']) }}</strong></p>
+                <p>مصروفات العمل: <strong>{{ $row['currency']->format($row['work_expenses']) }}</strong></p>
+                <p class="text-xs text-slate-500">منها عمال {{ $row['currency']->format($row['worker_expenses']) }} · موردون {{ $row['currency']->format($row['supplier_expenses']) }}</p>
+                <p>المستحقات المتبقية: <strong>{{ $row['currency']->format($row['outstanding']) }}</strong></p>
+                <p class="pt-2 border-t">صافي الأرباح = دفعات − مصروفات العمل:
+                    <strong class="{{ \App\Support\Money::isNegative($row['net_profit']) ? 'text-rose-600' : 'text-emerald-600' }}">{{ $row['currency']->format($row['net_profit']) }}</strong>
+                </p>
+                <p>إجمالي الأرباح = مستحقات + دفعات − مصروفات العمل:
+                    <strong class="{{ \App\Support\Money::isNegative($row['gross_profit']) ? 'text-rose-600' : 'text-emerald-600' }}">{{ $row['currency']->format($row['gross_profit']) }}</strong>
+                </p>
+            </div>
+            @endforeach
+        </div>
+    </section>
+    @endif
 
     <section>
         <h2 class="font-bold text-lg mb-3">تقرير الأرصدة</h2>

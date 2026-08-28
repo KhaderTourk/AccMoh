@@ -6,6 +6,7 @@ use App\Enums\LoanDirection;
 use App\Http\Controllers\Controller;
 use App\Models\Currency;
 use App\Models\FamilyMember;
+use App\Services\Export\PdfExporter;
 use Illuminate\Http\Request;
 
 class FamilyMemberController extends Controller
@@ -42,17 +43,19 @@ class FamilyMemberController extends Controller
 
     public function show(FamilyMember $familyMember)
     {
-        $familyMember->load([
-            'loans' => fn ($q) => $q->with(['currency', 'paymentMethod'])->latest('loan_date'),
-            'repayments' => fn ($q) => $q->with(['currency', 'paymentMethod', 'items.loan'])->latest('repayment_date'),
-        ]);
-        $currencies = Currency::query()->active()->get();
+        return view('cp.finance.family.show', $this->showPayload($familyMember));
+    }
 
-        return view('cp.finance.family.show', [
-            'member' => $familyMember,
-            'currencies' => $currencies,
-            'directions' => LoanDirection::cases(),
-        ]);
+    public function exportPdf(FamilyMember $familyMember, PdfExporter $pdf)
+    {
+        $data = $this->showPayload($familyMember);
+        $data['exporting'] = true;
+
+        return $pdf->download(
+            'cp.finance.family.print',
+            $data,
+            'family-'.$familyMember->id.'.pdf'
+        );
     }
 
     public function edit(FamilyMember $familyMember)
@@ -90,5 +93,24 @@ class FamilyMemberController extends Controller
             'notes' => ['nullable', 'string'],
             'is_active' => ['nullable', 'boolean'],
         ]) + ['is_active' => $request->boolean('is_active', true)];
+    }
+
+    /**
+     * @return array{member: FamilyMember, currencies: \Illuminate\Support\Collection, directions: array, exportedAt: string}
+     */
+    protected function showPayload(FamilyMember $familyMember): array
+    {
+        $familyMember->load([
+            'loans' => fn ($q) => $q->with(['currency', 'fxCurrency', 'paymentMethod'])->latest('loan_date'),
+            'repayments' => fn ($q) => $q->with(['currency', 'fxCurrency', 'paymentMethod', 'items.loan'])->latest('repayment_date'),
+        ]);
+
+        return [
+            'member' => $familyMember,
+            'currencies' => Currency::query()->active()->get(),
+            'directions' => LoanDirection::cases(),
+            'exportedAt' => now()->format('Y-m-d H:i'),
+            'title' => $familyMember->name,
+        ];
     }
 }

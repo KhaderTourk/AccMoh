@@ -11,6 +11,7 @@ use App\Models\FamilyLoanRepaymentItem;
 use App\Models\FamilyMember;
 use App\Models\FinancialAuditLog;
 use App\Models\Fund;
+use App\Support\IlsFx;
 use App\Support\Money;
 use Illuminate\Support\Facades\DB;
 
@@ -26,16 +27,14 @@ class LoanRepaymentService
      */
     public function repay(array $data, array $allocations): FamilyLoanRepayment
     {
-        $amount = Money::of($data['amount']);
-        if (! Money::isPositive($amount)) {
-            throw new FinanceException('المبلغ يجب أن يكون أكبر من صفر.');
-        }
+        $resolved = IlsFx::resolve($data);
+        $amount = $resolved['amount'];
 
         $direction = $data['direction'] instanceof LoanDirection
             ? $data['direction']
             : LoanDirection::from($data['direction']);
 
-        return DB::transaction(function () use ($data, $allocations, $amount, $direction) {
+        return DB::transaction(function () use ($data, $allocations, $resolved, $amount, $direction) {
             $member = FamilyMember::query()->findOrFail($data['family_member_id']);
             $fund = Fund::family();
 
@@ -56,6 +55,9 @@ class LoanRepaymentService
                 'fund_id' => $fund->id,
                 'direction' => $direction,
                 'amount' => $amount,
+                'source_amount' => $resolved['source_amount'],
+                'exchange_rate' => $resolved['exchange_rate'],
+                'fx_currency_id' => $resolved['fx_currency_id'],
                 'currency_id' => $data['currency_id'],
                 'payment_method_id' => $data['payment_method_id'],
                 'repayment_date' => $data['repayment_date'],
@@ -101,7 +103,7 @@ class LoanRepaymentService
 
             FinancialAuditLog::record('created', $repayment, ['amount' => $amount]);
 
-            return $repayment->fresh(['items.loan', 'familyMember', 'currency', 'paymentMethod']);
+            return $repayment->fresh(['items.loan', 'familyMember', 'currency', 'paymentMethod', 'fxCurrency']);
         });
     }
 

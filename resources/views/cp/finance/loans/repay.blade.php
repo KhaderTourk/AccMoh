@@ -4,6 +4,7 @@
 <div x-data="repayForm()" x-init="init()" class="max-w-3xl">
 <form method="post" action="{{ route('cp.family-loans.repay.store') }}" class="rounded-2xl border bg-white dark:bg-slate-800 p-6 space-y-4" @submit="prepareSubmit">
     @csrf
+    <input type="hidden" name="currency_id" :value="currencyId">
     <div class="grid md:grid-cols-2 gap-3">
         <div>
             <label class="text-sm">الفرد *</label>
@@ -19,20 +20,19 @@
             </select>
             <p class="text-xs text-slate-500 mt-1">دائن = أرجّع له · مدين = يسترجع لي</p>
         </div>
-        <div><label class="text-sm">المبلغ *</label><input type="number" step="0.01" min="0.01" name="amount" x-model="amount" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700"></div>
-        <div><label class="text-sm">العملة *</label>
-            <select name="currency_id" x-model="currencyId" @change="loadLoans()" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-                @foreach($currencies as $c)<option value="{{ $c->id }}">{{ $c->code }}</option>@endforeach
-            </select>
-        </div>
-        <div><label class="text-sm">طريقة الدفع *</label>
+        <div>
+            <label class="text-sm">طريقة الدفع *</label>
             <select name="payment_method_id" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
                 @foreach($paymentMethods as $m)<option value="{{ $m->id }}">{{ $m->name }}</option>@endforeach
             </select>
             <p class="text-xs text-slate-500 mt-1">يمكن التسوية بأي طريقة دفع حتى لو اختلفت عن الحركة الأصلية.</p>
         </div>
-        <div><label class="text-sm">التاريخ *</label><input type="date" name="repayment_date" value="{{ date('Y-m-d') }}" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700"></div>
+        <div>
+            <label class="text-sm">التاريخ *</label>
+            <input type="date" name="repayment_date" value="{{ date('Y-m-d') }}" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
+        </div>
     </div>
+    @include('cp.partials.ils-fx-fields')
     <div><label class="text-sm">ملاحظة</label><textarea name="notes" rows="2" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700"></textarea></div>
     <div class="rounded-xl border border-dashed p-4">
         <div class="flex justify-between mb-3"><h3 class="font-bold">توزيع على الحركات</h3><button type="button" @click="autoFill()" class="text-sm text-primary">توزيع تلقائي</button></div>
@@ -57,9 +57,20 @@ function repayForm() {
     return {
         memberId: '{{ old('family_member_id', $selectedMemberId) }}',
         direction: '{{ old('direction', $selectedDirection) }}',
-        currencyId: '{{ old('currency_id', $currencies->first()?->id) }}',
-        amount: '',
+        currencyId: '{{ $ilsCurrency?->id }}',
+        requiresFx: @json(filter_var(old('requires_fx', false), FILTER_VALIDATE_BOOLEAN)),
+        usdAmount: '{{ old('source_amount') }}',
+        rate: '{{ old('exchange_rate') }}',
+        ilsAmount: '{{ old('amount') }}',
         loans: [],
+        ilsTotal() {
+            const usd = parseFloat(this.usdAmount) || 0;
+            const r = parseFloat(this.rate) || 0;
+            return (Math.round(usd * r * 100) / 100).toFixed(2);
+        },
+        settlementAmount() {
+            return this.requiresFx ? parseFloat(this.ilsTotal()) || 0 : parseFloat(this.ilsAmount) || 0;
+        },
         init() { if (this.memberId) this.loadLoans(); },
         async loadLoans() {
             this.loans = [];
@@ -71,7 +82,7 @@ function repayForm() {
         },
         allocatedSum() { return this.loans.reduce((t, l) => t + (parseFloat(l.allocate)||0), 0); },
         autoFill() {
-            let left = parseFloat(this.amount)||0;
+            let left = this.settlementAmount();
             this.loans.forEach(l => {
                 const rem = parseFloat(l.remaining)||0;
                 const take = Math.min(left, rem);
@@ -80,10 +91,10 @@ function repayForm() {
             });
         },
         prepareSubmit(e) {
-            if (this.allocatedSum() < 0.001 && (parseFloat(this.amount) || 0) > 0) {
+            if (this.allocatedSum() < 0.001 && this.settlementAmount() > 0) {
                 this.autoFill();
             }
-            if (Math.abs(this.allocatedSum() - (parseFloat(this.amount)||0)) > 0.001) {
+            if (Math.abs(this.allocatedSum() - this.settlementAmount()) > 0.001) {
                 e.preventDefault(); alert('مجموع التوزيع يجب أن يساوي المبلغ.');
             }
         }

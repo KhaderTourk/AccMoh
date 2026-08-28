@@ -15,13 +15,13 @@
             ['route' => 'cp.family-members.create', 'icon' => 'group_add', 'label' => 'فرد', 'business' => false],
             ['route' => 'cp.client-services.create', 'icon' => 'work', 'label' => 'خدمة', 'business' => true],
             ['route' => 'cp.payments.create', 'icon' => 'payments', 'label' => 'دفعة', 'business' => true],
-            ['route' => 'cp.family-loans.create', 'icon' => 'handshake', 'label' => 'مدين', 'business' => false],
-            ['route' => 'cp.family-loans.repay', 'icon' => 'replay', 'label' => 'دائن', 'business' => false],
+            ['route' => 'cp.family-loans.create', 'params' => ['direction' => 'lent'], 'icon' => 'handshake', 'label' => 'مدين', 'business' => false],
+            ['route' => 'cp.family-loans.create', 'params' => ['direction' => 'borrowed'], 'icon' => 'replay', 'label' => 'دائن', 'business' => false],
             ['route' => 'cp.expenses.create', 'icon' => 'receipt_long', 'label' => 'مصروف', 'business' => false],
             ['route' => 'cp.transfers.create', 'icon' => 'swap_horiz', 'label' => 'تحويل', 'business' => false],
         ] as $action)
             @if(empty($action['business']) || tenantBusinessEnabled())
-            <a href="{{ route($action['route']) }}" class="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3 text-center hover:border-primary/40 hover:shadow-md transition-all group">
+            <a href="{{ route($action['route'], $action['params'] ?? []) }}" class="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3 text-center hover:border-primary/40 hover:shadow-md transition-all group">
                 <span class="material-symbols-outlined text-primary text-2xl group-hover:scale-110 transition-transform">{{ $action['icon'] }}</span>
                 <p class="text-xs font-medium mt-1 text-slate-600 dark:text-slate-300">{{ $action['label'] }}</p>
             </a>

@@ -3,18 +3,22 @@
 namespace Tests\Feature\Finance;
 
 use App\Enums\LoanDirection;
+use App\Enums\VendorType;
 use App\Models\Client;
 use App\Models\Currency;
 use App\Models\FamilyMember;
 use App\Models\Fund;
 use App\Models\PaymentMethod;
 use App\Models\ServiceType;
+use App\Models\Vendor;
 use App\Services\Finance\BalanceService;
 use App\Services\Finance\ClientPaymentService;
 use App\Services\Finance\ClientWorkService;
+use App\Services\Finance\ExpenseService;
 use App\Services\Finance\FamilyLoanService;
 use App\Services\Finance\FundTransferService;
 use App\Services\Finance\LoanRepaymentService;
+use App\Services\Finance\ProfitService;
 use App\Support\Money;
 use Database\Seeders\FinanceCatalogSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -319,5 +323,75 @@ class FinancialScenariosTest extends TestCase
         $this->assertSame('500.00', $balances->cash($this->family->id, $this->cash->id, $this->ils->id));
         $this->assertSame('500.00', $balances->cash($this->family->id, $this->bank->id, $this->ils->id));
         $this->assertSame($before, $balances->fundCash($this->family->id, $this->ils->id));
+    }
+
+    public function test_loan_fx_converts_usd_to_ils(): void
+    {
+        $member = FamilyMember::query()->create(['name' => 'أحمد', 'is_active' => true]);
+
+        $loan = app(FamilyLoanService::class)->create([
+            'family_member_id' => $member->id,
+            'direction' => LoanDirection::Borrowed,
+            'source_amount' => 100,
+            'exchange_rate' => '3.65',
+            'fx_currency_id' => $this->usd->id,
+            'currency_id' => $this->ils->id,
+            'payment_method_id' => $this->cash->id,
+            'loan_date' => '2026-08-20',
+        ]);
+
+        $this->assertSame('365.00', Money::of($loan->amount));
+        $this->assertTrue($loan->isFx());
+        $this->assertSame('365.00', app(BalanceService::class)->cash($this->family->id, $this->cash->id, $this->ils->id));
+        $this->assertSame('365.00', $member->fresh()->iOweAmount($this->ils->id));
+    }
+
+    public function test_worker_expense_and_period_profit(): void
+    {
+        $client = Client::query()->create(['name' => 'عميل', 'is_active' => true]);
+        app(ClientWorkService::class)->create([
+            'client_id' => $client->id,
+            'title' => 'خدمة',
+            'amount' => 800,
+            'currency_id' => $this->ils->id,
+            'service_date' => '2026-08-10',
+        ]);
+        app(ClientPaymentService::class)->receive([
+            'client_id' => $client->id,
+            'amount' => 500,
+            'currency_id' => $this->ils->id,
+            'payment_method_id' => $this->cash->id,
+            'payer_name' => 'عميل',
+            'payment_date' => '2026-08-15',
+        ]);
+
+        $worker = Vendor::query()->create([
+            'name' => 'عامل 1',
+            'type' => VendorType::Worker,
+            'is_active' => true,
+        ]);
+
+        app(ExpenseService::class)->record([
+            'fund_id' => $this->business->id,
+            'vendor_id' => $worker->id,
+            'description' => 'عامل 1',
+            'amount' => 100,
+            'currency_id' => $this->ils->id,
+            'payment_method_id' => $this->cash->id,
+            'expense_date' => '2026-08-16',
+            'payee' => 'عامل 1',
+        ]);
+
+        $rows = collect(app(ProfitService::class)->forPeriod('2026-08-01', '2026-08-31'));
+        $ilsRow = $rows->first(fn ($r) => $r['currency']->id === $this->ils->id);
+
+        $this->assertNotNull($ilsRow);
+        $this->assertSame('500.00', $ilsRow['payments']);
+        $this->assertSame('100.00', $ilsRow['work_expenses']);
+        $this->assertSame('100.00', $ilsRow['worker_expenses']);
+        $this->assertSame('400.00', $ilsRow['net_profit']);
+        $this->assertSame('300.00', $ilsRow['outstanding']);
+        $this->assertSame('700.00', $ilsRow['gross_profit']);
+        $this->assertSame('100.00', $worker->fresh()->paidAmount($this->ils->id));
     }
 }

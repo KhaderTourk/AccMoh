@@ -6,6 +6,7 @@ use App\Models\Concerns\BelongsToTenant;
 
 use App\Enums\LoanDirection;
 use App\Enums\LoanStatus;
+use App\Models\Concerns\HasIlsExchange;
 use App\Support\Money;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -15,12 +16,16 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class FamilyLoan extends Model
 {
     use BelongsToTenant;
+    use HasIlsExchange;
 
     protected $fillable = [
         'family_member_id',
         'fund_id',
         'direction',
         'amount',
+        'source_amount',
+        'exchange_rate',
+        'fx_currency_id',
         'currency_id',
         'payment_method_id',
         'loan_date',
@@ -35,6 +40,7 @@ class FamilyLoan extends Model
     {
         return [
             'amount' => 'decimal:2',
+            'source_amount' => 'decimal:2',
             'loan_date' => 'date',
             'direction' => LoanDirection::class,
             'status' => LoanStatus::class,
@@ -80,6 +86,11 @@ class FamilyLoan extends Model
                 ->whereHas('repayment', fn ($q) => $q->active())
                 ->sum('allocated_amount')
         );
+    }
+
+    public function canEdit(): bool
+    {
+        return ! $this->is_reversed && ! Money::isPositive($this->repaidAmount());
     }
 
     public function remainingAmount(): string

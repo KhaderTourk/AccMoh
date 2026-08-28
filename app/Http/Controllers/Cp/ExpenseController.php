@@ -17,8 +17,9 @@ class ExpenseController extends Controller
     public function index(Request $request)
     {
         $expenses = Expense::query()
-            ->with(['fund', 'category', 'currency', 'paymentMethod'])
+            ->with(['fund', 'category', 'currency', 'paymentMethod', 'vendor'])
             ->when($request->fund_id, fn ($q, $id) => $q->where('fund_id', $id))
+            ->when($request->vendor_id, fn ($q, $id) => $q->where('vendor_id', $id))
             ->when($request->currency_id, fn ($q, $id) => $q->where('currency_id', $id))
             ->when($request->payment_method_id, fn ($q, $id) => $q->where('payment_method_id', $id))
             ->when($request->from, fn ($q, $d) => $q->whereDate('expense_date', '>=', $d))
@@ -32,13 +33,20 @@ class ExpenseController extends Controller
         return view('cp.finance.expenses.index', array_merge(compact('expenses'), $this->financeLookups()));
     }
 
-    public function create()
+    public function create(Request $request)
     {
-        return view('cp.finance.expenses.form', $this->financeLookups());
+        return view('cp.finance.expenses.form', [
+            'selectedVendorId' => $request->vendor_id,
+            'selectedFundId' => $request->fund_id,
+        ] + $this->financeLookups());
     }
 
     public function store(Request $request, ExpenseService $service)
     {
+        $request->merge([
+            'vendor_id' => $request->filled('vendor_id') ? $request->vendor_id : null,
+            'expense_category_id' => $request->filled('expense_category_id') ? $request->expense_category_id : null,
+        ]);
         $data = $request->validate([
             'fund_id' => ['required', 'exists:funds,id'],
             'expense_category_id' => ['nullable', 'exists:expense_categories,id'],
@@ -48,6 +56,7 @@ class ExpenseController extends Controller
             'payment_method_id' => ['required', 'exists:payment_methods,id'],
             'expense_date' => ['required', 'date'],
             'payee' => ['nullable', 'string', 'max:255'],
+            'vendor_id' => ['nullable', 'exists:vendors,id'],
             'notes' => ['nullable', 'string'],
         ]);
 

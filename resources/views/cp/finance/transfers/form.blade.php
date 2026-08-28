@@ -6,7 +6,7 @@
     @csrf
     <p class="text-sm text-slate-500">
         التحويل داخل نفس العملة ينقل بين طريقتي دفع.
-        عند اختلاف العملة: أدخل سعر الصرف يدوياً — <strong>المبلغ المستلم = المبلغ الصادر ÷ سعر الصرف</strong>
+        عند اختلاف العملة: أدخل سعر الصرف يدوياً — <strong>المبلغ بعد التحويل = المبلغ قبل التحويل ÷ سعر الصرف</strong>
         (مثال: 365 شيكل ÷ 3.65 = 100 دولار).
     </p>
     <div class="grid md:grid-cols-2 gap-3">
@@ -47,7 +47,7 @@
             </select>
         </div>
         <div>
-            <label class="text-sm">المبلغ الصادر *</label>
+            <label class="text-sm">المبلغ قبل التحويل *</label>
             <input type="number" step="0.01" min="0.01" name="amount" x-model="amount" @input="recalcFromAmount()" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
         </div>
         <div>
@@ -62,7 +62,7 @@
                     <p class="text-xs text-slate-500 mt-1">كم من عملة المصدر مقابل 1 من الوجهة (شيكل→دولار: 3.65)</p>
                 </div>
                 <div>
-                    <label class="text-sm">المبلغ المستلم *</label>
+                    <label class="text-sm">المبلغ بعد التحويل *</label>
                     <input type="number" step="0.01" min="0.01" name="to_amount" x-model="toAmount" @input="recalcFromToAmount()" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
                 </div>
             </div>

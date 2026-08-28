@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Cp;
 use App\Http\Controllers\Controller;
 use App\Models\Client;
 use App\Models\Currency;
+use App\Services\Export\PdfExporter;
 use Illuminate\Http\Request;
 
 class ClientController extends Controller
@@ -43,37 +44,19 @@ class ClientController extends Controller
 
     public function show(Client $client)
     {
-        $client->load([
-            'services.currency',
-            'services.fxCurrency',
-            'services.serviceType',
-            'payments' => fn ($q) => $q->with(['currency', 'fxCurrency', 'paymentMethod'])->latest('payment_date'),
-        ]);
-        $currencies = Currency::query()->active()->get();
+        return view('cp.finance.clients.show', $this->showPayload($client));
+    }
 
-        $timeline = collect();
-        foreach ($client->services as $service) {
-            $timeline->push([
-                'date' => $service->service_date,
-                'type' => 'service',
-                'title' => 'خدمة: '.$service->title,
-                'amount' => $service->amount,
-                'currency' => $service->currency,
-            ]);
-        }
-        foreach ($client->payments->where('is_reversed', false) as $payment) {
-            $timeline->push([
-                'date' => $payment->payment_date,
-                'type' => 'payment',
-                'title' => 'دفعة عبر '.$payment->paymentMethod->name,
-                'amount' => $payment->amount,
-                'currency' => $payment->currency,
-            ]);
-        }
+    public function exportPdf(Client $client, PdfExporter $pdf)
+    {
+        $data = $this->showPayload($client);
+        $data['exporting'] = true;
 
-        $timeline = $timeline->sortByDesc(fn ($i) => $i['date']->format('Y-m-d'))->values();
-
-        return view('cp.finance.clients.show', compact('client', 'currencies', 'timeline'));
+        return $pdf->download(
+            'cp.finance.clients.print',
+            $data,
+            'client-'.$client->id.'.pdf'
+        );
     }
 
     public function edit(Client $client)
@@ -111,5 +94,49 @@ class ClientController extends Controller
             'notes' => ['nullable', 'string'],
             'is_active' => ['nullable', 'boolean'],
         ]) + ['is_active' => $request->boolean('is_active', true)];
+    }
+
+    /**
+     * @return array{client: Client, currencies: \Illuminate\Support\Collection, timeline: \Illuminate\Support\Collection, exportedAt: string}
+     */
+    protected function showPayload(Client $client): array
+    {
+        $client->load([
+            'services.currency',
+            'services.fxCurrency',
+            'services.serviceType',
+            'payments' => fn ($q) => $q->with(['currency', 'fxCurrency', 'paymentMethod'])->latest('payment_date'),
+        ]);
+        $currencies = Currency::query()->active()->get();
+
+        $timeline = collect();
+        foreach ($client->services as $service) {
+            $timeline->push([
+                'date' => $service->service_date,
+                'type' => 'service',
+                'title' => 'خدمة: '.$service->title,
+                'amount' => $service->amount,
+                'currency' => $service->currency,
+            ]);
+        }
+        foreach ($client->payments->where('is_reversed', false) as $payment) {
+            $timeline->push([
+                'date' => $payment->payment_date,
+                'type' => 'payment',
+                'title' => 'دفعة عبر '.$payment->paymentMethod->name,
+                'amount' => $payment->amount,
+                'currency' => $payment->currency,
+            ]);
+        }
+
+        $timeline = $timeline->sortByDesc(fn ($i) => $i['date']->format('Y-m-d'))->values();
+
+        return [
+            'client' => $client,
+            'currencies' => $currencies,
+            'timeline' => $timeline,
+            'exportedAt' => now()->format('Y-m-d H:i'),
+            'title' => $client->name,
+        ];
     }
 }

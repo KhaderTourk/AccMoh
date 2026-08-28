@@ -145,6 +145,65 @@ if (!function_exists('money_format_currency')) {
     }
 }
 
+if (! function_exists('date_range_presets')) {
+    /**
+     * @return array<string, array{label: string, from: ?string, to: ?string}>
+     */
+    function date_range_presets(): array
+    {
+        $today = now()->toDateString();
+
+        return [
+            'current_month' => [
+                'label' => 'الشهر الحالي',
+                'from' => now()->startOfMonth()->toDateString(),
+                'to' => $today,
+            ],
+            'last_month' => [
+                'label' => 'آخر شهر',
+                'from' => now()->subMonthNoOverflow()->startOfMonth()->toDateString(),
+                'to' => now()->subMonthNoOverflow()->endOfMonth()->toDateString(),
+            ],
+            'all' => [
+                'label' => 'طوال المدة',
+                'from' => null,
+                'to' => null,
+            ],
+        ];
+    }
+}
+
+if (! function_exists('date_range_url')) {
+    function date_range_url(?string $from, ?string $to): string
+    {
+        $query = request()->except(['from', 'to', 'page']);
+        if ($from) {
+            $query['from'] = $from;
+        }
+        if ($to) {
+            $query['to'] = $to;
+        }
+
+        $qs = http_build_query($query);
+
+        return request()->url().($qs !== '' ? '?'.$qs : '');
+    }
+}
+
+if (! function_exists('date_range_preset_active')) {
+    function date_range_preset_active(?string $from, ?string $to): bool
+    {
+        $currentFrom = request('from');
+        $currentTo = request('to');
+
+        if ($from === null && $to === null) {
+            return ! $currentFrom && ! $currentTo;
+        }
+
+        return $currentFrom === $from && $currentTo === $to;
+    }
+}
+
 if (!function_exists('localized_route')) {
     /**
      * رابط مسار محلي حسب اللغة الحالية (للمسارات الأمامية فقط).

@@ -11,6 +11,7 @@ use App\Models\FamilyMember;
 use App\Services\Finance\FamilyLoanService;
 use App\Services\Finance\LoanRepaymentService;
 use App\Services\Finance\ReversalService;
+use App\Support\IlsFx;
 use App\Support\Money;
 use Illuminate\Http\Request;
 
@@ -18,46 +19,48 @@ class FamilyLoanController extends Controller
 {
     use LoadsFinanceLookups;
 
-    public function index(Request $request)
+    public function index()
     {
-        $loans = FamilyLoan::query()
-            ->with(['familyMember', 'currency', 'paymentMethod'])
-            ->when($request->family_member_id, fn ($q, $id) => $q->where('family_member_id', $id))
-            ->when($request->direction, fn ($q, $d) => $q->where('direction', $d))
-            ->when($request->currency_id, fn ($q, $id) => $q->where('currency_id', $id))
-            ->when($request->boolean('open_only'), fn ($q) => $q->active()->whereIn('status', ['open', 'partial']))
-            ->orderByDesc('loan_date')
-            ->paginate(20)
-            ->withQueryString();
+        return redirect()->route('cp.family-loans.debtors');
+    }
 
-        return view('cp.finance.loans.index', [
-            'loans' => $loans,
-            'members' => FamilyMember::query()->orderBy('name')->get(),
-            'directions' => LoanDirection::cases(),
-        ] + $this->financeLookups());
+    public function debtors(Request $request)
+    {
+        return $this->listing($request, LoanDirection::Lent);
+    }
+
+    public function creditors(Request $request)
+    {
+        return $this->listing($request, LoanDirection::Borrowed);
     }
 
     public function create(Request $request)
     {
+        $direction = LoanDirection::tryFrom((string) $request->direction) ?? LoanDirection::Lent;
+
         return view('cp.finance.loans.form', [
+            'loan' => new FamilyLoan([
+                'direction' => $direction,
+                'family_member_id' => $request->family_member_id,
+                'loan_date' => now()->toDateString(),
+            ]),
             'members' => FamilyMember::query()->active()->orderBy('name')->get(),
-            'directions' => LoanDirection::cases(),
             'selectedMemberId' => $request->family_member_id,
-            'selectedDirection' => $request->direction ?? LoanDirection::Borrowed->value,
+            'selectedDirection' => $direction->value,
         ] + $this->financeLookups());
     }
 
     public function store(Request $request, FamilyLoanService $service)
     {
+        $isFx = $request->boolean('requires_fx');
         $data = $request->validate([
             'family_member_id' => ['required', 'exists:family_members,id'],
             'direction' => ['required', 'in:borrowed,lent'],
-            'amount' => ['required', 'numeric', 'gt:0'],
-            'currency_id' => ['required', 'exists:currencies,id'],
             'payment_method_id' => ['required', 'exists:payment_methods,id'],
             'loan_date' => ['required', 'date'],
             'notes' => ['nullable', 'string'],
-        ]);
+        ] + IlsFx::rules($isFx));
+        $data = IlsFx::stamp($data, $isFx);
 
         try {
             $loan = $service->create($data);
@@ -65,8 +68,58 @@ class FamilyLoanController extends Controller
             return back()->withInput()->with('error', $e->getMessage());
         }
 
-        return redirect()->route('cp.family-members.show', $loan->family_member_id)
+        return redirect()->route($this->indexRoute($loan->direction))
             ->with('success', 'تم تسجيل الحركة.');
+    }
+
+    public function edit(FamilyLoan $loan)
+    {
+        if (! $loan->canEdit()) {
+            return redirect()->route($this->indexRoute($loan->direction))
+                ->with('error', 'لا يمكن تعديل حركة ملغاة أو عليها تسوية.');
+        }
+
+        $loan->load(['currency', 'fxCurrency']);
+
+        return view('cp.finance.loans.form', [
+            'loan' => $loan,
+            'members' => FamilyMember::query()->active()->orderBy('name')->get(),
+            'selectedMemberId' => $loan->family_member_id,
+            'selectedDirection' => $loan->direction->value,
+        ] + $this->financeLookups());
+    }
+
+    public function update(Request $request, FamilyLoan $loan, FamilyLoanService $service)
+    {
+        $isFx = $request->boolean('requires_fx');
+        $data = $request->validate([
+            'family_member_id' => ['required', 'exists:family_members,id'],
+            'payment_method_id' => ['required', 'exists:payment_methods,id'],
+            'loan_date' => ['required', 'date'],
+            'notes' => ['nullable', 'string'],
+        ] + IlsFx::rules($isFx));
+        $data = IlsFx::stamp($data, $isFx);
+        $data['direction'] = $loan->direction->value;
+
+        try {
+            $loan = $service->update($loan, $data);
+        } catch (FinanceException $e) {
+            return back()->withInput()->with('error', $e->getMessage());
+        }
+
+        return redirect()->route($this->indexRoute($loan->direction))
+            ->with('success', 'تم تحديث الحركة.');
+    }
+
+    public function destroy(FamilyLoan $loan, ReversalService $reversals)
+    {
+        try {
+            $reversals->reverseLoan($loan);
+        } catch (FinanceException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', 'تم حذف الحركة وإلغاء أثرها المالي.');
     }
 
     public function createRepayment(Request $request)
@@ -81,18 +134,18 @@ class FamilyLoanController extends Controller
 
     public function storeRepayment(Request $request, LoanRepaymentService $service)
     {
+        $isFx = $request->boolean('requires_fx');
         $data = $request->validate([
             'family_member_id' => ['required', 'exists:family_members,id'],
             'direction' => ['required', 'in:borrowed,lent'],
-            'amount' => ['required', 'numeric', 'gt:0'],
-            'currency_id' => ['required', 'exists:currencies,id'],
             'payment_method_id' => ['required', 'exists:payment_methods,id'],
             'repayment_date' => ['required', 'date'],
             'notes' => ['nullable', 'string'],
             'allocations' => ['nullable', 'array'],
             'allocations.*.family_loan_id' => ['required_with:allocations', 'exists:family_loans,id'],
             'allocations.*.amount' => ['nullable', 'numeric', 'gte:0'],
-        ]);
+        ] + IlsFx::rules($isFx));
+        $data = IlsFx::stamp($data, $isFx);
 
         $allocations = collect($data['allocations'] ?? [])->map(fn ($row) => [
             'family_loan_id' => (int) $row['family_loan_id'],
@@ -105,19 +158,13 @@ class FamilyLoanController extends Controller
             return back()->withInput()->with('error', $e->getMessage());
         }
 
-        return redirect()->route('cp.family-members.show', $repayment->family_member_id)
+        return redirect()->route($this->indexRoute($repayment->direction))
             ->with('success', 'تم تسجيل التسوية.');
     }
 
     public function reverse(FamilyLoan $loan, ReversalService $reversals)
     {
-        try {
-            $reversals->reverseLoan($loan);
-        } catch (FinanceException $e) {
-            return back()->with('error', $e->getMessage());
-        }
-
-        return back()->with('success', 'تم إلغاء الحركة.');
+        return $this->destroy($loan, $reversals);
     }
 
     public function reverseRepayment(\App\Models\FamilyLoanRepayment $repayment, ReversalService $reversals)
@@ -158,5 +205,33 @@ class FamilyLoanController extends Controller
             ]);
 
         return response()->json(['loans' => $loans]);
+    }
+
+    protected function listing(Request $request, LoanDirection $direction)
+    {
+        $loans = FamilyLoan::query()
+            ->with(['familyMember', 'currency', 'fxCurrency', 'paymentMethod'])
+            ->where('direction', $direction)
+            ->when($request->family_member_id, fn ($q, $id) => $q->where('family_member_id', $id))
+            ->when($request->from, fn ($q, $d) => $q->whereDate('loan_date', '>=', $d))
+            ->when($request->to, fn ($q, $d) => $q->whereDate('loan_date', '<=', $d))
+            ->when($request->boolean('open_only'), fn ($q) => $q->active()->whereIn('status', ['open', 'partial']))
+            ->orderByDesc('loan_date')
+            ->orderByDesc('id')
+            ->paginate(20)
+            ->withQueryString();
+
+        return view('cp.finance.loans.index', [
+            'loans' => $loans,
+            'direction' => $direction,
+            'members' => FamilyMember::query()->orderBy('name')->get(),
+        ] + $this->financeLookups());
+    }
+
+    protected function indexRoute(LoanDirection $direction): string
+    {
+        return $direction === LoanDirection::Lent
+            ? 'cp.family-loans.debtors'
+            : 'cp.family-loans.creditors';
     }
 }

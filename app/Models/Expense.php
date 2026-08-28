@@ -15,6 +15,7 @@ class Expense extends Model
     protected $fillable = [
         'fund_id',
         'expense_category_id',
+        'vendor_id',
         'description',
         'amount',
         'currency_id',
@@ -45,6 +46,11 @@ class Expense extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(ExpenseCategory::class, 'expense_category_id');
+    }
+
+    public function vendor(): BelongsTo
+    {
+        return $this->belongsTo(Vendor::class);
     }
 
     public function currency(): BelongsTo

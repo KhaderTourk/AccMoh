@@ -23,6 +23,9 @@ class CheckCpPermission
         'cp.ledger' => 'finance',
         'cp.reports' => 'finance',
         'cp.service-types' => 'finance',
+        'cp.expense-categories' => 'finance',
+        'cp.workers' => 'finance',
+        'cp.suppliers' => 'finance',
     ];
 
     public function handle(Request $request, Closure $next): Response

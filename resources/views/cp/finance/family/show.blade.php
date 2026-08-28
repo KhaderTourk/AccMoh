@@ -11,6 +11,7 @@
             <a href="{{ route('cp.family-loans.create', ['family_member_id' => $member->id, 'direction' => 'borrowed']) }}" class="px-3 py-2 rounded-xl bg-primary text-white text-sm">دائن</a>
             <a href="{{ route('cp.family-loans.create', ['family_member_id' => $member->id, 'direction' => 'lent']) }}" class="px-3 py-2 rounded-xl border text-sm">مدين</a>
             <a href="{{ route('cp.family-loans.repay', ['family_member_id' => $member->id]) }}" class="px-3 py-2 rounded-xl border text-sm">تسوية</a>
+            <a href="{{ route('cp.family-members.export-pdf', $member) }}" class="px-3 py-2 rounded-xl border text-sm">تصدير PDF</a>
         </div>
     </div>
     <div class="grid md:grid-cols-2 gap-4">
@@ -54,14 +55,23 @@
             @foreach($member->loans as $loan)
                 <tr class="{{ $loan->is_reversed ? 'opacity-40' : '' }}">
                     <td class="px-3 py-2">{{ $loan->direction->label() }}</td>
-                    <td class="px-3 py-2">{{ $loan->currency->format($loan->amount) }}</td>
+                    <td class="px-3 py-2">{{ $loan->currency->format($loan->amount) }}
+                        @if($loan->isFx())
+                            <div class="text-xs text-slate-500">{{ $loan->fxCurrency?->format($loan->source_amount) }} × {{ $loan->formattedExchangeRate() }}</div>
+                        @endif
+                    </td>
                     <td class="px-3 py-2">{{ $loan->currency->format($loan->remainingAmount()) }}</td>
                     <td class="px-3 py-2">{{ $loan->paymentMethod->name }}</td>
                     <td class="px-3 py-2">{{ $loan->loan_date->format('Y-m-d') }}</td>
                     <td class="px-3 py-2">{{ $loan->status->label() }}</td>
                     <td class="px-3 py-2">
                         @unless($loan->is_reversed)
-                        <form method="post" action="{{ route('cp.family-loans.reverse', $loan) }}" onsubmit="return confirm('إلغاء الحركة؟')">@csrf<button class="text-rose-600 text-xs">إلغاء</button></form>
+                        <div class="flex gap-2 justify-end">
+                            @if($loan->canEdit())
+                                <a href="{{ route('cp.family-loans.edit', $loan) }}" class="text-primary text-xs">تعديل</a>
+                            @endif
+                            <form method="post" action="{{ route('cp.family-loans.destroy', $loan) }}" onsubmit="return confirm('حذف الحركة؟')">@csrf @method('DELETE')<button class="text-rose-600 text-xs">حذف</button></form>
+                        </div>
                         @endunless
                     </td>
                 </tr>

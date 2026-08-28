@@ -127,7 +127,9 @@ class FundTransferService
             $transfer->update(['ledger_group_id' => $groupId]);
 
             $afterFrom = $this->balances->fundCash((int) $data['fund_id'], $fromCurrencyId);
-            $expectedFrom = Money::sub($beforeFrom, $needed);
+            $expectedFrom = $isFx
+                ? Money::sub($beforeFrom, $needed)
+                : Money::sub($beforeFrom, $fee);
             if (Money::cmp($afterFrom, $expectedFrom) !== 0) {
                 throw new FinanceException('فشل التحقق من اتساق التحويل (العملة المصدر). لم يُحفظ أي تغيير.');
             }

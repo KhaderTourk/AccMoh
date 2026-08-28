@@ -3,24 +3,40 @@
 namespace App\Http\Controllers\Cp;
 
 use App\Enums\LoanDirection;
-use App\Enums\TransactionType;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Cp\Concerns\LoadsFinanceLookups;
 use App\Models\Client;
 use App\Models\ClientPayment;
-use App\Models\ClientService;
 use App\Models\Expense;
 use App\Models\FamilyLoan;
 use App\Models\FamilyMember;
-use App\Models\LedgerEntry;
+use App\Services\Export\PdfExporter;
 use App\Services\Finance\BalanceService;
+use App\Services\Finance\ProfitService;
 use Illuminate\Http\Request;
 
 class ReportController extends Controller
 {
     use LoadsFinanceLookups;
 
-    public function index(Request $request, BalanceService $balances)
+    public function index(Request $request, BalanceService $balances, ProfitService $profit)
+    {
+        return view('cp.finance.reports.index', $this->payload($request, $balances, $profit));
+    }
+
+    public function exportPdf(Request $request, BalanceService $balances, ProfitService $profit, PdfExporter $pdf)
+    {
+        return $pdf->download(
+            'cp.finance.reports.print',
+            $this->payload($request, $balances, $profit),
+            'reports-'.now()->format('Y-m-d').'.pdf'
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function payload(Request $request, BalanceService $balances, ProfitService $profit): array
     {
         $snapshot = $balances->snapshot();
         $receivables = $balances->clientReceivables();
@@ -76,7 +92,7 @@ class ReportController extends Controller
             ->active()
             ->when($from, fn ($q) => $q->whereDate('expense_date', '>=', $from))
             ->when($to, fn ($q) => $q->whereDate('expense_date', '<=', $to))
-            ->with(['fund', 'category', 'currency', 'paymentMethod'])
+            ->with(['fund', 'category', 'currency', 'paymentMethod', 'vendor'])
             ->orderByDesc('expense_date')
             ->limit(100)
             ->get();
@@ -88,7 +104,7 @@ class ReportController extends Controller
             ->orderBy('loan_date')
             ->get();
 
-        return view('cp.finance.reports.index', [
+        return [
             'snapshot' => $snapshot,
             'receivables' => tenantBusinessEnabled() ? $receivables : [],
             'iOwe' => $iOwe,
@@ -98,8 +114,11 @@ class ReportController extends Controller
             'revenue' => $revenue,
             'expenses' => $expenses,
             'openLoans' => $openLoans,
+            'profitRows' => $profit->forPeriod($from, $to),
             'from' => $from,
             'to' => $to,
-        ] + $this->financeLookups());
+            'exportedAt' => now()->format('Y-m-d H:i'),
+            'title' => 'التقارير',
+        ] + $this->financeLookups();
     }
 }

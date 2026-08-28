@@ -11,13 +11,22 @@
         </form>
         <a href="{{ route('cp.expenses.create') }}" class="px-4 py-2 rounded-xl bg-primary text-white">مصروف جديد</a>
     </div>
+    @include('cp.partials.date-range-shortcuts')
     <div class="rounded-2xl border bg-white dark:bg-slate-800 overflow-hidden">
         <table class="w-full text-sm text-right">
-            <thead class="bg-slate-50 dark:bg-slate-700/50"><tr><th class="px-3 py-2">الوصف</th><th class="px-3 py-2">الصندوق</th><th class="px-3 py-2">المبلغ</th><th class="px-3 py-2">الطريقة</th><th class="px-3 py-2">التاريخ</th><th class="px-3 py-2"></th></tr></thead>
+            <thead class="bg-slate-50 dark:bg-slate-700/50"><tr>
+                <th class="px-3 py-2">الجهة</th><th class="px-3 py-2">المستلم</th><th class="px-3 py-2">الصندوق</th><th class="px-3 py-2">المبلغ</th><th class="px-3 py-2">الطريقة</th><th class="px-3 py-2">التاريخ</th><th class="px-3 py-2"></th>
+            </tr></thead>
             <tbody class="divide-y dark:divide-slate-700">
             @forelse($expenses as $e)
                 <tr class="{{ $e->is_reversed ? 'opacity-40' : '' }}">
-                    <td class="px-3 py-2">{{ $e->description }}</td>
+                    <td class="px-3 py-2">
+                        {{ $e->description }}
+                        @if($e->vendor)
+                            <div class="text-xs text-slate-500">{{ $e->vendor->type->label() }}: {{ $e->vendor->name }}</div>
+                        @endif
+                    </td>
+                    <td class="px-3 py-2">{{ $e->payee ?: '—' }}</td>
                     <td class="px-3 py-2">{{ $e->fund->name }}</td>
                     <td class="px-3 py-2">{{ $e->currency->format($e->amount) }}</td>
                     <td class="px-3 py-2">{{ $e->paymentMethod->name }}</td>
@@ -29,7 +38,7 @@
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="6" class="p-8 text-center text-slate-500">لا توجد مصروفات.</td></tr>
+                <tr><td colspan="7" class="p-8 text-center text-slate-500">لا توجد مصروفات.</td></tr>
             @endforelse
             </tbody>
         </table>

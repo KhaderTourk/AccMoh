@@ -7,6 +7,7 @@ use App\Models\Currency;
 use App\Models\ExpenseCategory;
 use App\Models\Fund;
 use App\Models\PaymentMethod;
+use App\Models\Vendor;
 use App\Models\ServiceType;
 
 trait LoadsFinanceLookups
@@ -33,6 +34,9 @@ trait LoadsFinanceLookups
             'funds' => $funds,
             'serviceTypes' => $serviceTypes,
             'expenseCategories' => $categories,
+            'vendors' => tenantBusinessEnabled()
+                ? Vendor::query()->active()->orderBy('name')->get()
+                : collect(),
         ];
     }
 }
