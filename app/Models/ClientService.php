@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
+
 use App\Enums\ClientServiceStatus;
 use App\Support\Money;
 use Illuminate\Database\Eloquent\Builder;
@@ -12,6 +14,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ClientService extends Model
 {
+    use BelongsToTenant;
+
     use SoftDeletes;
 
     protected $fillable = [

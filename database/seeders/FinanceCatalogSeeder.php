@@ -21,6 +21,10 @@ class FinanceCatalogSeeder extends Seeder
             ['code' => 'USD'],
             ['name' => 'دولار أمريكي', 'symbol' => '$', 'decimal_places' => 2, 'is_active' => true, 'sort_order' => 2]
         );
+        Currency::query()->firstOrCreate(
+            ['code' => 'JOD'],
+            ['name' => 'دينار', 'symbol' => 'د.أ', 'decimal_places' => 2, 'is_active' => true, 'sort_order' => 3]
+        );
 
         foreach ([
             ['name' => 'نقدي', 'slug' => 'cash', 'icon' => 'payments', 'sort_order' => 1],

@@ -15,8 +15,8 @@ class ClientController extends Controller
             ->when($request->q, fn ($q, $term) => $q->where(function ($qq) use ($term) {
                 $qq->where('name', 'like', "%{$term}%")
                     ->orWhere('phone', 'like', "%{$term}%")
-                    ->orWhere('company_name', 'like', "%{$term}%")
-                    ->orWhere('email', 'like', "%{$term}%");
+                    ->orWhere('contact_name', 'like', "%{$term}%")
+                    ->orWhere('company_name', 'like', "%{$term}%");
             }))
             ->when($request->filled('status'), fn ($q) => $q->where('is_active', $request->status === 'active'))
             ->orderBy('name')
@@ -46,7 +46,7 @@ class ClientController extends Controller
         $client->load([
             'services.currency',
             'services.serviceType',
-            'payments' => fn ($q) => $q->with(['currency', 'paymentMethod', 'allocations.service'])->latest('payment_date'),
+            'payments' => fn ($q) => $q->with(['currency', 'paymentMethod'])->latest('payment_date'),
         ]);
         $currencies = Currency::query()->active()->get();
 
@@ -105,9 +105,8 @@ class ClientController extends Controller
     {
         return $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'contact_name' => ['nullable', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:50'],
-            'email' => ['nullable', 'email', 'max:255'],
-            'company_name' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],
             'is_active' => ['nullable', 'boolean'],
         ]) + ['is_active' => $request->boolean('is_active', true)];

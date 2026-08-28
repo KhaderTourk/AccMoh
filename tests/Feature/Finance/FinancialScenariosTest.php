@@ -145,8 +145,6 @@ class FinancialScenariosTest extends TestCase
             'payment_method_id' => $this->palpay->id,
             'payer_name' => 'محمد',
             'payment_date' => '2026-08-21',
-        ], [
-            ['client_service_id' => $service->id, 'amount' => 200],
         ]);
 
         $balances = app(BalanceService::class);
@@ -154,12 +152,12 @@ class FinancialScenariosTest extends TestCase
         $this->assertSame('300.00', $client->fresh()->outstandingAmount($this->usd->id));
     }
 
-    public function test_scenario_5_payment_allocated_across_two_services(): void
+    public function test_scenario_5_payment_reduces_client_total_not_a_single_service(): void
     {
         $client = Client::query()->create(['name' => 'محمد', 'is_active' => true]);
         $work = app(ClientWorkService::class);
 
-        $ad = $work->create([
+        $work->create([
             'client_id' => $client->id,
             'title' => 'إعلان ممول',
             'amount' => 300,
@@ -181,17 +179,63 @@ class FinancialScenariosTest extends TestCase
             'payment_method_id' => $this->bank->id,
             'payer_name' => 'محمد',
             'payment_date' => '2026-08-22',
-        ], [
-            ['client_service_id' => $ad->id, 'amount' => 200],
-            ['client_service_id' => $design->id, 'amount' => 100],
         ]);
 
         $this->assertSame('300.00', Money::of($payment->amount));
-        $this->assertSame('200.00', $ad->fresh()->paidAmount());
-        $this->assertSame('100.00', $ad->fresh()->remainingAmount());
-        $this->assertSame('100.00', $design->fresh()->paidAmount());
-        $this->assertSame('0.00', $design->fresh()->remainingAmount());
+        $this->assertSame('400.00', $client->fresh()->billedAmount($this->usd->id));
+        $this->assertSame('300.00', $client->fresh()->paidAmount($this->usd->id));
         $this->assertSame('100.00', $client->fresh()->outstandingAmount($this->usd->id));
+
+        $this->expectException(\App\Exceptions\FinanceException::class);
+        app(ClientPaymentService::class)->receive([
+            'client_id' => $client->id,
+            'amount' => 150,
+            'currency_id' => $this->usd->id,
+            'payment_method_id' => $this->bank->id,
+            'payer_name' => 'محمد',
+            'payment_date' => '2026-08-23',
+        ]);
+    }
+
+    public function test_client_service_can_be_updated_and_deleted_when_billed_still_covers_paid(): void
+    {
+        $client = Client::query()->create(['name' => 'محمد', 'is_active' => true]);
+        $work = app(ClientWorkService::class);
+        $service = $work->create([
+            'client_id' => $client->id,
+            'title' => 'إعلان',
+            'amount' => 500,
+            'currency_id' => $this->usd->id,
+            'service_date' => '2026-08-20',
+        ]);
+
+        app(ClientPaymentService::class)->receive([
+            'client_id' => $client->id,
+            'amount' => 200,
+            'currency_id' => $this->usd->id,
+            'payment_method_id' => $this->cash->id,
+            'payer_name' => 'محمد',
+            'payment_date' => '2026-08-21',
+        ]);
+
+        $updated = $work->update($service, [
+            'title' => 'إعلان محدّث',
+            'amount' => 400,
+            'currency_id' => $this->usd->id,
+            'service_date' => '2026-08-20',
+            'status' => 'completed',
+        ]);
+        $this->assertSame('إعلان محدّث', $updated->title);
+        $this->assertSame('200.00', $client->fresh()->outstandingAmount($this->usd->id));
+
+        $this->expectException(\App\Exceptions\FinanceException::class);
+        $work->update($service->fresh(), [
+            'title' => 'إعلان محدّث',
+            'amount' => 100,
+            'currency_id' => $this->usd->id,
+            'service_date' => '2026-08-20',
+            'status' => 'completed',
+        ]);
     }
 
     public function test_scenario_6_transfer_cash_to_bank_preserves_fund_total(): void

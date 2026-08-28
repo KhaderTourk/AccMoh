@@ -7,10 +7,18 @@
     <meta name="theme-color" content="#08A46D">
     <link rel="manifest" href="{{ asset('manifest.webmanifest') }}">
     <title>@yield('title', 'لوحة التحكم') — AccMa</title>
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com">
+    <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
     <link href="https://fonts.googleapis.com" rel="preconnect">
     <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+    {{-- Non-blocking fonts: don't stall first paint on slow networks --}}
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript>
+        <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap" rel="stylesheet">
+    </noscript>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script>
@@ -65,6 +73,7 @@
                                 <span>الصناديق والأرصدة</span>
                             </a>
                         </li>
+                        @if(tenantBusinessEnabled())
                         <li class="cp-nav-section pt-2 mt-2 {{ request()->routeIs('cp.clients.*', 'cp.client-services.*', 'cp.payments.*', 'cp.service-types.*') ? '' : 'cp-collapsed' }}" data-section="business">
                             <button type="button" class="cp-section-toggle" aria-expanded="{{ request()->routeIs('cp.clients.*', 'cp.client-services.*', 'cp.payments.*', 'cp.service-types.*') ? 'true' : 'false' }}">
                                 <span>العمل</span>
@@ -77,13 +86,14 @@
                                 <li><a href="{{ route('cp.service-types.index') }}" class="cp-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary transition-colors {{ request()->routeIs('cp.service-types.*') ? 'bg-primary/10 text-primary dark:bg-primary/20' : '' }}"><span class="material-symbols-outlined text-xl">category</span><span>أنواع الخدمات</span></a></li>
                             </ul>
                         </li>
+                        @endif
                         <li class="cp-nav-section pt-2 mt-2 {{ request()->routeIs('cp.family-members.*', 'cp.family-loans.*') ? '' : 'cp-collapsed' }}" data-section="family">
                             <button type="button" class="cp-section-toggle" aria-expanded="{{ request()->routeIs('cp.family-members.*', 'cp.family-loans.*') ? 'true' : 'false' }}">
                                 <span>العائلة</span>
                                 <span class="material-symbols-outlined cp-chevron">expand_more</span>
                             </button>
                             <ul class="cp-section-content space-y-0.5">
-                                <li><a href="{{ route('cp.family-members.index') }}" class="cp-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary transition-colors {{ request()->routeIs('cp.family-members.*') ? 'bg-primary/10 text-primary dark:bg-primary/20' : '' }}"><span class="material-symbols-outlined text-xl">family_restroom</span><span>أفراد العائلة</span></a></li>
+                                <li><a href="{{ route('cp.family-members.index') }}" class="cp-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary transition-colors {{ request()->routeIs('cp.family-members.*') ? 'bg-primary/10 text-primary dark:bg-primary/20' : '' }}"><span class="material-symbols-outlined text-xl">family_restroom</span><span>الأفراد</span></a></li>
                                 <li><a href="{{ route('cp.family-loans.index') }}" class="cp-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary transition-colors {{ request()->routeIs('cp.family-loans.index') || request()->routeIs('cp.family-loans.create') ? 'bg-primary/10 text-primary dark:bg-primary/20' : '' }}"><span class="material-symbols-outlined text-xl">handshake</span><span>القروض</span></a></li>
                                 <li><a href="{{ route('cp.family-loans.repay') }}" class="cp-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary transition-colors {{ request()->routeIs('cp.family-loans.repay*') ? 'bg-primary/10 text-primary dark:bg-primary/20' : '' }}"><span class="material-symbols-outlined text-xl">replay</span><span>السداد</span></a></li>
                             </ul>
@@ -263,11 +273,21 @@
                 navigator.serviceWorker.register('/sw.js').catch(function() {});
             }
 
-            // Pending outbox badge (best-effort)
+            // Pending outbox badge (best-effort) — must use same DB version + upgrade as cp-offline.js
             const badge = document.getElementById('cp-offline-badge');
             if (badge && window.indexedDB) {
                 try {
-                    const req = indexedDB.open('accma_offline', 1);
+                    const req = indexedDB.open('accma_offline', 2);
+                    req.onupgradeneeded = function() {
+                        const db = req.result;
+                        if (!db.objectStoreNames.contains('meta')) db.createObjectStore('meta');
+                        if (!db.objectStoreNames.contains('snapshot')) db.createObjectStore('snapshot');
+                        if (!db.objectStoreNames.contains('outbox')) {
+                            const store = db.createObjectStore('outbox', { keyPath: 'operation_id' });
+                            store.createIndex('by_status', 'status', { unique: false });
+                            store.createIndex('by_created', 'created_at', { unique: false });
+                        }
+                    };
                     req.onsuccess = function() {
                         const db = req.result;
                         if (!db.objectStoreNames.contains('outbox')) return;

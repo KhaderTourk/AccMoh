@@ -13,7 +13,7 @@
     <div class="rounded-2xl border bg-white dark:bg-slate-800 overflow-hidden">
         <table class="w-full text-sm text-right">
             <thead class="bg-slate-50 dark:bg-slate-700/50"><tr>
-                <th class="px-3 py-2">العميل</th><th class="px-3 py-2">الخدمة</th><th class="px-3 py-2">السعر</th><th class="px-3 py-2">المتبقي</th><th class="px-3 py-2">التاريخ</th>
+                <th class="px-3 py-2">العميل</th><th class="px-3 py-2">الخدمة</th><th class="px-3 py-2">السعر</th><th class="px-3 py-2">الحالة</th><th class="px-3 py-2">التاريخ</th><th class="px-3 py-2"></th>
             </tr></thead>
             <tbody class="divide-y dark:divide-slate-700">
             @forelse($services as $s)
@@ -21,11 +21,20 @@
                     <td class="px-3 py-2"><a href="{{ route('cp.clients.show', $s->client) }}" class="text-primary">{{ $s->client->name }}</a></td>
                     <td class="px-3 py-2">{{ $s->title }}</td>
                     <td class="px-3 py-2">{{ $s->currency->format($s->amount) }}</td>
-                    <td class="px-3 py-2">{{ $s->currency->format($s->remainingAmount()) }}</td>
+                    <td class="px-3 py-2">{{ $s->status->label() }}</td>
                     <td class="px-3 py-2">{{ $s->service_date->format('Y-m-d') }}</td>
+                    <td class="px-3 py-2">
+                        <div class="flex items-center gap-1 justify-end">
+                            <a href="{{ route('cp.client-services.edit', $s) }}" class="p-1" title="تعديل"><span class="material-symbols-outlined text-base">edit</span></a>
+                            <form method="post" action="{{ route('cp.client-services.destroy', $s) }}" onsubmit="return confirm('حذف هذه الخدمة؟')">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="p-1 text-rose-600" title="حذف"><span class="material-symbols-outlined text-base">delete</span></button>
+                            </form>
+                        </div>
+                    </td>
                 </tr>
             @empty
-                <tr><td colspan="5" class="p-8 text-center text-slate-500">لا توجد خدمات.</td></tr>
+                <tr><td colspan="6" class="p-8 text-center text-slate-500">لا توجد خدمات.</td></tr>
             @endforelse
             </tbody>
         </table>

@@ -6,7 +6,7 @@
     @csrf
     <div class="grid md:grid-cols-2 gap-3">
         <div>
-            <label class="text-sm">فرد العائلة *</label>
+            <label class="text-sm">الفرد *</label>
             <select name="family_member_id" x-model="memberId" @change="loadLoans()" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
                 <option value="">اختر</option>
                 @foreach($members as $m)<option value="{{ $m->id }}" @selected(old('family_member_id', $selectedMemberId)==$m->id)>{{ $m->name }}</option>@endforeach
@@ -29,6 +29,7 @@
             <select name="payment_method_id" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
                 @foreach($paymentMethods as $m)<option value="{{ $m->id }}">{{ $m->name }}</option>@endforeach
             </select>
+            <p class="text-xs text-slate-500 mt-1">يمكن السداد بأي طريقة دفع حتى لو اختلفت عن طريقة القرض الأصلية.</p>
         </div>
         <div><label class="text-sm">التاريخ *</label><input type="date" name="repayment_date" value="{{ date('Y-m-d') }}" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700"></div>
     </div>
@@ -79,6 +80,9 @@ function repayForm() {
             });
         },
         prepareSubmit(e) {
+            if (this.allocatedSum() < 0.001 && (parseFloat(this.amount) || 0) > 0) {
+                this.autoFill();
+            }
             if (Math.abs(this.allocatedSum() - (parseFloat(this.amount)||0)) > 0.001) {
                 e.preventDefault(); alert('مجموع التوزيع يجب أن يساوي مبلغ السداد.');
             }

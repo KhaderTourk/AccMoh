@@ -37,7 +37,7 @@ class FamilyMemberController extends Controller
     {
         $member = FamilyMember::query()->create($this->validated($request));
 
-        return redirect()->route('cp.family-members.show', $member)->with('success', 'تم إضافة فرد العائلة.');
+        return redirect()->route('cp.family-members.show', $member)->with('success', 'تم إضافة الفرد.');
     }
 
     public function show(FamilyMember $familyMember)

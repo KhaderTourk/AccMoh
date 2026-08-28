@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
+
 use App\Enums\TransactionType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,6 +11,8 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class LedgerEntry extends Model
 {
+    use BelongsToTenant;
+
     protected $fillable = [
         'group_id',
         'transaction_type',

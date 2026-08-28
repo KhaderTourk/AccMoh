@@ -8,9 +8,10 @@
     @if($service->exists) @method('PUT') @endif
     <div>
         <label class="text-sm">العميل *</label>
-        <select name="client_id" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
+        <select name="client_id" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700" @disabled($service->exists)>
             @foreach($clients as $c)<option value="{{ $c->id }}" @selected(old('client_id', $service->client_id)==$c->id)>{{ $c->name }}</option>@endforeach
         </select>
+        @if($service->exists)<input type="hidden" name="client_id" value="{{ $service->client_id }}">@endif
     </div>
     <div>
         <label class="text-sm">نوع الخدمة (قالب)</label>
@@ -40,7 +41,10 @@
     </div>
     <div><label class="text-sm">الوصف</label><textarea name="description" rows="2" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">{{ old('description', $service->description) }}</textarea></div>
     <div><label class="text-sm">ملاحظات</label><textarea name="notes" rows="2" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">{{ old('notes', $service->notes) }}</textarea></div>
-    <button class="px-5 py-2 rounded-xl bg-primary text-white">حفظ</button>
+    <div class="flex gap-2">
+        <button class="px-5 py-2 rounded-xl bg-primary text-white">حفظ</button>
+        <a href="{{ route('cp.client-services.index') }}" class="px-5 py-2 rounded-xl border">إلغاء</a>
+    </div>
 </form>
 @endsection
 @push('scripts')

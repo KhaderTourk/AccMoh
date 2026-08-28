@@ -2,18 +2,25 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
+
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class FundTransfer extends Model
 {
+    use BelongsToTenant;
+
     protected $fillable = [
         'fund_id',
         'from_payment_method_id',
         'to_payment_method_id',
         'amount',
         'currency_id',
+        'to_currency_id',
+        'to_amount',
+        'exchange_rate',
         'fee_amount',
         'transfer_date',
         'notes',
@@ -26,6 +33,8 @@ class FundTransfer extends Model
     {
         return [
             'amount' => 'decimal:2',
+            'to_amount' => 'decimal:2',
+            'exchange_rate' => 'decimal:8',
             'fee_amount' => 'decimal:2',
             'transfer_date' => 'date',
             'is_reversed' => 'boolean',
@@ -51,6 +60,17 @@ class FundTransfer extends Model
     public function currency(): BelongsTo
     {
         return $this->belongsTo(Currency::class);
+    }
+
+    public function toCurrency(): BelongsTo
+    {
+        return $this->belongsTo(Currency::class, 'to_currency_id');
+    }
+
+    public function isFx(): bool
+    {
+        return $this->to_currency_id
+            && (int) $this->to_currency_id !== (int) $this->currency_id;
     }
 
     public function scopeActive(Builder $query): Builder

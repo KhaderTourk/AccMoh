@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -18,7 +17,9 @@ class User extends Authenticatable
         'email',
         'password',
         'role_id',
+        'tenant_id',
         'is_super_admin',
+        'is_platform_admin',
         'is_active',
     ];
 
@@ -33,6 +34,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_super_admin' => 'boolean',
+            'is_platform_admin' => 'boolean',
             'is_active' => 'boolean',
         ];
     }
@@ -42,12 +44,17 @@ class User extends Authenticatable
         return $this->belongsTo(Role::class);
     }
 
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
+    }
+
     public function canAccess(string $permissionSlug): bool
     {
-        if (!$this->is_active) {
+        if (! $this->is_active) {
             return false;
         }
-        if ($this->is_super_admin) {
+        if ($this->is_platform_admin || $this->is_super_admin) {
             return true;
         }
         if (! $this->role) {
@@ -60,5 +67,10 @@ class User extends Authenticatable
     public function isSuperAdmin(): bool
     {
         return (bool) $this->is_super_admin;
+    }
+
+    public function isPlatformAdmin(): bool
+    {
+        return (bool) $this->is_platform_admin;
     }
 }

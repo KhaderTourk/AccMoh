@@ -99,10 +99,34 @@ if (!function_exists('cpCan')) {
         if (!$user) {
             return false;
         }
+        if ($user->is_platform_admin ?? false) {
+            return false;
+        }
         if ($user->is_super_admin ?? false) {
             return true;
         }
         return $user->canAccess($permission);
+    }
+}
+
+if (! function_exists('currentTenant')) {
+    function currentTenant(): ?\App\Models\Tenant
+    {
+        $fromRequest = request()->attributes->get('tenant');
+        if ($fromRequest instanceof \App\Models\Tenant) {
+            return $fromRequest;
+        }
+
+        return auth()->user()?->tenant;
+    }
+}
+
+if (! function_exists('tenantBusinessEnabled')) {
+    function tenantBusinessEnabled(): bool
+    {
+        $tenant = currentTenant();
+
+        return $tenant ? (bool) $tenant->business_enabled : true;
     }
 }
 

@@ -7,7 +7,7 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>
             <label class="text-sm">العميل *</label>
-            <select name="client_id" x-model="clientId" @change="loadServices()" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
+            <select name="client_id" x-model="clientId" @change="loadDue()" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
                 <option value="">اختر</option>
                 @foreach($clients as $c)
                     <option value="{{ $c->id }}" @selected(old('client_id', $selectedClientId)==$c->id)>{{ $c->name }}</option>
@@ -16,7 +16,7 @@
         </div>
         <div>
             <label class="text-sm">العملة *</label>
-            <select name="currency_id" x-model="currencyId" @change="loadServices()" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
+            <select name="currency_id" x-model="currencyId" @change="loadDue()" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
                 @foreach($currencies as $c)<option value="{{ $c->id }}" @selected(old('currency_id')==$c->id)>{{ $c->code }} — {{ $c->name }}</option>@endforeach
             </select>
         </div>
@@ -44,28 +44,19 @@
         <textarea name="notes" rows="2" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">{{ old('notes') }}</textarea>
     </div>
 
-    <div class="rounded-xl border border-dashed p-4">
-        <div class="flex justify-between items-center mb-3">
-            <h3 class="font-bold">توزيع الدفعة على الخدمات</h3>
-            <button type="button" @click="autoFill()" class="text-sm text-primary">توزيع تلقائي</button>
-        </div>
-        <p class="text-xs text-slate-500 mb-3" x-show="loading">جاري التحميل...</p>
-        <template x-if="!loading && services.length === 0">
-            <p class="text-sm text-amber-600">لا توجد خدمات غير مسددة لهذه العملة. سجّل خدمة أولاً.</p>
+    <div class="rounded-xl border border-dashed p-4 space-y-2">
+        <p class="font-bold text-sm">المستحق على العميل</p>
+        <p class="text-xs text-slate-500" x-show="loading">جاري التحميل...</p>
+        <p class="text-lg font-extrabold text-amber-600 dark:text-amber-300" x-show="!loading && dueFormatted" x-text="dueFormatted"></p>
+        <p class="text-sm text-amber-600 dark:text-amber-300" x-show="!loading && clientId && Number(due) <= 0">لا يوجد مبلغ مستحق على هذا العميل بهذه العملة.</p>
+        <template x-if="!loading && services.length">
+            <ul class="text-xs text-slate-500 dark:text-slate-400 space-y-1 pt-2">
+                <template x-for="s in services" :key="s.id">
+                    <li x-text="s.title + ' — ' + s.amount"></li>
+                </template>
+            </ul>
         </template>
-        <template x-for="(s, idx) in services" :key="s.id">
-            <div class="grid grid-cols-12 gap-2 items-center mb-2 text-sm">
-                <div class="col-span-6">
-                    <input type="hidden" :name="`allocations[${idx}][client_service_id]`" :value="s.id">
-                    <span x-text="s.title"></span>
-                    <span class="text-xs text-slate-500" x-text="'متبقي: ' + s.remaining"></span>
-                </div>
-                <div class="col-span-6">
-                    <input type="number" step="0.01" min="0" :name="`allocations[${idx}][amount]`" x-model="s.allocate" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-                </div>
-            </div>
-        </template>
-        <p class="text-sm mt-2">مجموع التوزيع: <strong x-text="allocatedSum().toFixed(2)"></strong> / <span x-text="parseFloat(amount||0).toFixed(2)"></span></p>
+        <p class="text-xs text-slate-500">تُخصم الدفعة من إجمالي المستحق على العميل، وليس من خدمة بعينها.</p>
     </div>
 
     <button class="px-5 py-2 rounded-xl bg-primary text-white">حفظ الدفعة</button>
@@ -79,35 +70,36 @@ function paymentForm() {
         clientId: '{{ old('client_id', $selectedClientId) }}',
         currencyId: '{{ old('currency_id', $currencies->first()?->id) }}',
         amount: '{{ old('amount') }}',
+        due: '0',
+        dueFormatted: '',
         services: [],
         loading: false,
-        init() { if (this.clientId) this.loadServices(); },
-        async loadServices() {
+        init() { if (this.clientId) this.loadDue(); },
+        async loadDue() {
             this.services = [];
+            this.due = '0';
+            this.dueFormatted = '';
             if (!this.clientId || !this.currencyId) return;
             this.loading = true;
             const url = @json(url('/cp/clients')) + '/' + this.clientId + '/unpaid-services?currency_id=' + this.currencyId;
             const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
             const data = await res.json();
-            this.services = (data.services || []).map(s => ({ ...s, allocate: 0 }));
+            this.due = data.outstanding || '0';
+            this.dueFormatted = data.outstanding_formatted || this.due;
+            this.services = data.services || [];
             this.loading = false;
         },
-        allocatedSum() {
-            return this.services.reduce((t, s) => t + (parseFloat(s.allocate) || 0), 0);
-        },
-        autoFill() {
-            let left = parseFloat(this.amount) || 0;
-            this.services.forEach(s => {
-                const rem = parseFloat(s.remaining) || 0;
-                const take = Math.min(left, rem);
-                s.allocate = take.toFixed(2);
-                left = Math.round((left - take) * 100) / 100;
-            });
-        },
         prepareSubmit(e) {
-            if (Math.abs(this.allocatedSum() - (parseFloat(this.amount)||0)) > 0.001) {
+            const pay = parseFloat(this.amount) || 0;
+            const due = parseFloat(this.due) || 0;
+            if (due <= 0) {
                 e.preventDefault();
-                alert('مجموع التوزيع يجب أن يساوي مبلغ الدفعة.');
+                alert('لا يوجد مبلغ مستحق على العميل بهذه العملة.');
+                return;
+            }
+            if (pay - due > 0.001) {
+                e.preventDefault();
+                alert('مبلغ الدفعة أكبر من المستحق على العميل.');
             }
         }
     }

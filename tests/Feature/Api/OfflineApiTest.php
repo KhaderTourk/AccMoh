@@ -94,9 +94,6 @@ class OfflineApiTest extends TestCase
             'payment_method_id' => $this->cash->id,
             'payment_date' => '2026-08-21',
             'payer_name' => 'محمد',
-            'allocations' => [
-                ['client_service_id' => $service->id, 'amount' => 200],
-            ],
         ];
 
         $first = $this->postJson('/api/v1/payments', $payload);

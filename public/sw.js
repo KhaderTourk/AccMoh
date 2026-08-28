@@ -1,5 +1,5 @@
 /* AccMa CP Service Worker — offline shell for control panel */
-const CACHE = 'accma-cp-v2';
+const CACHE = 'accma-cp-v3';
 const SHELL = [
   '/assets/css/cp.css',
   '/assets/js/cp-offline.js',
@@ -32,10 +32,12 @@ self.addEventListener('fetch', (event) => {
 
   if (req.method !== 'GET') return;
 
+  // Never cache API — always network (fresh financial data)
   if (url.pathname.startsWith('/cp/api/') || url.pathname.startsWith('/api/')) {
     return;
   }
 
+  // HTML navigations: network-first, cached fallback for offline
   if (req.mode === 'navigate' && url.pathname.startsWith('/cp')) {
     event.respondWith(
       fetch(req)
@@ -60,6 +62,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Static + CDN: stale-while-revalidate (instant paint on slow links)
   if (
     url.pathname.startsWith('/assets/') ||
     url.hostname.includes('cdn.') ||
@@ -69,17 +72,15 @@ self.addEventListener('fetch', (event) => {
     url.hostname.includes('cdn.tailwindcss.com')
   ) {
     event.respondWith(
-      caches.match(req).then((hit) => {
-        const fetcher = fetch(req)
+      caches.open(CACHE).then(async (cache) => {
+        const cached = await cache.match(req);
+        const network = fetch(req)
           .then((res) => {
-            if (res.ok) {
-              const copy = res.clone();
-              caches.open(CACHE).then((c) => c.put(req, copy));
-            }
+            if (res.ok) cache.put(req, res.clone());
             return res;
           })
-          .catch(() => hit);
-        return hit || fetcher;
+          .catch(() => cached);
+        return cached || network;
       })
     );
   }

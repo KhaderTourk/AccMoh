@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
+
 use App\Enums\LoanDirection;
 use App\Enums\LoanStatus;
 use App\Support\Money;
@@ -12,6 +14,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class FamilyLoan extends Model
 {
+    use BelongsToTenant;
+
     protected $fillable = [
         'family_member_id',
         'fund_id',

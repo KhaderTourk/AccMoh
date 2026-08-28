@@ -4,6 +4,7 @@ namespace App\Services\Finance;
 
 use App\Enums\ClientServiceStatus;
 use App\Exceptions\FinanceException;
+use App\Models\ClientPayment;
 use App\Models\ClientService;
 use App\Models\FinancialAuditLog;
 use App\Support\Money;
@@ -39,29 +40,32 @@ class ClientWorkService
 
     public function update(ClientService $service, array $data): ClientService
     {
-        if ($service->allocations()->whereHas('payment', fn ($q) => $q->active())->exists()) {
-            if (
-                (int) $data['currency_id'] !== (int) $service->currency_id
-                || Money::cmp($data['amount'], $service->amount) < 0
-                    && Money::cmp($data['amount'], $service->paidAmount()) < 0
-            ) {
-                throw new FinanceException('لا يمكن تقليل سعر الخدمة أو تغيير عملتها بعد وجود دفعات مخصصة.');
-            }
-            if (Money::cmp($data['amount'], $service->paidAmount()) < 0) {
-                throw new FinanceException('سعر الخدمة لا يجوز أن يكون أقل من المبلغ المدفوع عليها.');
-            }
-        }
-
         $amount = Money::of($data['amount']);
         if (! Money::isPositive($amount)) {
             throw new FinanceException('سعر الخدمة يجب أن يكون أكبر من صفر.');
         }
 
-        if (($data['status'] ?? null) === ClientServiceStatus::Cancelled->value
-            || ($data['status'] ?? null) === ClientServiceStatus::Cancelled) {
-            if (Money::isPositive($service->paidAmount())) {
-                throw new FinanceException('لا يمكن إلغاء خدمة عليها دفعات. ألغِ الدفعات أولاً أو أبقِ الخدمة.');
-            }
+        $newStatus = $data['status'] ?? $service->status;
+        $isCancelled = $newStatus === ClientServiceStatus::Cancelled
+            || $newStatus === ClientServiceStatus::Cancelled->value;
+
+        $newCurrencyId = (int) $data['currency_id'];
+        $oldCurrencyId = (int) $service->currency_id;
+
+        $this->assertBilledCoversPaid(
+            (int) $service->client_id,
+            $oldCurrencyId,
+            $service->id,
+            (! $isCancelled && $newCurrencyId === $oldCurrencyId) ? $amount : '0.00'
+        );
+
+        if ($newCurrencyId !== $oldCurrencyId && ! $isCancelled) {
+            $this->assertBilledCoversPaid(
+                (int) $service->client_id,
+                $newCurrencyId,
+                $service->id,
+                $amount
+            );
         }
 
         $service->update([
@@ -82,11 +86,38 @@ class ClientWorkService
 
     public function delete(ClientService $service): void
     {
-        if ($service->allocations()->whereHas('payment', fn ($q) => $q->active())->exists()) {
-            throw new FinanceException('لا يمكن حذف خدمة مرتبطة بدفعات. استخدم الإلغاء إن لم تُدفع، أو ألغِ الدفعات أولاً.');
-        }
+        $this->assertBilledCoversPaid(
+            (int) $service->client_id,
+            (int) $service->currency_id,
+            $service->id,
+            '0.00'
+        );
 
         $service->delete();
         FinancialAuditLog::record('deleted', $service);
+    }
+
+    protected function assertBilledCoversPaid(int $clientId, int $currencyId, ?int $excludeServiceId, mixed $replacementAmount): void
+    {
+        $billed = Money::of(
+            ClientService::query()
+                ->billable()
+                ->where('client_id', $clientId)
+                ->where('currency_id', $currencyId)
+                ->when($excludeServiceId, fn ($q) => $q->where('id', '!=', $excludeServiceId))
+                ->sum('amount')
+        );
+        $billed = Money::add($billed, $replacementAmount ?? 0);
+        $paid = Money::of(
+            ClientPayment::query()
+                ->active()
+                ->where('client_id', $clientId)
+                ->where('currency_id', $currencyId)
+                ->sum('amount')
+        );
+
+        if (Money::cmp($billed, $paid) < 0) {
+            throw new FinanceException('لا يمكن أن يصبح إجمالي خدمات العميل أقل من مجموع دفعاته بهذه العملة.');
+        }
     }
 }

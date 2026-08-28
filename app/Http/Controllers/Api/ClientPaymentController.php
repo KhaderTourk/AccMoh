@@ -7,7 +7,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Client;
 use App\Models\ClientService;
 use App\Services\Api\SyncOperationService;
-use App\Support\Money;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -26,9 +25,6 @@ class ClientPaymentController extends Controller
             'payment_date' => ['required', 'date'],
             'payer_name' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],
-            'allocations' => ['required', 'array', 'min:1'],
-            'allocations.*.client_service_id' => ['required', 'exists:client_services,id'],
-            'allocations.*.amount' => ['required', 'numeric', 'gte:0'],
             'client_timestamp' => ['nullable', 'date'],
             'device_id' => ['nullable', 'string', 'max:100'],
         ]);
@@ -55,6 +51,8 @@ class ClientPaymentController extends Controller
     public function unpaidServices(Client $client, Request $request): JsonResponse
     {
         $currencyId = (int) $request->query('currency_id');
+        $currency = $currencyId ? \App\Models\Currency::query()->find($currencyId) : null;
+        $outstanding = $currencyId ? $client->outstandingAmount($currencyId) : '0.00';
 
         $services = ClientService::query()
             ->billable()
@@ -63,18 +61,19 @@ class ClientPaymentController extends Controller
             ->with('currency:id,code,symbol')
             ->orderByDesc('service_date')
             ->get()
-            ->filter(fn ($s) => Money::isPositive($s->remainingAmount()))
-            ->values()
             ->map(fn ($s) => [
                 'id' => $s->id,
                 'title' => $s->title,
                 'amount' => (string) $s->amount,
-                'remaining' => $s->remainingAmount(),
                 'currency_id' => $s->currency_id,
                 'currency_code' => $s->currency?->code,
                 'service_date' => optional($s->service_date)->format('Y-m-d'),
             ]);
 
-        return response()->json(['data' => $services]);
+        return response()->json([
+            'outstanding' => $outstanding,
+            'outstanding_formatted' => $currency?->format($outstanding) ?? $outstanding,
+            'data' => $services,
+        ]);
     }
 }

@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
+
 use App\Support\Money;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -10,9 +12,11 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Client extends Model
 {
+    use BelongsToTenant;
+
     use SoftDeletes;
 
-    protected $fillable = ['name', 'phone', 'email', 'company_name', 'notes', 'is_active'];
+    protected $fillable = ['name', 'contact_name', 'phone', 'email', 'company_name', 'notes', 'is_active'];
 
     protected function casts(): array
     {
@@ -52,10 +56,10 @@ class Client extends Model
     public function paidAmount(int $currencyId): string
     {
         return Money::of(
-            PaymentAllocation::query()
-                ->whereHas('payment', fn ($q) => $q->where('client_id', $this->id)->active())
+            $this->payments()
+                ->active()
                 ->where('currency_id', $currencyId)
-                ->sum('allocated_amount')
+                ->sum('amount')
         );
     }
 

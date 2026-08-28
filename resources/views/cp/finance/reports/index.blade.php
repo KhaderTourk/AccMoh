@@ -23,11 +23,13 @@
         </div>
     </section>
 
-    <section class="grid md:grid-cols-3 gap-4">
+    <section class="grid md:grid-cols-{{ tenantBusinessEnabled() ? '3' : '2' }} gap-4">
+        @if(tenantBusinessEnabled())
         <div class="rounded-2xl border p-4 bg-white dark:bg-slate-800">
             <h3 class="font-bold mb-2">مستحقات العملاء</h3>
             @foreach($snapshot['currencies'] as $c)<p>{{ $c->format($receivables[$c->id] ?? 0) }}</p>@endforeach
         </div>
+        @endif
         <div class="rounded-2xl border p-4 bg-white dark:bg-slate-800">
             <h3 class="font-bold mb-2">ديوني للعائلة</h3>
             @foreach($snapshot['currencies'] as $c)<p>{{ $c->format($iOwe[$c->id] ?? 0) }}</p>@endforeach
@@ -38,6 +40,7 @@
         </div>
     </section>
 
+    @if(tenantBusinessEnabled())
     <section>
         <h2 class="font-bold text-lg mb-3">تقرير العملاء</h2>
         <div class="rounded-2xl border bg-white dark:bg-slate-800 overflow-hidden">
@@ -61,6 +64,7 @@
             </table>
         </div>
     </section>
+    @endif
 
     <section>
         <h2 class="font-bold text-lg mb-3">تقرير العائلة — القروض المفتوحة</h2>
@@ -83,7 +87,8 @@
         </div>
     </section>
 
-    <section class="grid lg:grid-cols-2 gap-6">
+    <section class="grid lg:grid-cols-{{ tenantBusinessEnabled() ? '2' : '1' }} gap-6">
+        @if(tenantBusinessEnabled())
         <div>
             <h2 class="font-bold text-lg mb-3">إيرادات الفترة</h2>
             <div class="rounded-2xl border bg-white dark:bg-slate-800 max-h-96 overflow-y-auto">
@@ -94,6 +99,7 @@
                 @endforelse
             </div>
         </div>
+        @endif
         <div>
             <h2 class="font-bold text-lg mb-3">مصروفات الفترة</h2>
             <div class="rounded-2xl border bg-white dark:bg-slate-800 max-h-96 overflow-y-auto">

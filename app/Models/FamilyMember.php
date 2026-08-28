@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
+
 use App\Enums\LoanDirection;
 use App\Support\Money;
 use Illuminate\Database\Eloquent\Builder;
@@ -11,6 +13,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class FamilyMember extends Model
 {
+    use BelongsToTenant;
+
     use SoftDeletes;
 
     protected $fillable = ['name', 'relationship', 'phone', 'notes', 'is_active'];

@@ -8,13 +8,8 @@
         <p>الطريقة: {{ $payment->paymentMethod->name }}</p>
         <p>المرسل: {{ $payment->payer_name }}</p>
         <p>التاريخ: {{ $payment->payment_date->format('Y-m-d') }}</p>
+        @if($payment->notes)<p>ملاحظة: {{ $payment->notes }}</p>@endif
         @if($payment->is_reversed)<p class="text-rose-600 font-bold">ملغاة</p>@endif
-        <h3 class="font-bold pt-3">التوزيع</h3>
-        <ul class="text-sm space-y-1">
-            @foreach($payment->allocations as $a)
-                <li>{{ $a->service->title }} — {{ $payment->currency->format($a->allocated_amount) }}</li>
-            @endforeach
-        </ul>
         @unless($payment->is_reversed)
         <form method="post" action="{{ route('cp.payments.reverse', $payment) }}" onsubmit="return confirm('إلغاء الدفعة وإرجاع أثرها على الرصيد والمستحقات؟')">
             @csrf

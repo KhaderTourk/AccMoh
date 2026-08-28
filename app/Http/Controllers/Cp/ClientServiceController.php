@@ -85,13 +85,12 @@ class ClientServiceController extends Controller
     public function destroy(ClientService $clientService, ClientWorkService $service)
     {
         try {
-            $clientId = $clientService->client_id;
             $service->delete($clientService);
         } catch (FinanceException $e) {
             return back()->with('error', $e->getMessage());
         }
 
-        return redirect()->route('cp.clients.show', $clientId)->with('success', 'تم حذف الخدمة.');
+        return redirect()->route('cp.client-services.index')->with('success', 'تم حذف الخدمة.');
     }
 
     protected function validated(Request $request): array

@@ -77,7 +77,7 @@
             </div>
             <div>
                 <label class="text-xs">العملة</label>
-                <select x-model="payment.currency_id" @change="filterServices()" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
+                <select x-model="payment.currency_id" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
                     <template x-for="c in (snapshot?.catalog?.currencies || [])" :key="c.id">
                         <option :value="c.id" x-text="c.code + ' — ' + c.name"></option>
                     </template>
@@ -105,22 +105,10 @@
             </div>
         </div>
         <div class="rounded-xl border border-dashed p-4 space-y-2">
-            <div class="flex justify-between items-center">
-                <p class="font-medium text-sm">توزيع على الخدمات</p>
-                <button type="button" class="text-sm text-primary" @click="autoAllocatePayment()">توزيع تلقائي</button>
-            </div>
-            <template x-for="s in paymentServices" :key="s.id">
-                <div class="grid grid-cols-12 gap-2 text-sm items-center">
-                    <div class="col-span-7">
-                        <span x-text="s.title"></span>
-                        <span class="text-xs text-slate-500" x-text="' (متبقي ' + s.remaining + ')'"></span>
-                    </div>
-                    <div class="col-span-5">
-                        <input type="number" step="0.01" min="0" x-model="s.allocate" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-                    </div>
-                </div>
-            </template>
-            <p class="text-xs text-slate-500" x-show="payment.client_id && paymentServices.length === 0">لا خدمات غير مسددة لهذه العملة في الكاش.</p>
+            <p class="font-medium text-sm">المستحق على العميل</p>
+            <p class="text-lg font-extrabold text-amber-600 dark:text-amber-300" x-text="clientDueFormatted()"></p>
+            <p class="text-sm text-amber-600 dark:text-amber-300" x-show="payment.client_id && clientDue() <= 0">لا يوجد مبلغ مستحق على هذا العميل بهذه العملة.</p>
+            <p class="text-xs text-slate-500">تُخصم الدفعة من إجمالي المستحق على العميل، وليس من خدمة بعينها.</p>
         </div>
         <button class="px-5 py-2 rounded-xl bg-primary text-white" :disabled="busy">حفظ (محلي / مزامنة)</button>
     </form>
@@ -183,7 +171,7 @@
         <h3 class="font-bold">تسجيل قرض عائلي سريع</h3>
         <div class="grid md:grid-cols-2 gap-3">
             <div>
-                <label class="text-xs">فرد العائلة</label>
+                <label class="text-xs">الفرد</label>
                 <select x-model="loan.family_member_id" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
                     <option value="">اختر</option>
                     <template x-for="m in (snapshot?.family_members || [])" :key="m.id">
@@ -231,7 +219,7 @@
         <h3 class="font-bold">سداد قرض عائلي سريع</h3>
         <div class="grid md:grid-cols-2 gap-3">
             <div>
-                <label class="text-xs">فرد العائلة</label>
+                <label class="text-xs">الفرد</label>
                 <select x-model="repay.family_member_id" @change="filterLoans()" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
                     <option value="">اختر</option>
                     <template x-for="m in (snapshot?.family_members || [])" :key="m.id">
@@ -299,15 +287,19 @@
                 <p class="p-6 text-sm text-slate-500 text-center">لا توجد عمليات معلّقة.</p>
             </template>
             <template x-for="item in outbox" :key="item.operation_id">
-                <div class="px-4 py-3 text-sm flex justify-between gap-3">
+                <div class="px-4 py-3 text-sm flex justify-between gap-3 items-start">
                     <div>
                         <p class="font-medium" x-text="typeLabel(item.type)"></p>
                         <p class="text-xs text-slate-500" x-text="item.operation_id"></p>
                         <p class="text-xs text-rose-600" x-show="item.last_error" x-text="item.last_error"></p>
                     </div>
-                    <span class="text-xs px-2 py-1 rounded h-fit"
-                          :class="item.status === 'pending' ? 'bg-amber-500/15 text-amber-700' : 'bg-rose-500/15 text-rose-700'"
-                          x-text="item.status"></span>
+                    <div class="flex flex-col items-end gap-2">
+                        <span class="text-xs px-2 py-1 rounded h-fit"
+                              :class="item.status === 'pending' ? 'bg-amber-500/15 text-amber-700' : 'bg-rose-500/15 text-rose-700'"
+                              x-text="item.status"></span>
+                        <button type="button" class="text-xs text-rose-600" @click="discardOutboxItem(item)"
+                                :disabled="busy">حذف من الطابور</button>
+                    </div>
                 </div>
             </template>
         </div>
@@ -336,8 +328,8 @@ function offlineWorkspace() {
             { id: 'loan', label: 'قرض' },
             { id: 'repay', label: 'سداد' },
         ],
+        businessEnabled: true,
         payment: { client_id: '', currency_id: '', amount: '', payment_method_id: '', payment_date: today, payer_name: '' },
-        paymentServices: [],
         expense: { fund_id: '', expense_category_id: '', description: '', amount: '', currency_id: '', payment_method_id: '', expense_date: today },
         loan: { family_member_id: '', direction: 'borrowed', amount: '', currency_id: '', payment_method_id: '', loan_date: today },
         repay: { family_member_id: '', direction: 'borrowed', amount: '', currency_id: '', payment_method_id: '', repayment_date: today },
@@ -357,6 +349,11 @@ function offlineWorkspace() {
         },
 
         seedDefaults() {
+            this.businessEnabled = this.snapshot?.features?.business_enabled !== false;
+            if (!this.businessEnabled) {
+                this.tabs = this.tabs.filter(t => t.id !== 'payment');
+                if (this.tab === 'payment') this.tab = 'expense';
+            }
             const cur = this.snapshot?.catalog?.currencies?.[0];
             const method = this.snapshot?.catalog?.payment_methods?.[0];
             const fund = this.snapshot?.catalog?.funds?.[0];
@@ -395,6 +392,23 @@ function offlineWorkspace() {
             this.snapshot = await AccmaOffline.getSnapshot();
             const metaTime = this.snapshot?.server_time;
             this.lastSync = metaTime ? new Date(metaTime).toLocaleString('ar') : '';
+        },
+
+        async discardOutboxItem(item) {
+            if (!confirm('حذف هذه العملية من طابور المزامنة؟ لن تُرسل للسيرفر.')) return;
+            this.busy = true;
+            try {
+                await AccmaOffline.idbDeleteOutbox(item.operation_id);
+                if (this.online) {
+                    try { await AccmaOffline.refreshCache(); } catch (_) {}
+                }
+                await this.reloadOutbox();
+                this.flash('تم حذف العملية من الطابور');
+            } catch (e) {
+                this.flash(e.message || 'تعذّر الحذف', true);
+            } finally {
+                this.busy = false;
+            }
         },
 
         async pullCache() {
@@ -436,26 +450,21 @@ function offlineWorkspace() {
 
         onClientChange() {
             const c = (this.snapshot?.clients || []).find(x => String(x.id) === String(this.payment.client_id));
-            if (c) this.payment.payer_name = c.name;
-            this.filterServices();
+            if (c) this.payment.payer_name = c.contact_name || c.name;
         },
 
-        filterServices() {
-            const list = (this.snapshot?.unpaid_services || []).filter(s =>
-                String(s.client_id) === String(this.payment.client_id) &&
-                String(s.currency_id) === String(this.payment.currency_id)
-            );
-            this.paymentServices = list.map(s => ({ ...s, allocate: 0 }));
+        clientDue() {
+            const c = (this.snapshot?.clients || []).find(x => String(x.id) === String(this.payment.client_id));
+            const cur = (this.snapshot?.catalog?.currencies || []).find(x => String(x.id) === String(this.payment.currency_id));
+            if (!c || !cur) return 0;
+            return parseFloat(c.outstanding?.[cur.code] || 0);
         },
 
-        autoAllocatePayment() {
-            let left = parseFloat(this.payment.amount) || 0;
-            this.paymentServices.forEach(s => {
-                const rem = parseFloat(s.remaining) || 0;
-                const take = Math.min(left, rem);
-                s.allocate = take.toFixed(2);
-                left = Math.round((left - take) * 100) / 100;
-            });
+        clientDueFormatted() {
+            const cur = (this.snapshot?.catalog?.currencies || []).find(x => String(x.id) === String(this.payment.currency_id));
+            const due = this.clientDue().toFixed(2);
+            if (!cur) return due;
+            return cur.code === 'USD' ? (cur.symbol + due) : (due + ' ' + (cur.symbol || cur.code));
         },
 
         filterLoans() {
@@ -479,12 +488,13 @@ function offlineWorkspace() {
         },
 
         async submitPayment() {
-            const allocations = this.paymentServices
-                .filter(s => parseFloat(s.allocate) > 0)
-                .map(s => ({ client_service_id: Number(s.id), amount: Number(s.allocate) }));
-            const sum = allocations.reduce((t, a) => t + a.amount, 0);
-            if (Math.abs(sum - (parseFloat(this.payment.amount) || 0)) > 0.001) {
-                return this.flash('مجموع التوزيع يجب أن يساوي مبلغ الدفعة', true);
+            const pay = parseFloat(this.payment.amount) || 0;
+            const due = this.clientDue();
+            if (due <= 0) {
+                return this.flash('لا يوجد مبلغ مستحق على العميل بهذه العملة', true);
+            }
+            if (pay - due > 0.001) {
+                return this.flash('مبلغ الدفعة أكبر من المستحق على العميل', true);
             }
             const payload = {
                 client_id: Number(this.payment.client_id),
@@ -493,11 +503,9 @@ function offlineWorkspace() {
                 payment_method_id: Number(this.payment.payment_method_id),
                 payment_date: this.payment.payment_date,
                 payer_name: this.payment.payer_name || null,
-                allocations,
             };
             await this.saveOp('client_payment', payload);
             this.payment.amount = '';
-            this.filterServices();
         },
 
         async submitExpense() {
@@ -529,10 +537,17 @@ function offlineWorkspace() {
         },
 
         async submitRepay() {
-            const allocations = this.repayLoans
+            let allocations = this.repayLoans
                 .filter(l => parseFloat(l.allocate) > 0)
                 .map(l => ({ family_loan_id: Number(l.id), amount: Number(l.allocate) }));
-            const sum = allocations.reduce((t, a) => t + a.amount, 0);
+            let sum = allocations.reduce((t, a) => t + a.amount, 0);
+            if (sum < 0.001 && (parseFloat(this.repay.amount) || 0) > 0) {
+                this.autoAllocateLoans();
+                allocations = this.repayLoans
+                    .filter(l => parseFloat(l.allocate) > 0)
+                    .map(l => ({ family_loan_id: Number(l.id), amount: Number(l.allocate) }));
+                sum = allocations.reduce((t, a) => t + a.amount, 0);
+            }
             if (Math.abs(sum - (parseFloat(this.repay.amount) || 0)) > 0.001) {
                 return this.flash('مجموع التوزيع يجب أن يساوي مبلغ السداد', true);
             }

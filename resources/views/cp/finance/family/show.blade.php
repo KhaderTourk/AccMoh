@@ -46,17 +46,51 @@
     <section class="rounded-2xl border bg-white dark:bg-slate-800 overflow-hidden">
         <div class="px-4 py-3 border-b font-bold">القروض</div>
         <table class="w-full text-sm text-right">
-            <thead class="bg-slate-50 dark:bg-slate-700/40"><tr><th class="px-3 py-2">الاتجاه</th><th class="px-3 py-2">الأصل</th><th class="px-3 py-2">المتبقي</th><th class="px-3 py-2">التاريخ</th><th class="px-3 py-2">الحالة</th></tr></thead>
+            <thead class="bg-slate-50 dark:bg-slate-700/40"><tr>
+                <th class="px-3 py-2">الاتجاه</th><th class="px-3 py-2">الأصل</th><th class="px-3 py-2">المتبقي</th>
+                <th class="px-3 py-2">الطريقة</th><th class="px-3 py-2">التاريخ</th><th class="px-3 py-2">الحالة</th><th class="px-3 py-2"></th>
+            </tr></thead>
             <tbody class="divide-y dark:divide-slate-700">
             @foreach($member->loans as $loan)
                 <tr class="{{ $loan->is_reversed ? 'opacity-40' : '' }}">
                     <td class="px-3 py-2">{{ $loan->direction->label() }}</td>
                     <td class="px-3 py-2">{{ $loan->currency->format($loan->amount) }}</td>
                     <td class="px-3 py-2">{{ $loan->currency->format($loan->remainingAmount()) }}</td>
+                    <td class="px-3 py-2">{{ $loan->paymentMethod->name }}</td>
                     <td class="px-3 py-2">{{ $loan->loan_date->format('Y-m-d') }}</td>
                     <td class="px-3 py-2">{{ $loan->status->label() }}</td>
+                    <td class="px-3 py-2">
+                        @unless($loan->is_reversed)
+                        <form method="post" action="{{ route('cp.family-loans.reverse', $loan) }}" onsubmit="return confirm('إلغاء القرض؟')">@csrf<button class="text-rose-600 text-xs">إلغاء</button></form>
+                        @endunless
+                    </td>
                 </tr>
             @endforeach
+            </tbody>
+        </table>
+    </section>
+    <section class="rounded-2xl border bg-white dark:bg-slate-800 overflow-hidden">
+        <div class="px-4 py-3 border-b font-bold">عمليات السداد</div>
+        <table class="w-full text-sm text-right">
+            <thead class="bg-slate-50 dark:bg-slate-700/40"><tr>
+                <th class="px-3 py-2">الاتجاه</th><th class="px-3 py-2">المبلغ</th><th class="px-3 py-2">الطريقة</th><th class="px-3 py-2">التاريخ</th><th class="px-3 py-2"></th>
+            </tr></thead>
+            <tbody class="divide-y dark:divide-slate-700">
+            @forelse($member->repayments as $repayment)
+                <tr class="{{ $repayment->is_reversed ? 'opacity-40' : '' }}">
+                    <td class="px-3 py-2">{{ $repayment->direction->label() }}</td>
+                    <td class="px-3 py-2">{{ $repayment->currency->format($repayment->amount) }}</td>
+                    <td class="px-3 py-2">{{ $repayment->paymentMethod->name }}</td>
+                    <td class="px-3 py-2">{{ $repayment->repayment_date->format('Y-m-d') }}</td>
+                    <td class="px-3 py-2">
+                        @unless($repayment->is_reversed)
+                        <form method="post" action="{{ route('cp.family-loan-repayments.reverse', $repayment) }}" onsubmit="return confirm('إلغاء السداد؟')">@csrf<button class="text-rose-600 text-xs">إلغاء</button></form>
+                        @endunless
+                    </td>
+                </tr>
+            @empty
+                <tr><td colspan="5" class="p-6 text-center text-slate-500">لا توجد عمليات سداد.</td></tr>
+            @endforelse
             </tbody>
         </table>
     </section>

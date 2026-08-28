@@ -48,6 +48,7 @@ class LoanRepaymentService
                 );
             }
 
+            $allocations = $this->normalizeAllocations($member, $direction, (int) $data['currency_id'], $amount, $allocations);
             $this->assertAllocations($member, $direction, (int) $data['currency_id'], $amount, $allocations);
 
             $repayment = FamilyLoanRepayment::query()->create([
@@ -105,6 +106,74 @@ class LoanRepaymentService
     }
 
     /**
+     * Auto FIFO-allocate when allocations are empty or all zeros.
+     *
+     * @param  array<int, array{family_loan_id:int, amount:mixed}>  $allocations
+     * @return array<int, array{family_loan_id:int, amount:string}>
+     */
+    protected function normalizeAllocations(
+        FamilyMember $member,
+        LoanDirection $direction,
+        int $currencyId,
+        string $amount,
+        array $allocations
+    ): array {
+        $positive = [];
+        foreach ($allocations as $row) {
+            $allocated = Money::of($row['amount'] ?? 0);
+            if (! Money::isPositive($allocated)) {
+                continue;
+            }
+            $positive[] = [
+                'family_loan_id' => (int) $row['family_loan_id'],
+                'amount' => $allocated,
+            ];
+        }
+
+        if ($positive !== []) {
+            return $positive;
+        }
+
+        $left = $amount;
+        $auto = [];
+        $loans = FamilyLoan::query()
+            ->active()
+            ->where('family_member_id', $member->id)
+            ->where('direction', $direction->value)
+            ->where('currency_id', $currencyId)
+            ->whereIn('status', ['open', 'partial'])
+            ->orderBy('loan_date')
+            ->orderBy('id')
+            ->get();
+
+        foreach ($loans as $loan) {
+            if (! Money::isPositive($left)) {
+                break;
+            }
+            $remaining = $loan->remainingAmount();
+            if (! Money::isPositive($remaining)) {
+                continue;
+            }
+            $take = Money::min($left, $remaining);
+            $auto[] = [
+                'family_loan_id' => $loan->id,
+                'amount' => $take,
+            ];
+            $left = Money::sub($left, $take);
+        }
+
+        if (Money::isPositive($left)) {
+            throw new FinanceException('تعذّر التوزيع التلقائي: لا توجد قروض مفتوحة كافية لتغطية مبلغ السداد.');
+        }
+
+        if ($auto === []) {
+            throw new FinanceException('لا توجد قروض مفتوحة لتوزيع السداد عليها.');
+        }
+
+        return $auto;
+    }
+
+    /**
      * @param  array<int, array{family_loan_id:int, amount:mixed}>  $allocations
      */
     protected function assertAllocations(
@@ -141,7 +210,7 @@ class LoanRepaymentService
                 throw new FinanceException('القرض المحدد غير موجود أو ملغى.');
             }
             if ((int) $loan->family_member_id !== (int) $member->id) {
-                throw new FinanceException('القرض لا يخص فرد العائلة المحدد.');
+                throw new FinanceException('القرض لا يخص الفرد المحدد.');
             }
             if ($loan->direction !== $direction) {
                 throw new FinanceException('اتجاه القرض لا يطابق عملية السداد.');

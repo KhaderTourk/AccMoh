@@ -4,7 +4,7 @@
 <form method="post" action="{{ route('cp.family-loans.store') }}" class="max-w-2xl rounded-2xl border bg-white dark:bg-slate-800 p-6 space-y-4">
     @csrf
     <div>
-        <label class="text-sm">فرد العائلة *</label>
+        <label class="text-sm">الفرد *</label>
         <select name="family_member_id" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
             @foreach($members as $m)<option value="{{ $m->id }}" @selected(old('family_member_id', $selectedMemberId)==$m->id)>{{ $m->name }}</option>@endforeach
         </select>

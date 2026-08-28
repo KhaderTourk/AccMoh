@@ -13,7 +13,6 @@ use App\Models\FamilyLoan;
 use App\Models\FamilyMember;
 use App\Models\Fund;
 use App\Models\LedgerEntry;
-use App\Models\PaymentAllocation;
 use App\Models\PaymentMethod;
 use App\Support\Money;
 use Illuminate\Support\Collection;
@@ -72,7 +71,10 @@ class BalanceService
     {
         $currencies = Currency::query()->active()->get();
         $methods = PaymentMethod::query()->active()->get();
-        $funds = Fund::query()->orderBy('id')->get();
+        $funds = Fund::query()
+            ->when(! tenantBusinessEnabled(), fn ($q) => $q->where('slug', '!=', 'business'))
+            ->orderBy('id')
+            ->get();
 
         $rows = LedgerEntry::query()
             ->selectRaw('fund_id, payment_method_id, currency_id, SUM(amount) as total')
@@ -123,15 +125,10 @@ class BalanceService
             ->groupBy('currency_id')
             ->pluck('total', 'currency_id');
 
-        $paid = PaymentAllocation::query()
-            ->whereHas('payment', function ($q) use ($clientId) {
-                $q->active();
-                if ($clientId) {
-                    $q->where('client_id', $clientId);
-                }
-            })
-            ->whereHas('service', fn ($q) => $q->billable())
-            ->selectRaw('currency_id, SUM(allocated_amount) as total')
+        $paid = ClientPayment::query()
+            ->active()
+            ->when($clientId, fn ($q) => $q->where('client_id', $clientId))
+            ->selectRaw('currency_id, SUM(amount) as total')
             ->groupBy('currency_id')
             ->pluck('total', 'currency_id');
 

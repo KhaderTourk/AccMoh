@@ -30,20 +30,22 @@ class ReportController extends Controller
         $from = $request->from;
         $to = $request->to;
 
-        $clientSummary = Client::query()->orderBy('name')->get()->map(function (Client $client) use ($snapshot) {
-            $rows = [];
-            foreach ($snapshot['currencies'] as $currency) {
-                $billed = $client->billedAmount($currency->id);
-                $paid = $client->paidAmount($currency->id);
-                $due = $client->outstandingAmount($currency->id);
-                if (\App\Support\Money::isZero($billed) && \App\Support\Money::isZero($paid)) {
-                    continue;
+        $clientSummary = tenantBusinessEnabled()
+            ? Client::query()->orderBy('name')->get()->map(function (Client $client) use ($snapshot) {
+                $rows = [];
+                foreach ($snapshot['currencies'] as $currency) {
+                    $billed = $client->billedAmount($currency->id);
+                    $paid = $client->paidAmount($currency->id);
+                    $due = $client->outstandingAmount($currency->id);
+                    if (\App\Support\Money::isZero($billed) && \App\Support\Money::isZero($paid)) {
+                        continue;
+                    }
+                    $rows[] = compact('currency', 'billed', 'paid', 'due');
                 }
-                $rows[] = compact('currency', 'billed', 'paid', 'due');
-            }
 
-            return ['client' => $client, 'rows' => $rows];
-        })->filter(fn ($r) => $r['rows'] !== []);
+                return ['client' => $client, 'rows' => $rows];
+            })->filter(fn ($r) => $r['rows'] !== [])
+            : collect();
 
         $familySummary = FamilyMember::query()->orderBy('name')->get()->map(function (FamilyMember $member) use ($snapshot) {
             $rows = [];
@@ -59,14 +61,16 @@ class ReportController extends Controller
             return ['member' => $member, 'rows' => $rows];
         })->filter(fn ($r) => $r['rows'] !== []);
 
-        $revenue = ClientPayment::query()
-            ->active()
-            ->when($from, fn ($q) => $q->whereDate('payment_date', '>=', $from))
-            ->when($to, fn ($q) => $q->whereDate('payment_date', '<=', $to))
-            ->with(['client', 'currency', 'paymentMethod'])
-            ->orderByDesc('payment_date')
-            ->limit(100)
-            ->get();
+        $revenue = tenantBusinessEnabled()
+            ? ClientPayment::query()
+                ->active()
+                ->when($from, fn ($q) => $q->whereDate('payment_date', '>=', $from))
+                ->when($to, fn ($q) => $q->whereDate('payment_date', '<=', $to))
+                ->with(['client', 'currency', 'paymentMethod'])
+                ->orderByDesc('payment_date')
+                ->limit(100)
+                ->get()
+            : collect();
 
         $expenses = Expense::query()
             ->active()
@@ -86,7 +90,7 @@ class ReportController extends Controller
 
         return view('cp.finance.reports.index', [
             'snapshot' => $snapshot,
-            'receivables' => $receivables,
+            'receivables' => tenantBusinessEnabled() ? $receivables : [],
             'iOwe' => $iOwe,
             'theyOwe' => $theyOwe,
             'clientSummary' => $clientSummary,

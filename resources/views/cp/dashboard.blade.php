@@ -11,19 +11,21 @@
             <p class="text-xs font-medium mt-1 text-amber-800 dark:text-amber-300">وضع Offline</p>
         </a>
         @foreach([
-            ['route' => 'cp.clients.create', 'icon' => 'person_add', 'label' => 'عميل'],
-            ['route' => 'cp.family-members.create', 'icon' => 'group_add', 'label' => 'فرد عائلة'],
-            ['route' => 'cp.client-services.create', 'icon' => 'work', 'label' => 'خدمة'],
-            ['route' => 'cp.payments.create', 'icon' => 'payments', 'label' => 'دفعة'],
-            ['route' => 'cp.family-loans.create', 'icon' => 'handshake', 'label' => 'قرض'],
-            ['route' => 'cp.family-loans.repay', 'icon' => 'replay', 'label' => 'سداد'],
-            ['route' => 'cp.expenses.create', 'icon' => 'receipt_long', 'label' => 'مصروف'],
-            ['route' => 'cp.transfers.create', 'icon' => 'swap_horiz', 'label' => 'تحويل'],
+            ['route' => 'cp.clients.create', 'icon' => 'person_add', 'label' => 'عميل', 'business' => true],
+            ['route' => 'cp.family-members.create', 'icon' => 'group_add', 'label' => 'فرد', 'business' => false],
+            ['route' => 'cp.client-services.create', 'icon' => 'work', 'label' => 'خدمة', 'business' => true],
+            ['route' => 'cp.payments.create', 'icon' => 'payments', 'label' => 'دفعة', 'business' => true],
+            ['route' => 'cp.family-loans.create', 'icon' => 'handshake', 'label' => 'قرض', 'business' => false],
+            ['route' => 'cp.family-loans.repay', 'icon' => 'replay', 'label' => 'سداد', 'business' => false],
+            ['route' => 'cp.expenses.create', 'icon' => 'receipt_long', 'label' => 'مصروف', 'business' => false],
+            ['route' => 'cp.transfers.create', 'icon' => 'swap_horiz', 'label' => 'تحويل', 'business' => false],
         ] as $action)
-        <a href="{{ route($action['route']) }}" class="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3 text-center hover:border-primary/40 hover:shadow-md transition-all group">
-            <span class="material-symbols-outlined text-primary text-2xl group-hover:scale-110 transition-transform">{{ $action['icon'] }}</span>
-            <p class="text-xs font-medium mt-1 text-slate-600 dark:text-slate-300">{{ $action['label'] }}</p>
-        </a>
+            @if(empty($action['business']) || tenantBusinessEnabled())
+            <a href="{{ route($action['route']) }}" class="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3 text-center hover:border-primary/40 hover:shadow-md transition-all group">
+                <span class="material-symbols-outlined text-primary text-2xl group-hover:scale-110 transition-transform">{{ $action['icon'] }}</span>
+                <p class="text-xs font-medium mt-1 text-slate-600 dark:text-slate-300">{{ $action['label'] }}</p>
+            </a>
+            @endif
         @endforeach
     </section>
 
@@ -76,13 +78,15 @@
     </section>
 
     {{-- Receivables --}}
-    <section class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <section class="grid grid-cols-1 md:grid-cols-{{ tenantBusinessEnabled() ? '3' : '2' }} gap-4">
+        @if(tenantBusinessEnabled())
         <div class="rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 p-5">
             <p class="font-bold text-amber-800 dark:text-amber-300 mb-2">مستحقات العملاء</p>
             @foreach($snapshot['currencies'] as $currency)
                 <p class="text-lg font-extrabold">{{ $currency->format($receivables[$currency->id] ?? 0) }}</p>
             @endforeach
         </div>
+        @endif
         <div class="rounded-2xl bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800/40 p-5">
             <p class="font-bold text-rose-800 dark:text-rose-300 mb-2">ديوني للعائلة</p>
             @foreach($snapshot['currencies'] as $currency)
@@ -97,10 +101,14 @@
         </div>
     </section>
 
-    <section class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <section class="grid grid-cols-2 lg:grid-cols-{{ tenantBusinessEnabled() ? '4' : '2' }} gap-4">
+        @if(tenantBusinessEnabled())
         <div class="rounded-xl bg-white dark:bg-slate-800 border p-4"><p class="text-xs text-slate-500">العملاء</p><p class="text-2xl font-bold">{{ $counts['clients'] }}</p></div>
-        <div class="rounded-xl bg-white dark:bg-slate-800 border p-4"><p class="text-xs text-slate-500">أفراد العائلة</p><p class="text-2xl font-bold">{{ $counts['family'] }}</p></div>
-        <div class="rounded-xl bg-white dark:bg-slate-800 border p-4"><p class="text-xs text-slate-500">خدمات غير مسددة</p><p class="text-2xl font-bold">{{ $counts['open_services'] }}</p></div>
+        @endif
+        <div class="rounded-xl bg-white dark:bg-slate-800 border p-4"><p class="text-xs text-slate-500">الأفراد</p><p class="text-2xl font-bold">{{ $counts['family'] }}</p></div>
+        @if(tenantBusinessEnabled())
+        <div class="rounded-xl bg-white dark:bg-slate-800 border p-4"><p class="text-xs text-slate-500">الخدمات</p><p class="text-2xl font-bold">{{ $counts['open_services'] }}</p></div>
+        @endif
         <div class="rounded-xl bg-white dark:bg-slate-800 border p-4"><p class="text-xs text-slate-500">قروض مفتوحة</p><p class="text-2xl font-bold">{{ $counts['open_loans'] }}</p></div>
     </section>
 
@@ -115,7 +123,8 @@
         </div>
     </section>
 
-    <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <section class="grid grid-cols-1 lg:grid-cols-{{ tenantBusinessEnabled() ? '2' : '1' }} gap-6">
+        @if(tenantBusinessEnabled())
         <div class="rounded-2xl bg-white dark:bg-slate-800 border p-5">
             <h3 class="font-bold mb-4">العملاء الأكثر مديونية</h3>
             @forelse($topIndebted as $row)
@@ -133,6 +142,7 @@
                 <p class="text-slate-500 text-sm">لا توجد مستحقات حالياً.</p>
             @endforelse
         </div>
+        @endif
         <div class="rounded-2xl bg-white dark:bg-slate-800 border p-5">
             <h3 class="font-bold mb-4">آخر الحركات المالية</h3>
             <div class="space-y-2 max-h-80 overflow-y-auto">
@@ -162,18 +172,27 @@ const monthKeys = @json($monthKeys);
 const revenue = @json($revenueByMonth);
 const expenses = @json($expenseByMonth);
 const methodDist = @json($methodDistribution);
+const currencyCodes = @json($snapshot['currencies']->pluck('code')->values());
+const chartColors = ['#08A46D', '#e11d48', '#0ea5e9', '#f59e0b', '#8b5cf6', '#14b8a6'];
+const revExpDatasets = [];
+currencyCodes.forEach((code, i) => {
+    revExpDatasets.push({
+        label: 'إيرادات ' + code,
+        data: monthKeys.map(k => revenue[code]?.[k] ?? 0),
+        borderColor: chartColors[(i * 2) % chartColors.length],
+        tension: .3
+    });
+    revExpDatasets.push({
+        label: 'مصروفات ' + code,
+        data: monthKeys.map(k => expenses[code]?.[k] ?? 0),
+        borderColor: chartColors[(i * 2 + 1) % chartColors.length],
+        tension: .3
+    });
+});
 
 new Chart(document.getElementById('revExpChart'), {
     type: 'line',
-    data: {
-        labels: monthKeys,
-        datasets: [
-            { label: 'إيرادات USD', data: monthKeys.map(k => revenue.USD?.[k] ?? 0), borderColor: '#08A46D', tension: .3 },
-            { label: 'مصروفات USD', data: monthKeys.map(k => expenses.USD?.[k] ?? 0), borderColor: '#e11d48', tension: .3 },
-            { label: 'إيرادات ILS', data: monthKeys.map(k => revenue.ILS?.[k] ?? 0), borderColor: '#0ea5e9', tension: .3 },
-            { label: 'مصروفات ILS', data: monthKeys.map(k => expenses.ILS?.[k] ?? 0), borderColor: '#f59e0b', tension: .3 },
-        ]
-    },
+    data: { labels: monthKeys, datasets: revExpDatasets },
     options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
 });
 

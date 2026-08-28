@@ -20,14 +20,13 @@
         @else
         <table class="w-full text-right text-sm">
             <thead class="bg-slate-50 dark:bg-slate-700/50"><tr>
-                <th class="px-4 py-3">الاسم</th><th class="px-4 py-3">الهاتف</th><th class="px-4 py-3">المتبقي</th><th class="px-4 py-3">الحالة</th><th class="px-4 py-3">إجراء</th>
+                <th class="px-4 py-3">الجهة</th><th class="px-4 py-3">المسؤول</th><th class="px-4 py-3">الهاتف</th><th class="px-4 py-3">المتبقي</th><th class="px-4 py-3">الحالة</th><th class="px-4 py-3">إجراء</th>
             </tr></thead>
             <tbody class="divide-y dark:divide-slate-700">
             @foreach($clients as $client)
                 <tr>
-                    <td class="px-4 py-3"><a href="{{ route('cp.clients.show', $client) }}" class="font-medium text-primary">{{ $client->name }}</a>
-                        @if($client->company_name)<div class="text-xs text-slate-500">{{ $client->company_name }}</div>@endif
-                    </td>
+                    <td class="px-4 py-3"><a href="{{ route('cp.clients.show', $client) }}" class="font-medium text-primary">{{ $client->name }}</a></td>
+                    <td class="px-4 py-3">{{ $client->contact_name ?: '—' }}</td>
                     <td class="px-4 py-3">{{ $client->phone ?: '—' }}</td>
                     <td class="px-4 py-3">
                         @foreach($currencies as $currency)
@@ -37,8 +36,17 @@
                             @endif
                         @endforeach
                     </td>
-                    <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-xs {{ $client->is_active ? 'bg-emerald-500/20 text-emerald-700' : 'bg-slate-200' }}">{{ $client->is_active ? 'نشط' : 'مؤرشف' }}</span></td>
-                    <td class="px-4 py-3"><a href="{{ route('cp.clients.edit', $client) }}" class="p-2 inline-block"><span class="material-symbols-outlined">edit</span></a></td>
+                    <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-xs {{ $client->is_active ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300' : 'bg-slate-200 text-slate-600 dark:bg-slate-600 dark:text-slate-300' }}">{{ $client->is_active ? 'نشط' : 'مؤرشف' }}</span></td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center gap-1 justify-end">
+                            <a href="{{ route('cp.clients.show', $client) }}" class="p-2 inline-block" title="عرض"><span class="material-symbols-outlined text-base">visibility</span></a>
+                            <a href="{{ route('cp.clients.edit', $client) }}" class="p-2 inline-block" title="تعديل"><span class="material-symbols-outlined text-base">edit</span></a>
+                            <form method="post" action="{{ route('cp.clients.destroy', $client) }}" onsubmit="return confirm('حذف/أرشفة هذا العميل؟')">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="p-2 text-rose-600" title="حذف"><span class="material-symbols-outlined text-base">delete</span></button>
+                            </form>
+                        </div>
+                    </td>
                 </tr>
             @endforeach
             </tbody>

@@ -20,6 +20,8 @@ use App\Http\Controllers\Api\ClientPaymentController as ApiClientPaymentControll
 use App\Http\Controllers\Api\ExpenseController as ApiExpenseController;
 use App\Http\Controllers\Api\FamilyLoanController as ApiFamilyLoanController;
 use App\Http\Controllers\Api\SyncController as ApiSyncController;
+use App\Http\Controllers\Super\AuthController as SuperAuthController;
+use App\Http\Controllers\Super\TenantController as SuperTenantController;
 
 Route::redirect('/', '/cp');
 
@@ -27,31 +29,47 @@ Route::get('/cp/login', [\App\Http\Controllers\Cp\AuthController::class, 'showLo
 Route::post('/cp/login', [\App\Http\Controllers\Cp\AuthController::class, 'login']);
 Route::match(['get', 'post'], '/cp/logout', [\App\Http\Controllers\Cp\AuthController::class, 'logout'])->name('cp.logout');
 
+Route::get('/super/login', [SuperAuthController::class, 'showLoginForm'])->name('super.login');
+Route::post('/super/login', [SuperAuthController::class, 'login'])->name('super.login.submit');
+Route::post('/super/logout', [SuperAuthController::class, 'logout'])->name('super.logout');
+
+Route::prefix('super')->name('super.')->middleware(['super.auth'])->group(function () {
+    Route::get('/', [SuperTenantController::class, 'dashboard'])->name('dashboard');
+    Route::get('/tenants/{tenant}/finances', [SuperTenantController::class, 'finances'])->name('tenants.finances');
+    Route::get('/tenants/{tenant}/reports', [SuperTenantController::class, 'reports'])->name('tenants.reports');
+    Route::resource('tenants', SuperTenantController::class)->except(['destroy']);
+});
+
 Route::prefix('cp')->name('cp.')->middleware(['cp.auth', 'cp.check'])->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/offline', [OfflineController::class, 'index'])->name('offline');
 
-    // Session-authenticated API for browser offline sync (same-origin + CSRF)
     Route::prefix('api/v1')->group(function () {
         Route::get('/bootstrap', ApiBootstrapController::class);
         Route::get('/balances', ApiBalanceController::class);
-        Route::get('/clients/{client}/unpaid-services', [ApiClientPaymentController::class, 'unpaidServices']);
         Route::get('/family-members/{familyMember}/open-loans', [ApiFamilyLoanController::class, 'openLoans']);
-        Route::post('/payments', [ApiClientPaymentController::class, 'store']);
         Route::post('/expenses', [ApiExpenseController::class, 'store']);
         Route::post('/family-loans', [ApiFamilyLoanController::class, 'storeLoan']);
         Route::post('/family-loan-repayments', [ApiFamilyLoanController::class, 'storeRepayment']);
         Route::post('/sync/push', [ApiSyncController::class, 'push']);
+
+        Route::middleware('cp.business')->group(function () {
+            Route::get('/clients/{client}/unpaid-services', [ApiClientPaymentController::class, 'unpaidServices']);
+            Route::post('/payments', [ApiClientPaymentController::class, 'store']);
+        });
     });
 
     Route::get('/balances', [BalanceController::class, 'index'])->name('balances.index');
     Route::post('/balances/opening', [BalanceController::class, 'storeOpening'])->name('balances.opening');
 
-    Route::resource('clients', ClientController::class);
-    Route::resource('client-services', ClientServiceController::class)->except(['show']);
-    Route::resource('payments', ClientPaymentController::class)->only(['index', 'create', 'store', 'show']);
-    Route::post('/payments/{payment}/reverse', [ClientPaymentController::class, 'reverse'])->name('payments.reverse');
-    Route::get('/clients/{client}/unpaid-services', [ClientPaymentController::class, 'unpaidServices'])->name('clients.unpaid-services');
+    Route::middleware('cp.business')->group(function () {
+        Route::resource('clients', ClientController::class);
+        Route::resource('client-services', ClientServiceController::class)->except(['show']);
+        Route::resource('payments', ClientPaymentController::class)->only(['index', 'create', 'store', 'show']);
+        Route::post('/payments/{payment}/reverse', [ClientPaymentController::class, 'reverse'])->name('payments.reverse');
+        Route::get('/clients/{client}/unpaid-services', [ClientPaymentController::class, 'unpaidServices'])->name('clients.unpaid-services');
+        Route::resource('service-types', ServiceTypeController::class)->except(['show']);
+    });
 
     Route::get('/family-members/{family_member}/open-loans', [FamilyLoanController::class, 'openLoans'])->name('family-members.open-loans');
     Route::resource('family-members', FamilyMemberController::class);
@@ -61,6 +79,7 @@ Route::prefix('cp')->name('cp.')->middleware(['cp.auth', 'cp.check'])->group(fun
     Route::get('/family-loans/repay', [FamilyLoanController::class, 'createRepayment'])->name('family-loans.repay');
     Route::post('/family-loans/repay', [FamilyLoanController::class, 'storeRepayment'])->name('family-loans.repay.store');
     Route::post('/family-loans/{loan}/reverse', [FamilyLoanController::class, 'reverse'])->name('family-loans.reverse');
+    Route::post('/family-loan-repayments/{repayment}/reverse', [FamilyLoanController::class, 'reverseRepayment'])->name('family-loan-repayments.reverse');
 
     Route::resource('expenses', ExpenseController::class)->only(['index', 'create', 'store']);
     Route::post('/expenses/{expense}/reverse', [ExpenseController::class, 'reverse'])->name('expenses.reverse');
@@ -70,7 +89,6 @@ Route::prefix('cp')->name('cp.')->middleware(['cp.auth', 'cp.check'])->group(fun
 
     Route::get('/ledger', [LedgerController::class, 'index'])->name('ledger.index');
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
-    Route::resource('service-types', ServiceTypeController::class)->except(['show']);
 
     Route::resource('users', \App\Http\Controllers\Cp\UserController::class)->names('users')->except(['show']);
     Route::resource('roles', \App\Http\Controllers\Cp\RoleController::class)->names('roles')->except(['show']);
@@ -78,9 +96,9 @@ Route::prefix('cp')->name('cp.')->middleware(['cp.auth', 'cp.check'])->group(fun
 
 Route::get('storage/{file}', function ($file) {
     $path = storage_path('app/public/' . $file);
-    if (! is_file($path)) {
+    if (! file_exists($path)) {
         abort(404);
     }
 
     return response()->file($path);
-})->where('file', '.+');
+})->where('file', '.*');

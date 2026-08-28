@@ -8,6 +8,7 @@ use App\Http\Controllers\Cp\Concerns\LoadsFinanceLookups;
 use App\Models\Client;
 use App\Models\ClientPayment;
 use App\Models\ClientService;
+use App\Models\Currency;
 use App\Services\Finance\ClientPaymentService;
 use App\Services\Finance\ReversalService;
 use Illuminate\Http\Request;
@@ -55,20 +56,10 @@ class ClientPaymentController extends Controller
             'payer_name' => ['nullable', 'string', 'max:255'],
             'payment_date' => ['required', 'date'],
             'notes' => ['nullable', 'string'],
-            'allocations' => ['required', 'array', 'min:1'],
-            'allocations.*.client_service_id' => ['required', 'exists:client_services,id'],
-            'allocations.*.amount' => ['required', 'numeric', 'gte:0'],
         ]);
 
-        $allocations = collect($data['allocations'])
-            ->map(fn ($row) => [
-                'client_service_id' => (int) $row['client_service_id'],
-                'amount' => $row['amount'],
-            ])
-            ->all();
-
         try {
-            $payment = $service->receive($data, $allocations);
+            $payment = $service->receive($data);
         } catch (FinanceException $e) {
             return back()->withInput()->with('error', $e->getMessage());
         }
@@ -78,7 +69,7 @@ class ClientPaymentController extends Controller
 
     public function show(ClientPayment $payment)
     {
-        $payment->load(['client', 'currency', 'paymentMethod', 'allocations.service']);
+        $payment->load(['client', 'currency', 'paymentMethod']);
 
         return view('cp.finance.payments.show', compact('payment'));
     }
@@ -97,6 +88,9 @@ class ClientPaymentController extends Controller
     public function unpaidServices(Client $client, Request $request)
     {
         $currencyId = (int) $request->currency_id;
+        $currency = $currencyId ? Currency::query()->find($currencyId) : null;
+        $outstanding = $currencyId ? $client->outstandingAmount($currencyId) : '0.00';
+
         $services = ClientService::query()
             ->billable()
             ->where('client_id', $client->id)
@@ -104,17 +98,18 @@ class ClientPaymentController extends Controller
             ->with('currency')
             ->orderByDesc('service_date')
             ->get()
-            ->filter(fn ($s) => \App\Support\Money::isPositive($s->remainingAmount()))
-            ->values()
             ->map(fn ($s) => [
                 'id' => $s->id,
                 'title' => $s->title,
                 'amount' => $s->amount,
-                'remaining' => $s->remainingAmount(),
                 'currency_id' => $s->currency_id,
                 'currency_code' => $s->currency->code,
             ]);
 
-        return response()->json(['services' => $services]);
+        return response()->json([
+            'outstanding' => $outstanding,
+            'outstanding_formatted' => $currency?->format($outstanding) ?? $outstanding,
+            'services' => $services,
+        ]);
     }
 }

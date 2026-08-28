@@ -129,7 +129,7 @@ return new class extends Migration
                 $table->boolean('is_reversed')->default(false);
                 $table->timestamp('reversed_at')->nullable();
                 $table->timestamps();
-                $table->index(['client_id', 'currency_id', 'is_reversed']);
+                $table->index(['client_id', 'currency_id', 'is_reversed'], 'cp_client_currency_reversed_idx');
                 $table->index('payment_date');
                 $table->index('ledger_group_id');
             });
@@ -143,7 +143,7 @@ return new class extends Migration
                 $table->decimal('allocated_amount', 14, 2);
                 $table->foreignId('currency_id')->constrained()->restrictOnDelete();
                 $table->timestamps();
-                $table->index(['client_service_id', 'client_payment_id']);
+                $table->index(['client_service_id', 'client_payment_id'], 'pa_service_payment_idx');
             });
         }
 
@@ -163,7 +163,7 @@ return new class extends Migration
                 $table->boolean('is_reversed')->default(false);
                 $table->timestamp('reversed_at')->nullable();
                 $table->timestamps();
-                $table->index(['family_member_id', 'direction', 'currency_id', 'status']);
+                $table->index(['family_member_id', 'direction', 'currency_id', 'status'], 'fl_member_dir_cur_status_idx');
                 $table->index('loan_date');
             });
         }
@@ -183,7 +183,7 @@ return new class extends Migration
                 $table->boolean('is_reversed')->default(false);
                 $table->timestamp('reversed_at')->nullable();
                 $table->timestamps();
-                $table->index(['family_member_id', 'currency_id', 'is_reversed']);
+                $table->index(['family_member_id', 'currency_id', 'is_reversed'], 'flr_member_currency_reversed_idx');
             });
         }
 

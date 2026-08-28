@@ -39,6 +39,10 @@ class SyncOperationService
      */
     public function execute(string $operationId, string $type, array $payload, ?string $clientTimestamp = null, ?string $deviceId = null): array
     {
+        if ($type === self::TYPE_CLIENT_PAYMENT && ! tenantBusinessEnabled()) {
+            throw new FinanceException('وحدة العمل غير مفعّلة لهذه النسخة.');
+        }
+
         $existing = SyncOperation::query()->where('operation_id', $operationId)->first();
         if ($existing) {
             if ($existing->isCompleted()) {
@@ -119,13 +123,8 @@ class SyncOperationService
 
     protected function handleClientPayment(array $payload): array
     {
-        $allocations = collect($payload['allocations'] ?? [])->map(fn ($row) => [
-            'client_service_id' => (int) $row['client_service_id'],
-            'amount' => $row['amount'],
-        ])->all();
-
-        $payment = $this->payments->receive($payload, $allocations);
-        $payment->load(['client', 'currency', 'paymentMethod', 'allocations.service']);
+        $payment = $this->payments->receive($payload);
+        $payment->load(['client', 'currency', 'paymentMethod']);
 
         return [$payment, $this->paymentPayload($payment)];
     }
@@ -173,11 +172,6 @@ class SyncOperationService
             'payer_name' => $payment->payer_name,
             'payment_date' => optional($payment->payment_date)->format('Y-m-d'),
             'notes' => $payment->notes,
-            'allocations' => $payment->allocations->map(fn ($a) => [
-                'client_service_id' => $a->client_service_id,
-                'service_title' => $a->service?->title,
-                'allocated_amount' => (string) $a->allocated_amount,
-            ])->values()->all(),
         ];
     }
 

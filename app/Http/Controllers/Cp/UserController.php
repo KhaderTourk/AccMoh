@@ -25,7 +25,10 @@ class UserController extends Controller
 
     public function index()
     {
-        $users = User::with('role')->orderBy('name')->paginate(15);
+        $users = User::with('role')
+            ->where('tenant_id', auth()->user()->tenant_id)
+            ->orderBy('name')
+            ->paginate(15);
         return view('cp.users.index', compact('users'));
     }
 
@@ -49,6 +52,8 @@ class UserController extends Controller
         $validated['password'] = Hash::make($validated['password']);
         $validated['is_active'] = $request->boolean('is_active');
         $validated['is_super_admin'] = auth()->user()->is_super_admin && $request->boolean('is_super_admin');
+        $validated['tenant_id'] = auth()->user()->tenant_id;
+        $validated['is_platform_admin'] = false;
 
         User::create($validated);
         return redirect()->route('cp.users.index')->with('success', 'تم إضافة المستخدم بنجاح.');
@@ -56,12 +61,14 @@ class UserController extends Controller
 
     public function edit(User $user)
     {
+        $this->assertSameTenant($user);
         $roles = Role::orderBy('name')->get();
         return view('cp.users.edit', compact('user', 'roles'));
     }
 
     public function update(Request $request, User $user)
     {
+        $this->assertSameTenant($user);
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'unique:users,email,' . $user->id],
@@ -86,10 +93,18 @@ class UserController extends Controller
 
     public function destroy(User $user)
     {
+        $this->assertSameTenant($user);
         if ($user->id === auth()->id()) {
             return back()->with('error', 'لا يمكنك حذف حسابك.');
         }
         $user->delete();
         return redirect()->route('cp.users.index')->with('success', 'تم حذف المستخدم.');
+    }
+
+    protected function assertSameTenant(User $user): void
+    {
+        if ((int) $user->tenant_id !== (int) auth()->user()->tenant_id) {
+            abort(404);
+        }
     }
 }

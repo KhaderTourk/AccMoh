@@ -3,9 +3,11 @@
  */
 (function (global) {
   const DB_NAME = 'accma_offline';
-  const DB_VERSION = 1;
+  // v2: recreate stores if an empty v1 DB was opened (e.g. from layout badge) without onupgradeneeded
+  const DB_VERSION = 2;
   const API_BASE = '/cp/api/v1';
   const DEVICE_KEY = 'accma_device_id';
+  const REQUIRED_STORES = ['meta', 'snapshot', 'outbox'];
 
   function uuid() {
     if (crypto.randomUUID) return crypto.randomUUID();
@@ -29,20 +31,36 @@
     return document.querySelector('meta[name="csrf-token"]')?.content || '';
   }
 
+  function ensureStores(db) {
+    if (!db.objectStoreNames.contains('meta')) db.createObjectStore('meta');
+    if (!db.objectStoreNames.contains('snapshot')) db.createObjectStore('snapshot');
+    if (!db.objectStoreNames.contains('outbox')) {
+      const store = db.createObjectStore('outbox', { keyPath: 'operation_id' });
+      store.createIndex('by_status', 'status', { unique: false });
+      store.createIndex('by_created', 'created_at', { unique: false });
+    }
+  }
+
+  function hasRequiredStores(db) {
+    return REQUIRED_STORES.every((name) => db.objectStoreNames.contains(name));
+  }
+
   function openDb() {
     return new Promise((resolve, reject) => {
       const req = indexedDB.open(DB_NAME, DB_VERSION);
-      req.onupgradeneeded = () => {
+      req.onupgradeneeded = () => ensureStores(req.result);
+      req.onsuccess = () => {
         const db = req.result;
-        if (!db.objectStoreNames.contains('meta')) db.createObjectStore('meta');
-        if (!db.objectStoreNames.contains('snapshot')) db.createObjectStore('snapshot');
-        if (!db.objectStoreNames.contains('outbox')) {
-          const store = db.createObjectStore('outbox', { keyPath: 'operation_id' });
-          store.createIndex('by_status', 'status', { unique: false });
-          store.createIndex('by_created', 'created_at', { unique: false });
+        if (!hasRequiredStores(db)) {
+          db.close();
+          const del = indexedDB.deleteDatabase(DB_NAME);
+          del.onsuccess = () => openDb().then(resolve, reject);
+          del.onerror = () => reject(del.error || new Error('failed to reset offline db'));
+          del.onblocked = () => reject(new Error('offline db reset blocked'));
+          return;
         }
+        resolve(db);
       };
-      req.onsuccess = () => resolve(req.result);
       req.onerror = () => reject(req.error);
     });
   }
@@ -182,9 +200,12 @@
       return { results: [], snapshot, synced: 0 };
     }
 
+    // Cap batch size for slow/unstable networks
+    const batch = pending.slice(0, 25);
+
     const body = {
       device_id: deviceId(),
-      operations: pending.map((i) => ({
+      operations: batch.map((i) => ({
         operation_id: i.operation_id,
         type: i.type,
         payload: i.payload,
@@ -201,7 +222,7 @@
       if (result.status === 'completed') {
         await idbDeleteOutbox(result.operation_id);
       } else {
-        const item = pending.find((p) => p.operation_id === result.operation_id);
+        const item = batch.find((p) => p.operation_id === result.operation_id);
         if (item) {
           item.status = 'failed';
           item.last_error = result.error || 'فشلت المزامنة';
@@ -210,14 +231,12 @@
       }
     }
 
+    const snapshot = response.snapshot || (await refreshCache());
     if (response.snapshot) {
       await saveSnapshot(response.snapshot);
-    } else {
-      await refreshCache();
     }
-
     const synced = (response.results || []).filter((r) => r.status === 'completed').length;
-    return { ...response, synced };
+    return { results: response.results || [], snapshot, synced };
   }
 
   /** Optimistic local balance tweak for display only */
@@ -245,6 +264,8 @@
       if (business) bump(business.totals, code, amount);
       const m = clone.balances.methods?.find((x) => String(x.id) === String(payload.payment_method_id));
       if (m) bump(m.totals, code, amount);
+      const client = clone.clients?.find((x) => String(x.id) === String(payload.client_id));
+      if (client?.outstanding) bump(client.outstanding, code, -amount);
     }
 
     if (type === 'expense') {

@@ -68,6 +68,11 @@ class Money
         return self::isNegative($a) ? self::neg($a) : self::of($a);
     }
 
+    public static function min(mixed $a, mixed $b): string
+    {
+        return self::cmp($a, $b) <= 0 ? self::of($a) : self::of($b);
+    }
+
     public static function sum(iterable $values): string
     {
         $total = '0.00';

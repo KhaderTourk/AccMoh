@@ -11,6 +11,10 @@ class AuthController extends Controller
     public function showLoginForm()
     {
         if (Auth::check()) {
+            if (Auth::user()->is_platform_admin) {
+                return redirect()->route('super.dashboard');
+            }
+
             return redirect()->route('cp.dashboard');
         }
         return view('cp.auth.login');
@@ -30,6 +34,14 @@ class AuthController extends Controller
             if (!$user->is_active) {
                 Auth::logout();
                 return back()->withErrors(['email' => 'حسابك غير مفعّل. تواصل مع مدير النظام.']);
+            }
+            if ($user->is_platform_admin) {
+                $request->session()->regenerate();
+                return redirect()->route('super.dashboard');
+            }
+            if (! $user->tenant_id) {
+                Auth::logout();
+                return back()->withErrors(['email' => 'الحساب غير مرتبط بنسخة نظام.']);
             }
             $request->session()->regenerate();
             return redirect()->intended(route('cp.dashboard'));

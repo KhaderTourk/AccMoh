@@ -13,10 +13,13 @@ return Application::configure(basePath: dirname(__DIR__))
         apiPrefix: 'api',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        $middleware->append(\App\Http\Middleware\CompressResponse::class);
         $middleware->alias([
             'cp.auth' => \App\Http\Middleware\EnsureCpAuth::class,
             'cp.permission' => \App\Http\Middleware\CheckPermission::class,
             'cp.check' => \App\Http\Middleware\CheckCpPermission::class,
+            'cp.business' => \App\Http\Middleware\EnsureBusinessModule::class,
+            'super.auth' => \App\Http\Middleware\EnsurePlatformAdmin::class,
             'locale' => \App\Http\Middleware\SetLocale::class,
             'locale.from.url' => \App\Http\Middleware\SetLocaleFromUrl::class,
             'localize' => \Mcamara\LaravelLocalization\Middleware\LaravelLocalizationRoutes::class,

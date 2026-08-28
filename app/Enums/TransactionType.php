@@ -21,7 +21,7 @@ enum TransactionType: string
         return match ($this) {
             self::ClientPayment => 'دفعة عميل',
             self::FamilyLoanReceived => 'اقتراض من العائلة',
-            self::FamilyLoanGiven => 'إقراض فرد من العائلة',
+            self::FamilyLoanGiven => 'إقراض فرد',
             self::FamilyLoanRepaymentPaid => 'سداد قرض عائلي',
             self::FamilyLoanRepaymentReceived => 'استلام سداد عائلي',
             self::Expense => 'مصروف',

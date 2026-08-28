@@ -22,7 +22,12 @@
                     <td class="px-3 py-2">{{ $p->currency->format($p->amount) }}</td>
                     <td class="px-3 py-2">{{ $p->paymentMethod->name }}</td>
                     <td class="px-3 py-2">{{ $p->payment_date->format('Y-m-d') }}</td>
-                    <td class="px-3 py-2"><a href="{{ route('cp.payments.show', $p) }}" class="text-sm text-primary">عرض</a></td>
+                    <td class="px-3 py-2 flex gap-2 justify-end">
+                        <a href="{{ route('cp.payments.show', $p) }}" class="text-sm text-primary">عرض</a>
+                        @unless($p->is_reversed)
+                        <form method="post" action="{{ route('cp.payments.reverse', $p) }}" onsubmit="return confirm('إلغاء الدفعة؟')">@csrf<button class="text-rose-600 text-xs">إلغاء</button></form>
+                        @endunless
+                    </td>
                 </tr>
             @empty
                 <tr><td colspan="5" class="p-8 text-center text-slate-500">لا توجد دفعات.</td></tr>

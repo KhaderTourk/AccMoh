@@ -1,5 +1,5 @@
 @extends('cp.layout')
-@section('title', 'أفراد العائلة')
+@section('title', 'الأفراد')
 @section('content')
 <div class="space-y-4">
     <div class="flex justify-between gap-3 flex-wrap">
@@ -16,7 +16,16 @@
                     <td class="px-3 py-2">{{ $m->relationship ?: '—' }}</td>
                     <td class="px-3 py-2">@foreach($currencies as $c) @php $v=$m->iOweAmount($c->id); @endphp @if(\App\Support\Money::isPositive($v))<div>{{ $c->format($v) }}</div>@endif @endforeach</td>
                     <td class="px-3 py-2">@foreach($currencies as $c) @php $v=$m->theyOweAmount($c->id); @endphp @if(\App\Support\Money::isPositive($v))<div>{{ $c->format($v) }}</div>@endif @endforeach</td>
-                    <td class="px-3 py-2"><a href="{{ route('cp.family-members.edit', $m) }}"><span class="material-symbols-outlined">edit</span></a></td>
+                    <td class="px-3 py-2">
+                        <div class="flex items-center gap-1 justify-end">
+                            <a href="{{ route('cp.family-members.show', $m) }}" class="p-1" title="عرض"><span class="material-symbols-outlined text-base">visibility</span></a>
+                            <a href="{{ route('cp.family-members.edit', $m) }}" class="p-1" title="تعديل"><span class="material-symbols-outlined text-base">edit</span></a>
+                            <form method="post" action="{{ route('cp.family-members.destroy', $m) }}" onsubmit="return confirm('حذف/أرشفة هذا الفرد؟')">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="p-1 text-rose-600" title="حذف"><span class="material-symbols-outlined text-base">delete</span></button>
+                            </form>
+                        </div>
+                    </td>
                 </tr>
             @empty
                 <tr><td colspan="5" class="p-8 text-center text-slate-500">لا يوجد أفراد.</td></tr>

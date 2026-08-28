@@ -5,7 +5,10 @@
     <div class="flex flex-wrap justify-between gap-3">
         <div>
             <h2 class="text-2xl font-bold">{{ $client->name }}</h2>
-            <p class="text-slate-500 text-sm">{{ $client->company_name }} {{ $client->phone }}</p>
+            <p class="text-slate-500 text-sm">
+                @if($client->contact_name){{ $client->contact_name }} · @endif
+                {{ $client->phone }}
+            </p>
         </div>
         <div class="flex flex-wrap gap-2">
             <a href="{{ route('cp.client-services.create', ['client_id' => $client->id]) }}" class="px-3 py-2 rounded-xl bg-primary text-white text-sm">خدمة</a>
@@ -38,20 +41,27 @@
         <div class="px-4 py-3 border-b font-bold">الخدمات</div>
         <table class="w-full text-sm text-right">
             <thead class="bg-slate-50 dark:bg-slate-700/40"><tr>
-                <th class="px-3 py-2">الخدمة</th><th class="px-3 py-2">السعر</th><th class="px-3 py-2">المدفوع</th><th class="px-3 py-2">المتبقي</th><th class="px-3 py-2">الحالة</th><th class="px-3 py-2">التاريخ</th>
+                <th class="px-3 py-2">الخدمة</th><th class="px-3 py-2">السعر</th><th class="px-3 py-2">الحالة</th><th class="px-3 py-2">التاريخ</th><th class="px-3 py-2"></th>
             </tr></thead>
             <tbody class="divide-y dark:divide-slate-700">
             @forelse($client->services as $service)
                 <tr>
                     <td class="px-3 py-2">{{ $service->title }}</td>
                     <td class="px-3 py-2">{{ $service->currency->format($service->amount) }}</td>
-                    <td class="px-3 py-2">{{ $service->currency->format($service->paidAmount()) }}</td>
-                    <td class="px-3 py-2">{{ $service->currency->format($service->remainingAmount()) }}</td>
                     <td class="px-3 py-2">{{ $service->status->label() }}</td>
                     <td class="px-3 py-2">{{ $service->service_date->format('Y-m-d') }}</td>
+                    <td class="px-3 py-2">
+                        <div class="flex items-center gap-1 justify-end">
+                            <a href="{{ route('cp.client-services.edit', $service) }}" class="p-1" title="تعديل"><span class="material-symbols-outlined text-base">edit</span></a>
+                            <form method="post" action="{{ route('cp.client-services.destroy', $service) }}" onsubmit="return confirm('حذف هذه الخدمة؟')">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="p-1 text-rose-600" title="حذف"><span class="material-symbols-outlined text-base">delete</span></button>
+                            </form>
+                        </div>
+                    </td>
                 </tr>
             @empty
-                <tr><td colspan="6" class="p-6 text-center text-slate-500">لا توجد خدمات.</td></tr>
+                <tr><td colspan="5" class="p-6 text-center text-slate-500">لا توجد خدمات.</td></tr>
             @endforelse
             </tbody>
         </table>
@@ -61,7 +71,7 @@
         <div class="px-4 py-3 border-b font-bold">الدفعات</div>
         <table class="w-full text-sm text-right">
             <thead class="bg-slate-50 dark:bg-slate-700/40"><tr>
-                <th class="px-3 py-2">المبلغ</th><th class="px-3 py-2">الطريقة</th><th class="px-3 py-2">المرسل</th><th class="px-3 py-2">التوزيع</th><th class="px-3 py-2">التاريخ</th>
+                <th class="px-3 py-2">المبلغ</th><th class="px-3 py-2">الطريقة</th><th class="px-3 py-2">المرسل</th><th class="px-3 py-2">التاريخ</th>
             </tr></thead>
             <tbody class="divide-y dark:divide-slate-700">
             @forelse($client->payments as $payment)
@@ -69,15 +79,10 @@
                     <td class="px-3 py-2"><a href="{{ route('cp.payments.show', $payment) }}" class="text-primary">{{ $payment->currency->format($payment->amount) }}</a></td>
                     <td class="px-3 py-2">{{ $payment->paymentMethod->name }}</td>
                     <td class="px-3 py-2">{{ $payment->payer_name }}</td>
-                    <td class="px-3 py-2 text-xs">
-                        @foreach($payment->allocations as $a)
-                            <div>{{ $a->service->title }}: {{ $payment->currency->format($a->allocated_amount) }}</div>
-                        @endforeach
-                    </td>
                     <td class="px-3 py-2">{{ $payment->payment_date->format('Y-m-d') }}</td>
                 </tr>
             @empty
-                <tr><td colspan="5" class="p-6 text-center text-slate-500">لا توجد دفعات.</td></tr>
+                <tr><td colspan="4" class="p-6 text-center text-slate-500">لا توجد دفعات.</td></tr>
             @endforelse
             </tbody>
         </table>

@@ -89,14 +89,14 @@ class FamilyLoanController extends Controller
             'payment_method_id' => ['required', 'exists:payment_methods,id'],
             'repayment_date' => ['required', 'date'],
             'notes' => ['nullable', 'string'],
-            'allocations' => ['required', 'array', 'min:1'],
-            'allocations.*.family_loan_id' => ['required', 'exists:family_loans,id'],
-            'allocations.*.amount' => ['required', 'numeric', 'gte:0'],
+            'allocations' => ['nullable', 'array'],
+            'allocations.*.family_loan_id' => ['required_with:allocations', 'exists:family_loans,id'],
+            'allocations.*.amount' => ['nullable', 'numeric', 'gte:0'],
         ]);
 
-        $allocations = collect($data['allocations'])->map(fn ($row) => [
+        $allocations = collect($data['allocations'] ?? [])->map(fn ($row) => [
             'family_loan_id' => (int) $row['family_loan_id'],
-            'amount' => $row['amount'],
+            'amount' => $row['amount'] ?? 0,
         ])->all();
 
         try {
@@ -118,6 +118,17 @@ class FamilyLoanController extends Controller
         }
 
         return back()->with('success', 'تم إلغاء القرض.');
+    }
+
+    public function reverseRepayment(\App\Models\FamilyLoanRepayment $repayment, ReversalService $reversals)
+    {
+        try {
+            $reversals->reverseRepayment($repayment);
+        } catch (FinanceException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', 'تم إلغاء السداد.');
     }
 
     public function openLoans(FamilyMember $family_member, Request $request)

@@ -6,17 +6,11 @@ use App\Enums\LoanDirection;
 use App\Enums\TransactionType;
 use App\Http\Controllers\Controller;
 use App\Models\Client;
-use App\Models\ClientPayment;
 use App\Models\ClientService;
-use App\Models\Currency;
-use App\Models\Expense;
 use App\Models\FamilyLoan;
 use App\Models\FamilyMember;
-use App\Models\FundTransfer;
 use App\Models\LedgerEntry;
-use App\Support\Money;
 use App\Services\Finance\BalanceService;
-use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -68,7 +62,7 @@ class DashboardController extends Controller
 
         return view('cp.dashboard', [
             'snapshot' => $snapshot,
-            'receivables' => $receivables,
+            'receivables' => tenantBusinessEnabled() ? $receivables : [],
             'iOwe' => $iOwe,
             'theyOwe' => $theyOwe,
             'recent' => $recent,
@@ -77,14 +71,14 @@ class DashboardController extends Controller
             'revenueByMonth' => $revenueByMonth,
             'expenseByMonth' => $expenseByMonth,
             'methodDistribution' => $methodDistribution,
-            'topIndebted' => $balances->topIndebtedClients(5),
-            'topPaying' => $balances->topPayingClients(5),
+            'topIndebted' => tenantBusinessEnabled() ? $balances->topIndebtedClients(5) : collect(),
+            'topPaying' => tenantBusinessEnabled() ? $balances->topPayingClients(5) : collect(),
             'counts' => [
-                'clients' => Client::query()->count(),
+                'clients' => tenantBusinessEnabled() ? Client::query()->count() : 0,
                 'family' => FamilyMember::query()->count(),
-                'open_services' => ClientService::query()->billable()->get()->filter(
-                    fn ($s) => Money::isPositive($s->remainingAmount())
-                )->count(),
+                'open_services' => tenantBusinessEnabled()
+                    ? ClientService::query()->billable()->count()
+                    : 0,
                 'open_loans' => FamilyLoan::query()->active()->whereIn('status', ['open', 'partial'])->count(),
             ],
         ]);

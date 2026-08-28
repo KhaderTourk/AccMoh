@@ -20,6 +20,9 @@ class FundTransferService
     {
         $amount = Money::of($data['amount']);
         $fee = Money::of($data['fee_amount'] ?? 0);
+        $fromCurrencyId = (int) $data['currency_id'];
+        $toCurrencyId = (int) ($data['to_currency_id'] ?? $fromCurrencyId);
+        $isFx = $fromCurrencyId !== $toCurrencyId;
 
         if (! Money::isPositive($amount)) {
             throw new FinanceException('مبلغ التحويل يجب أن يكون أكبر من صفر.');
@@ -27,27 +30,54 @@ class FundTransferService
         if (Money::isNegative($fee)) {
             throw new FinanceException('رسوم التحويل لا يجوز أن تكون سالبة.');
         }
-        if ((int) $data['from_payment_method_id'] === (int) $data['to_payment_method_id']) {
-            throw new FinanceException('طريقة الدفع المصدر يجب أن تختلف عن الوجهة.');
+
+        if (! $isFx) {
+            if ((int) $data['from_payment_method_id'] === (int) $data['to_payment_method_id']) {
+                throw new FinanceException('طريقة الدفع المصدر يجب أن تختلف عن الوجهة.');
+            }
+            $toAmount = $amount;
+            $rate = null;
+        } else {
+            $toAmount = Money::of($data['to_amount'] ?? 0);
+            if (! Money::isPositive($toAmount)) {
+                throw new FinanceException('المبلغ المستلم بالعملة الأخرى يجب أن يكون أكبر من صفر.');
+            }
+
+            $rateInput = $data['exchange_rate'] ?? null;
+            if ($rateInput === null || $rateInput === '') {
+                // Store as source-units per 1 destination unit (ILS→USD: 365/100 = 3.65)
+                $rate = bcdiv($amount, $toAmount, 8);
+            } else {
+                if ((float) $rateInput <= 0) {
+                    throw new FinanceException('سعر التحويل يجب أن يكون أكبر من صفر.');
+                }
+                $rate = number_format((float) $rateInput, 8, '.', '');
+            }
         }
 
-        return DB::transaction(function () use ($data, $amount, $fee) {
+        return DB::transaction(function () use ($data, $amount, $fee, $fromCurrencyId, $toCurrencyId, $toAmount, $rate, $isFx) {
             $needed = Money::add($amount, $fee);
             $this->balances->assertSufficient(
                 (int) $data['fund_id'],
                 (int) $data['from_payment_method_id'],
-                (int) $data['currency_id'],
+                $fromCurrencyId,
                 $needed
             );
 
-            $beforeTotal = $this->balances->fundCash((int) $data['fund_id'], (int) $data['currency_id']);
+            $beforeFrom = $this->balances->fundCash((int) $data['fund_id'], $fromCurrencyId);
+            $beforeTo = $isFx
+                ? $this->balances->fundCash((int) $data['fund_id'], $toCurrencyId)
+                : $beforeFrom;
 
             $transfer = FundTransfer::query()->create([
                 'fund_id' => $data['fund_id'],
                 'from_payment_method_id' => $data['from_payment_method_id'],
                 'to_payment_method_id' => $data['to_payment_method_id'],
                 'amount' => $amount,
-                'currency_id' => $data['currency_id'],
+                'currency_id' => $fromCurrencyId,
+                'to_currency_id' => $isFx ? $toCurrencyId : null,
+                'to_amount' => $isFx ? $toAmount : null,
+                'exchange_rate' => $isFx ? $rate : null,
                 'fee_amount' => $fee,
                 'transfer_date' => $data['transfer_date'],
                 'notes' => $data['notes'] ?? null,
@@ -60,10 +90,10 @@ class FundTransferService
                     'type' => TransactionType::TransferOut,
                     'fund_id' => $data['fund_id'],
                     'payment_method_id' => $data['from_payment_method_id'],
-                    'currency_id' => $data['currency_id'],
+                    'currency_id' => $fromCurrencyId,
                     'amount' => Money::neg($amount),
                     'occurred_on' => $data['transfer_date'],
-                    'description' => 'تحويل صادر',
+                    'description' => $isFx ? 'صرف عملة (صادر)' : 'تحويل صادر',
                     'notes' => $data['notes'] ?? null,
                     'related' => $transfer,
                 ],
@@ -71,10 +101,10 @@ class FundTransferService
                     'type' => TransactionType::TransferIn,
                     'fund_id' => $data['fund_id'],
                     'payment_method_id' => $data['to_payment_method_id'],
-                    'currency_id' => $data['currency_id'],
-                    'amount' => $amount,
+                    'currency_id' => $toCurrencyId,
+                    'amount' => $toAmount,
                     'occurred_on' => $data['transfer_date'],
-                    'description' => 'تحويل وارد',
+                    'description' => $isFx ? 'صرف عملة (وارد)' : 'تحويل وارد',
                     'notes' => $data['notes'] ?? null,
                     'related' => $transfer,
                 ],
@@ -85,7 +115,7 @@ class FundTransferService
                     'type' => TransactionType::TransferFee,
                     'fund_id' => $data['fund_id'],
                     'payment_method_id' => $data['from_payment_method_id'],
-                    'currency_id' => $data['currency_id'],
+                    'currency_id' => $fromCurrencyId,
                     'amount' => Money::neg($fee),
                     'occurred_on' => $data['transfer_date'],
                     'description' => 'رسوم تحويل',
@@ -96,15 +126,29 @@ class FundTransferService
             $groupId = $this->ledger->post($lines);
             $transfer->update(['ledger_group_id' => $groupId]);
 
-            $afterTotal = $this->balances->fundCash((int) $data['fund_id'], (int) $data['currency_id']);
-            $expected = Money::sub($beforeTotal, $fee);
-            if (Money::cmp($afterTotal, $expected) !== 0) {
-                throw new FinanceException('فشل التحقق من اتساق التحويل. لم يُحفظ أي تغيير.');
+            $afterFrom = $this->balances->fundCash((int) $data['fund_id'], $fromCurrencyId);
+            $expectedFrom = Money::sub($beforeFrom, $needed);
+            if (Money::cmp($afterFrom, $expectedFrom) !== 0) {
+                throw new FinanceException('فشل التحقق من اتساق التحويل (العملة المصدر). لم يُحفظ أي تغيير.');
             }
 
-            FinancialAuditLog::record('created', $transfer, ['amount' => $amount, 'fee' => $fee]);
+            if ($isFx) {
+                $afterTo = $this->balances->fundCash((int) $data['fund_id'], $toCurrencyId);
+                $expectedTo = Money::add($beforeTo, $toAmount);
+                if (Money::cmp($afterTo, $expectedTo) !== 0) {
+                    throw new FinanceException('فشل التحقق من اتساق التحويل (العملة الوجهة). لم يُحفظ أي تغيير.');
+                }
+            }
 
-            return $transfer->fresh(['fund', 'fromMethod', 'toMethod', 'currency']);
+            FinancialAuditLog::record('created', $transfer, [
+                'amount' => $amount,
+                'to_amount' => $toAmount,
+                'fee' => $fee,
+                'exchange_rate' => $rate,
+                'is_fx' => $isFx,
+            ]);
+
+            return $transfer->fresh(['fund', 'fromMethod', 'toMethod', 'currency', 'toCurrency']);
         });
     }
 }

@@ -60,9 +60,9 @@ class FamilyLoanController extends Controller
             'payment_method_id' => ['required', 'exists:payment_methods,id'],
             'repayment_date' => ['required', 'date'],
             'notes' => ['nullable', 'string'],
-            'allocations' => ['required', 'array', 'min:1'],
-            'allocations.*.family_loan_id' => ['required', 'exists:family_loans,id'],
-            'allocations.*.amount' => ['required', 'numeric', 'gte:0'],
+            'allocations' => ['nullable', 'array'],
+            'allocations.*.family_loan_id' => ['required_with:allocations', 'exists:family_loans,id'],
+            'allocations.*.amount' => ['nullable', 'numeric', 'gte:0'],
             'client_timestamp' => ['nullable', 'date'],
             'device_id' => ['nullable', 'string', 'max:100'],
         ]);

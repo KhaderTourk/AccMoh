@@ -93,9 +93,6 @@ class SyncController extends Controller
                 'payment_date' => ['required', 'date'],
                 'payer_name' => ['nullable', 'string', 'max:255'],
                 'notes' => ['nullable', 'string'],
-                'allocations' => ['required', 'array', 'min:1'],
-                'allocations.*.client_service_id' => ['required', 'integer', 'exists:client_services,id'],
-                'allocations.*.amount' => ['required', 'numeric', 'gte:0'],
             ],
             SyncOperationService::TYPE_EXPENSE => [
                 'fund_id' => ['required', 'integer', 'exists:funds,id'],
@@ -125,9 +122,9 @@ class SyncController extends Controller
                 'payment_method_id' => ['required', 'integer', 'exists:payment_methods,id'],
                 'repayment_date' => ['required', 'date'],
                 'notes' => ['nullable', 'string'],
-                'allocations' => ['required', 'array', 'min:1'],
-                'allocations.*.family_loan_id' => ['required', 'integer', 'exists:family_loans,id'],
-                'allocations.*.amount' => ['required', 'numeric', 'gte:0'],
+                'allocations' => ['nullable', 'array'],
+                'allocations.*.family_loan_id' => ['required_with:allocations', 'integer', 'exists:family_loans,id'],
+                'allocations.*.amount' => ['nullable', 'numeric', 'gte:0'],
             ],
             default => [],
         };
