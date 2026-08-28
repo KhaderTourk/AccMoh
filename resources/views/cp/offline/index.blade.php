@@ -107,7 +107,8 @@
         <div class="rounded-xl border border-dashed p-4 space-y-2">
             <p class="font-medium text-sm">المستحق على العميل</p>
             <p class="text-lg font-extrabold text-amber-600 dark:text-amber-300" x-text="clientDueFormatted()"></p>
-            <p class="text-sm text-amber-600 dark:text-amber-300" x-show="payment.client_id && clientDue() <= 0">لا يوجد مبلغ مستحق على هذا العميل بهذه العملة.</p>
+            <p class="text-sm text-slate-500" x-show="payment.client_id && clientDue() <= 0 && clientDue() >= 0">لا يوجد مستحق حالياً — يمكن تسجيل عربون قبل تقديم الخدمة.</p>
+        <p class="text-sm text-emerald-600" x-show="payment.client_id && clientDue() < 0" x-text="'عربون / رصيد مدفوع مقدماً: ' + Math.abs(clientDue()).toFixed(2)"></p>
             <p class="text-xs text-slate-500">تُخصم الدفعة من إجمالي المستحق على العميل، وليس من خدمة بعينها.</p>
         </div>
         <button class="px-5 py-2 rounded-xl bg-primary text-white" :disabled="busy">حفظ (محلي / مزامنة)</button>
@@ -354,7 +355,9 @@ function offlineWorkspace() {
                 this.tabs = this.tabs.filter(t => t.id !== 'payment');
                 if (this.tab === 'payment') this.tab = 'expense';
             }
-            const cur = this.snapshot?.catalog?.currencies?.[0];
+            const currencies = this.snapshot?.catalog?.currencies || [];
+            const ils = currencies.find(c => c.code === 'ILS');
+            const cur = ils || currencies[0];
             const method = this.snapshot?.catalog?.payment_methods?.[0];
             const fund = this.snapshot?.catalog?.funds?.[0];
             if (cur) {
@@ -489,12 +492,8 @@ function offlineWorkspace() {
 
         async submitPayment() {
             const pay = parseFloat(this.payment.amount) || 0;
-            const due = this.clientDue();
-            if (due <= 0) {
-                return this.flash('لا يوجد مبلغ مستحق على العميل بهذه العملة', true);
-            }
-            if (pay - due > 0.001) {
-                return this.flash('مبلغ الدفعة أكبر من المستحق على العميل', true);
+            if (pay <= 0) {
+                return this.flash('أدخل مبلغاً أكبر من صفر', true);
             }
             const payload = {
                 client_id: Number(this.payment.client_id),

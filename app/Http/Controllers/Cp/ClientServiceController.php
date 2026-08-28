@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Cp\Concerns\LoadsFinanceLookups;
 use App\Models\Client;
 use App\Models\ClientService;
+use App\Models\Currency;
 use App\Services\Finance\ClientWorkService;
 use Illuminate\Http\Request;
 
@@ -18,10 +19,9 @@ class ClientServiceController extends Controller
     public function index(Request $request)
     {
         $services = ClientService::query()
-            ->with(['client', 'currency', 'serviceType'])
+            ->with(['client', 'currency', 'fxCurrency', 'serviceType'])
             ->when($request->client_id, fn ($q, $id) => $q->where('client_id', $id))
             ->when($request->currency_id, fn ($q, $id) => $q->where('currency_id', $id))
-            ->when($request->status, fn ($q, $s) => $q->where('status', $s))
             ->when($request->from, fn ($q, $d) => $q->whereDate('service_date', '>=', $d))
             ->when($request->to, fn ($q, $d) => $q->whereDate('service_date', '<=', $d))
             ->when($request->q, fn ($q, $term) => $q->where('title', 'like', "%{$term}%"))
@@ -33,7 +33,6 @@ class ClientServiceController extends Controller
         return view('cp.finance.client-services.index', [
             'services' => $services,
             'clients' => Client::query()->orderBy('name')->get(),
-            'statuses' => ClientServiceStatus::cases(),
         ] + $this->financeLookups());
     }
 
@@ -43,10 +42,9 @@ class ClientServiceController extends Controller
             'service' => new ClientService([
                 'client_id' => $request->client_id,
                 'service_date' => now()->toDateString(),
-                'status' => ClientServiceStatus::Pending,
+                'status' => ClientServiceStatus::Completed,
             ]),
             'clients' => Client::query()->active()->orderBy('name')->get(),
-            'statuses' => ClientServiceStatus::cases(),
         ] + $this->financeLookups());
     }
 
@@ -64,10 +62,11 @@ class ClientServiceController extends Controller
 
     public function edit(ClientService $clientService)
     {
+        $clientService->load(['currency', 'fxCurrency']);
+
         return view('cp.finance.client-services.form', [
             'service' => $clientService,
             'clients' => Client::query()->orderBy('name')->get(),
-            'statuses' => ClientServiceStatus::cases(),
         ] + $this->financeLookups());
     }
 
@@ -95,16 +94,33 @@ class ClientServiceController extends Controller
 
     protected function validated(Request $request): array
     {
-        return $request->validate([
+        $isFx = $request->boolean('requires_fx');
+        $ils = Currency::byCode('ILS');
+        $usd = Currency::byCode('USD');
+
+        $data = $request->validate([
             'client_id' => ['required', 'exists:clients,id'],
             'service_type_id' => ['nullable', 'exists:service_types,id'],
             'title' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
-            'amount' => ['required', 'numeric', 'gt:0'],
-            'currency_id' => ['required', 'exists:currencies,id'],
+            'amount' => [$isFx ? 'nullable' : 'required', 'numeric', 'gt:0'],
+            'source_amount' => [$isFx ? 'required' : 'nullable', 'numeric', 'gt:0'],
+            'exchange_rate' => [$isFx ? 'required' : 'nullable', 'numeric', 'gt:0'],
             'service_date' => ['required', 'date'],
-            'status' => ['required', 'in:pending,in_progress,completed,cancelled'],
             'notes' => ['nullable', 'string'],
         ]);
+
+        $data['currency_id'] = $ils->id;
+        $data['status'] = ClientServiceStatus::Completed->value;
+        $data['description'] = null;
+
+        if ($isFx) {
+            $data['fx_currency_id'] = $usd->id;
+        } else {
+            $data['source_amount'] = null;
+            $data['exchange_rate'] = null;
+            $data['fx_currency_id'] = null;
+        }
+
+        return $data;
     }
 }

@@ -28,6 +28,14 @@ class Money
         return bcadd($normalized, '0', self::SCALE);
     }
 
+    public static function mul(mixed $a, mixed $b): string
+    {
+        $left = self::numericString($a);
+        $right = self::numericString($b);
+
+        return bcadd(bcmul($left, $right, 8), '0', self::SCALE);
+    }
+
     public static function add(mixed $a, mixed $b): string
     {
         return bcadd(self::of($a), self::of($b), self::SCALE);
@@ -81,5 +89,19 @@ class Money
         }
 
         return $total;
+    }
+
+    protected static function numericString(mixed $value): string
+    {
+        if ($value === null || $value === '') {
+            return '0';
+        }
+
+        $normalized = trim(str_replace([',', ' '], ['', ''], (string) $value));
+        if (! is_numeric($normalized)) {
+            throw new InvalidArgumentException("قيمة مالية غير صالحة: {$value}");
+        }
+
+        return $normalized;
     }
 }

@@ -54,7 +54,13 @@
                         <td class="px-3 py-2">{{ $r['currency']->code }}</td>
                         <td class="px-3 py-2">{{ $r['currency']->format($r['billed']) }}</td>
                         <td class="px-3 py-2">{{ $r['currency']->format($r['paid']) }}</td>
-                        <td class="px-3 py-2 font-bold">{{ $r['currency']->format($r['due']) }}</td>
+                        <td class="px-3 py-2 font-bold">
+                            @if(\App\Support\Money::isNegative($r['due']))
+                                عربون {{ $r['currency']->format(\App\Support\Money::abs($r['due'])) }}
+                            @else
+                                {{ $r['currency']->format($r['due']) }}
+                            @endif
+                        </td>
                     </tr>
                     @endforeach
                 @empty

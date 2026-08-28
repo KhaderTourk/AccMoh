@@ -5,6 +5,9 @@
     <div class="rounded-2xl border bg-white dark:bg-slate-800 p-6 space-y-2">
         <p>العميل: <a href="{{ route('cp.clients.show', $payment->client) }}" class="text-primary font-bold">{{ $payment->client->name }}</a></p>
         <p>المبلغ: <strong>{{ $payment->currency->format($payment->amount) }}</strong></p>
+        @if($payment->isFx())
+            <p class="text-sm text-slate-500">{{ $payment->fxCurrency?->format($payment->source_amount) }} × {{ $payment->formattedExchangeRate() }}</p>
+        @endif
         <p>الطريقة: {{ $payment->paymentMethod->name }}</p>
         <p>المرسل: {{ $payment->payer_name }}</p>
         <p>التاريخ: {{ $payment->payment_date->format('Y-m-d') }}</p>

@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
-use App\Models\Concerns\BelongsToTenant;
-
 use App\Enums\ClientServiceStatus;
+use App\Models\Concerns\BelongsToTenant;
+use App\Models\Concerns\HasIlsExchange;
 use App\Support\Money;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class ClientService extends Model
 {
     use BelongsToTenant;
-
+    use HasIlsExchange;
     use SoftDeletes;
 
     protected $fillable = [
@@ -24,6 +24,9 @@ class ClientService extends Model
         'title',
         'description',
         'amount',
+        'source_amount',
+        'exchange_rate',
+        'fx_currency_id',
         'currency_id',
         'service_date',
         'status',
@@ -34,6 +37,8 @@ class ClientService extends Model
     {
         return [
             'amount' => 'decimal:2',
+            'source_amount' => 'decimal:2',
+            'exchange_rate' => 'decimal:8',
             'service_date' => 'date',
             'status' => ClientServiceStatus::class,
         ];

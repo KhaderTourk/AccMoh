@@ -45,8 +45,9 @@ class ClientController extends Controller
     {
         $client->load([
             'services.currency',
+            'services.fxCurrency',
             'services.serviceType',
-            'payments' => fn ($q) => $q->with(['currency', 'paymentMethod'])->latest('payment_date'),
+            'payments' => fn ($q) => $q->with(['currency', 'fxCurrency', 'paymentMethod'])->latest('payment_date'),
         ]);
         $currencies = Currency::query()->active()->get();
 

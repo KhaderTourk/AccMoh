@@ -23,8 +23,12 @@ trait LoadsFinanceLookups
             $serviceTypes = collect();
         }
 
+        $currencies = Currency::query()->active()->get();
+
         return [
-            'currencies' => Currency::query()->active()->get(),
+            'currencies' => $currencies,
+            'ilsCurrency' => $currencies->firstWhere('code', 'ILS'),
+            'usdCurrency' => $currencies->firstWhere('code', 'USD'),
             'paymentMethods' => PaymentMethod::query()->active()->get(),
             'funds' => $funds,
             'serviceTypes' => $serviceTypes,

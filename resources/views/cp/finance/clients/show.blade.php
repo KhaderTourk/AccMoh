@@ -30,7 +30,11 @@
                 <div class="space-y-1 text-sm">
                     <p>قيمة الخدمات: <strong>{{ $currency->format($billed) }}</strong></p>
                     <p>المدفوع: <strong class="text-emerald-600">{{ $currency->format($paid) }}</strong></p>
-                    <p>المتبقي: <strong class="text-amber-600">{{ $currency->format($due) }}</strong></p>
+                    @if(\App\Support\Money::isNegative($due))
+                        <p>عربون / رصيد مدفوع مقدماً: <strong class="text-emerald-600">{{ $currency->format(\App\Support\Money::abs($due)) }}</strong></p>
+                    @else
+                        <p>المتبقي: <strong class="text-amber-600">{{ $currency->format($due) }}</strong></p>
+                    @endif
                 </div>
             </div>
             @endif
@@ -41,14 +45,18 @@
         <div class="px-4 py-3 border-b font-bold">الخدمات</div>
         <table class="w-full text-sm text-right">
             <thead class="bg-slate-50 dark:bg-slate-700/40"><tr>
-                <th class="px-3 py-2">الخدمة</th><th class="px-3 py-2">السعر</th><th class="px-3 py-2">الحالة</th><th class="px-3 py-2">التاريخ</th><th class="px-3 py-2"></th>
+                <th class="px-3 py-2">الخدمة</th><th class="px-3 py-2">السعر</th><th class="px-3 py-2">التاريخ</th><th class="px-3 py-2"></th>
             </tr></thead>
             <tbody class="divide-y dark:divide-slate-700">
             @forelse($client->services as $service)
                 <tr>
                     <td class="px-3 py-2">{{ $service->title }}</td>
-                    <td class="px-3 py-2">{{ $service->currency->format($service->amount) }}</td>
-                    <td class="px-3 py-2">{{ $service->status->label() }}</td>
+                    <td class="px-3 py-2">
+                        {{ $service->currency->format($service->amount) }}
+                        @if($service->isFx())
+                            <div class="text-xs text-slate-500">{{ $service->fxCurrency?->format($service->source_amount) }} × {{ $service->formattedExchangeRate() }}</div>
+                        @endif
+                    </td>
                     <td class="px-3 py-2">{{ $service->service_date->format('Y-m-d') }}</td>
                     <td class="px-3 py-2">
                         <div class="flex items-center gap-1 justify-end">
@@ -61,7 +69,7 @@
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="5" class="p-6 text-center text-slate-500">لا توجد خدمات.</td></tr>
+                <tr><td colspan="4" class="p-6 text-center text-slate-500">لا توجد خدمات.</td></tr>
             @endforelse
             </tbody>
         </table>
@@ -76,7 +84,12 @@
             <tbody class="divide-y dark:divide-slate-700">
             @forelse($client->payments as $payment)
                 <tr class="{{ $payment->is_reversed ? 'opacity-50 line-through' : '' }}">
-                    <td class="px-3 py-2"><a href="{{ route('cp.payments.show', $payment) }}" class="text-primary">{{ $payment->currency->format($payment->amount) }}</a></td>
+                    <td class="px-3 py-2">
+                        <a href="{{ route('cp.payments.show', $payment) }}" class="text-primary">{{ $payment->currency->format($payment->amount) }}</a>
+                        @if($payment->isFx())
+                            <div class="text-xs text-slate-500">{{ $payment->fxCurrency?->format($payment->source_amount) }} × {{ $payment->formattedExchangeRate() }}</div>
+                        @endif
+                    </td>
                     <td class="px-3 py-2">{{ $payment->paymentMethod->name }}</td>
                     <td class="px-3 py-2">{{ $payment->payer_name }}</td>
                     <td class="px-3 py-2">{{ $payment->payment_date->format('Y-m-d') }}</td>

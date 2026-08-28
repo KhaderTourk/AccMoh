@@ -186,7 +186,6 @@ class FinancialScenariosTest extends TestCase
         $this->assertSame('300.00', $client->fresh()->paidAmount($this->usd->id));
         $this->assertSame('100.00', $client->fresh()->outstandingAmount($this->usd->id));
 
-        $this->expectException(\App\Exceptions\FinanceException::class);
         app(ClientPaymentService::class)->receive([
             'client_id' => $client->id,
             'amount' => 150,
@@ -195,9 +194,12 @@ class FinancialScenariosTest extends TestCase
             'payer_name' => 'محمد',
             'payment_date' => '2026-08-23',
         ]);
+
+        $this->assertSame('450.00', $client->fresh()->paidAmount($this->usd->id));
+        $this->assertSame('-50.00', $client->fresh()->outstandingAmount($this->usd->id));
     }
 
-    public function test_client_service_can_be_updated_and_deleted_when_billed_still_covers_paid(): void
+    public function test_client_service_can_be_updated_and_deleted_even_when_payments_exceed_billed(): void
     {
         $client = Client::query()->create(['name' => 'محمد', 'is_active' => true]);
         $work = app(ClientWorkService::class);
@@ -220,22 +222,73 @@ class FinancialScenariosTest extends TestCase
 
         $updated = $work->update($service, [
             'title' => 'إعلان محدّث',
-            'amount' => 400,
-            'currency_id' => $this->usd->id,
-            'service_date' => '2026-08-20',
-            'status' => 'completed',
-        ]);
-        $this->assertSame('إعلان محدّث', $updated->title);
-        $this->assertSame('200.00', $client->fresh()->outstandingAmount($this->usd->id));
-
-        $this->expectException(\App\Exceptions\FinanceException::class);
-        $work->update($service->fresh(), [
-            'title' => 'إعلان محدّث',
             'amount' => 100,
             'currency_id' => $this->usd->id,
             'service_date' => '2026-08-20',
-            'status' => 'completed',
         ]);
+        $this->assertSame('إعلان محدّث', $updated->title);
+        $this->assertSame('-100.00', $client->fresh()->outstandingAmount($this->usd->id));
+
+        $work->delete($updated);
+        $this->assertSame('-200.00', $client->fresh()->outstandingAmount($this->usd->id));
+    }
+
+    public function test_advance_payment_allowed_without_any_service(): void
+    {
+        $client = Client::query()->create(['name' => 'محمد', 'is_active' => true]);
+
+        $payment = app(ClientPaymentService::class)->receive([
+            'client_id' => $client->id,
+            'amount' => 150,
+            'currency_id' => $this->ils->id,
+            'payment_method_id' => $this->cash->id,
+            'payer_name' => 'محمد',
+            'payment_date' => '2026-08-21',
+        ]);
+
+        $this->assertSame('150.00', Money::of($payment->amount));
+        $this->assertSame('0.00', $client->fresh()->billedAmount($this->ils->id));
+        $this->assertSame('150.00', $client->fresh()->paidAmount($this->ils->id));
+        $this->assertSame('-150.00', $client->fresh()->outstandingAmount($this->ils->id));
+    }
+
+    public function test_usd_service_converts_to_ils_total(): void
+    {
+        $client = Client::query()->create(['name' => 'محمد', 'is_active' => true]);
+        $service = app(ClientWorkService::class)->create([
+            'client_id' => $client->id,
+            'title' => 'إعلان',
+            'source_amount' => 100,
+            'exchange_rate' => '3.65',
+            'fx_currency_id' => $this->usd->id,
+            'currency_id' => $this->ils->id,
+            'service_date' => '2026-08-20',
+        ]);
+
+        $this->assertSame('365.00', Money::of($service->amount));
+        $this->assertTrue($service->isFx());
+        $this->assertSame('365.00', $client->fresh()->outstandingAmount($this->ils->id));
+        $this->assertSame('0.00', $client->fresh()->outstandingAmount($this->usd->id));
+    }
+
+    public function test_usd_payment_posts_ils_cash(): void
+    {
+        $client = Client::query()->create(['name' => 'محمد', 'is_active' => true]);
+        $payment = app(ClientPaymentService::class)->receive([
+            'client_id' => $client->id,
+            'source_amount' => 50,
+            'exchange_rate' => '3.65',
+            'fx_currency_id' => $this->usd->id,
+            'currency_id' => $this->ils->id,
+            'payment_method_id' => $this->cash->id,
+            'payer_name' => 'محمد',
+            'payment_date' => '2026-08-21',
+        ]);
+
+        $this->assertSame('182.50', Money::of($payment->amount));
+        $this->assertSame('182.50', app(BalanceService::class)->cash($this->business->id, $this->cash->id, $this->ils->id));
+        $this->assertSame('0.00', app(BalanceService::class)->cash($this->business->id, $this->cash->id, $this->usd->id));
+        $this->assertSame('-182.50', $client->fresh()->outstandingAmount($this->ils->id));
     }
 
     public function test_scenario_6_transfer_cash_to_bank_preserves_fund_total(): void

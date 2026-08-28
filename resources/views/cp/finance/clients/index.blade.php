@@ -33,6 +33,8 @@
                             @php $due = $client->outstandingAmount($currency->id); @endphp
                             @if(\App\Support\Money::isPositive($due))
                                 <div>{{ $currency->format($due) }}</div>
+                            @elseif(\App\Support\Money::isNegative($due))
+                                <div class="text-emerald-600">عربون {{ $currency->format(\App\Support\Money::abs($due)) }}</div>
                             @endif
                         @endforeach
                     </td>

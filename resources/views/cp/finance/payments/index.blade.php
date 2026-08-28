@@ -19,7 +19,12 @@
             @forelse($payments as $p)
                 <tr class="{{ $p->is_reversed ? 'opacity-40' : '' }}">
                     <td class="px-3 py-2"><a class="text-primary" href="{{ route('cp.clients.show', $p->client) }}">{{ $p->client->name }}</a></td>
-                    <td class="px-3 py-2">{{ $p->currency->format($p->amount) }}</td>
+                    <td class="px-3 py-2">
+                        {{ $p->currency->format($p->amount) }}
+                        @if($p->isFx())
+                            <div class="text-xs text-slate-500">{{ $p->fxCurrency?->format($p->source_amount) }} × {{ $p->formattedExchangeRate() }}</div>
+                        @endif
+                    </td>
                     <td class="px-3 py-2">{{ $p->paymentMethod->name }}</td>
                     <td class="px-3 py-2">{{ $p->payment_date->format('Y-m-d') }}</td>
                     <td class="px-3 py-2 flex gap-2 justify-end">

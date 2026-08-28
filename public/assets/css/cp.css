@@ -95,3 +95,7 @@ html.cp-admin .cp-main {
 .cp-nav-section.cp-collapsed .cp-section-content {
     max-height: 0 !important;
 }
+
+[x-cloak] {
+    display: none !important;
+}

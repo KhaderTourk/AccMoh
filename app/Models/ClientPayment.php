@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
-
+use App\Models\Concerns\HasIlsExchange;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,11 +12,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class ClientPayment extends Model
 {
     use BelongsToTenant;
+    use HasIlsExchange;
 
     protected $fillable = [
         'client_id',
         'fund_id',
         'amount',
+        'source_amount',
+        'exchange_rate',
+        'fx_currency_id',
         'currency_id',
         'payment_method_id',
         'payer_name',
@@ -31,6 +35,8 @@ class ClientPayment extends Model
     {
         return [
             'amount' => 'decimal:2',
+            'source_amount' => 'decimal:2',
+            'exchange_rate' => 'decimal:8',
             'payment_date' => 'date',
             'is_reversed' => 'boolean',
             'reversed_at' => 'datetime',

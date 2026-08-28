@@ -4,8 +4,8 @@ namespace App\Services\Finance;
 
 use App\Enums\ClientServiceStatus;
 use App\Exceptions\FinanceException;
-use App\Models\ClientPayment;
 use App\Models\ClientService;
+use App\Models\Currency;
 use App\Models\FinancialAuditLog;
 use App\Support\Money;
 use Illuminate\Support\Facades\DB;
@@ -14,25 +14,25 @@ class ClientWorkService
 {
     public function create(array $data): ClientService
     {
-        $amount = Money::of($data['amount']);
-        if (! Money::isPositive($amount)) {
-            throw new FinanceException('سعر الخدمة يجب أن يكون أكبر من صفر.');
-        }
+        $resolved = $this->resolvePricing($data);
 
-        return DB::transaction(function () use ($data, $amount) {
+        return DB::transaction(function () use ($data, $resolved) {
             $service = ClientService::query()->create([
                 'client_id' => $data['client_id'],
                 'service_type_id' => $data['service_type_id'] ?? null,
                 'title' => $data['title'],
                 'description' => $data['description'] ?? null,
-                'amount' => $amount,
+                'amount' => $resolved['amount'],
+                'source_amount' => $resolved['source_amount'],
+                'exchange_rate' => $resolved['exchange_rate'],
+                'fx_currency_id' => $resolved['fx_currency_id'],
                 'currency_id' => $data['currency_id'],
                 'service_date' => $data['service_date'],
-                'status' => $data['status'] ?? ClientServiceStatus::Pending,
+                'status' => $data['status'] ?? ClientServiceStatus::Completed,
                 'notes' => $data['notes'] ?? null,
             ]);
 
-            FinancialAuditLog::record('created', $service, ['amount' => $amount]);
+            FinancialAuditLog::record('created', $service, ['amount' => $resolved['amount']]);
 
             return $service;
         });
@@ -40,39 +40,16 @@ class ClientWorkService
 
     public function update(ClientService $service, array $data): ClientService
     {
-        $amount = Money::of($data['amount']);
-        if (! Money::isPositive($amount)) {
-            throw new FinanceException('سعر الخدمة يجب أن يكون أكبر من صفر.');
-        }
-
-        $newStatus = $data['status'] ?? $service->status;
-        $isCancelled = $newStatus === ClientServiceStatus::Cancelled
-            || $newStatus === ClientServiceStatus::Cancelled->value;
-
-        $newCurrencyId = (int) $data['currency_id'];
-        $oldCurrencyId = (int) $service->currency_id;
-
-        $this->assertBilledCoversPaid(
-            (int) $service->client_id,
-            $oldCurrencyId,
-            $service->id,
-            (! $isCancelled && $newCurrencyId === $oldCurrencyId) ? $amount : '0.00'
-        );
-
-        if ($newCurrencyId !== $oldCurrencyId && ! $isCancelled) {
-            $this->assertBilledCoversPaid(
-                (int) $service->client_id,
-                $newCurrencyId,
-                $service->id,
-                $amount
-            );
-        }
+        $resolved = $this->resolvePricing($data);
 
         $service->update([
             'service_type_id' => $data['service_type_id'] ?? $service->service_type_id,
             'title' => $data['title'],
-            'description' => $data['description'] ?? null,
-            'amount' => $amount,
+            'description' => array_key_exists('description', $data) ? $data['description'] : $service->description,
+            'amount' => $resolved['amount'],
+            'source_amount' => $resolved['source_amount'],
+            'exchange_rate' => $resolved['exchange_rate'],
+            'fx_currency_id' => $resolved['fx_currency_id'],
             'currency_id' => $data['currency_id'],
             'service_date' => $data['service_date'],
             'status' => $data['status'] ?? $service->status,
@@ -86,38 +63,51 @@ class ClientWorkService
 
     public function delete(ClientService $service): void
     {
-        $this->assertBilledCoversPaid(
-            (int) $service->client_id,
-            (int) $service->currency_id,
-            $service->id,
-            '0.00'
-        );
-
         $service->delete();
         FinancialAuditLog::record('deleted', $service);
     }
 
-    protected function assertBilledCoversPaid(int $clientId, int $currencyId, ?int $excludeServiceId, mixed $replacementAmount): void
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array{amount: string, source_amount: string|null, exchange_rate: mixed, fx_currency_id: int|null}
+     */
+    protected function resolvePricing(array $data): array
     {
-        $billed = Money::of(
-            ClientService::query()
-                ->billable()
-                ->where('client_id', $clientId)
-                ->where('currency_id', $currencyId)
-                ->when($excludeServiceId, fn ($q) => $q->where('id', '!=', $excludeServiceId))
-                ->sum('amount')
-        );
-        $billed = Money::add($billed, $replacementAmount ?? 0);
-        $paid = Money::of(
-            ClientPayment::query()
-                ->active()
-                ->where('client_id', $clientId)
-                ->where('currency_id', $currencyId)
-                ->sum('amount')
-        );
+        $hasFx = filled($data['source_amount'] ?? null) && filled($data['exchange_rate'] ?? null);
 
-        if (Money::cmp($billed, $paid) < 0) {
-            throw new FinanceException('لا يمكن أن يصبح إجمالي خدمات العميل أقل من مجموع دفعاته بهذه العملة.');
+        if ($hasFx) {
+            $source = $data['source_amount'];
+            $rate = $data['exchange_rate'];
+            if (! is_numeric($source) || ! Money::isPositive($source)) {
+                throw new FinanceException('سعر الخدمة بالدولار يجب أن يكون أكبر من صفر.');
+            }
+            if (! is_numeric($rate) || (float) $rate <= 0) {
+                throw new FinanceException('سعر الدولار يجب أن يكون أكبر من صفر.');
+            }
+
+            $amount = Money::mul($source, $rate);
+            if (! Money::isPositive($amount)) {
+                throw new FinanceException('القيمة الإجمالية بالشيكل يجب أن تكون أكبر من صفر.');
+            }
+
+            return [
+                'amount' => $amount,
+                'source_amount' => Money::of($source),
+                'exchange_rate' => $rate,
+                'fx_currency_id' => $data['fx_currency_id'] ?? Currency::query()->where('code', 'USD')->value('id'),
+            ];
         }
+
+        $amount = Money::of($data['amount'] ?? 0);
+        if (! Money::isPositive($amount)) {
+            throw new FinanceException('سعر الخدمة يجب أن يكون أكبر من صفر.');
+        }
+
+        return [
+            'amount' => $amount,
+            'source_amount' => null,
+            'exchange_rate' => null,
+            'fx_currency_id' => null,
+        ];
     }
 }

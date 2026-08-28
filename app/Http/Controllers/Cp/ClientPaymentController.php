@@ -11,6 +11,7 @@ use App\Models\ClientService;
 use App\Models\Currency;
 use App\Services\Finance\ClientPaymentService;
 use App\Services\Finance\ReversalService;
+use App\Support\Money;
 use Illuminate\Http\Request;
 
 class ClientPaymentController extends Controller
@@ -20,7 +21,7 @@ class ClientPaymentController extends Controller
     public function index(Request $request)
     {
         $payments = ClientPayment::query()
-            ->with(['client', 'currency', 'paymentMethod'])
+            ->with(['client', 'currency', 'fxCurrency', 'paymentMethod'])
             ->when($request->client_id, fn ($q, $id) => $q->where('client_id', $id))
             ->when($request->currency_id, fn ($q, $id) => $q->where('currency_id', $id))
             ->when($request->payment_method_id, fn ($q, $id) => $q->where('payment_method_id', $id))
@@ -48,15 +49,29 @@ class ClientPaymentController extends Controller
 
     public function store(Request $request, ClientPaymentService $service)
     {
+        $isFx = $request->boolean('requires_fx');
+        $ils = Currency::byCode('ILS');
+        $usd = Currency::byCode('USD');
+
         $data = $request->validate([
             'client_id' => ['required', 'exists:clients,id'],
-            'amount' => ['required', 'numeric', 'gt:0'],
-            'currency_id' => ['required', 'exists:currencies,id'],
+            'amount' => [$isFx ? 'nullable' : 'required', 'numeric', 'gt:0'],
+            'source_amount' => [$isFx ? 'required' : 'nullable', 'numeric', 'gt:0'],
+            'exchange_rate' => [$isFx ? 'required' : 'nullable', 'numeric', 'gt:0'],
             'payment_method_id' => ['required', 'exists:payment_methods,id'],
             'payer_name' => ['nullable', 'string', 'max:255'],
             'payment_date' => ['required', 'date'],
             'notes' => ['nullable', 'string'],
         ]);
+
+        $data['currency_id'] = $ils->id;
+        if ($isFx) {
+            $data['fx_currency_id'] = $usd->id;
+        } else {
+            $data['source_amount'] = null;
+            $data['exchange_rate'] = null;
+            $data['fx_currency_id'] = null;
+        }
 
         try {
             $payment = $service->receive($data);
@@ -69,7 +84,7 @@ class ClientPaymentController extends Controller
 
     public function show(ClientPayment $payment)
     {
-        $payment->load(['client', 'currency', 'paymentMethod']);
+        $payment->load(['client', 'currency', 'fxCurrency', 'paymentMethod']);
 
         return view('cp.finance.payments.show', compact('payment'));
     }
@@ -87,15 +102,16 @@ class ClientPaymentController extends Controller
 
     public function unpaidServices(Client $client, Request $request)
     {
-        $currencyId = (int) $request->currency_id;
-        $currency = $currencyId ? Currency::query()->find($currencyId) : null;
-        $outstanding = $currencyId ? $client->outstandingAmount($currencyId) : '0.00';
+        $ils = Currency::byCode('ILS');
+        $currencyId = (int) ($request->currency_id ?: $ils->id);
+        $currency = Currency::query()->find($currencyId);
+        $outstanding = $client->outstandingAmount($currencyId);
 
         $services = ClientService::query()
             ->billable()
             ->where('client_id', $client->id)
             ->when($currencyId, fn ($q) => $q->where('currency_id', $currencyId))
-            ->with('currency')
+            ->with(['currency', 'fxCurrency'])
             ->orderByDesc('service_date')
             ->get()
             ->map(fn ($s) => [
@@ -104,11 +120,18 @@ class ClientPaymentController extends Controller
                 'amount' => $s->amount,
                 'currency_id' => $s->currency_id,
                 'currency_code' => $s->currency->code,
+                'is_fx' => $s->isFx(),
+                'source_amount' => $s->source_amount,
             ]);
 
         return response()->json([
             'outstanding' => $outstanding,
             'outstanding_formatted' => $currency?->format($outstanding) ?? $outstanding,
+            'is_credit' => Money::isNegative($outstanding),
+            'credit' => Money::isNegative($outstanding) ? Money::abs($outstanding) : '0.00',
+            'credit_formatted' => Money::isNegative($outstanding)
+                ? ($currency?->format(Money::abs($outstanding)) ?? Money::abs($outstanding))
+                : null,
             'services' => $services,
         ]);
     }

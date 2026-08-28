@@ -24,6 +24,11 @@ class Currency extends Model
         return $query->where('is_active', true)->orderBy('sort_order');
     }
 
+    public static function byCode(string $code): self
+    {
+        return static::query()->where('code', $code)->firstOrFail();
+    }
+
     public function format(mixed $amount): string
     {
         $value = number_format((float) $amount, $this->decimal_places, '.', ',');
