@@ -10,8 +10,8 @@ enum LoanDirection: string
     public function label(): string
     {
         return match ($this) {
-            self::Borrowed => 'اقتراض (أنا مدين)',
-            self::Lent => 'إقراض (مدين لي)',
+            self::Borrowed => 'دائن',
+            self::Lent => 'مدين',
         };
     }
 }

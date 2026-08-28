@@ -1,5 +1,5 @@
 @extends('cp.layout')
-@section('title', 'تسجيل قرض عائلي')
+@section('title', 'تسجيل مدين أو دائن')
 @section('content')
 <form method="post" action="{{ route('cp.family-loans.store') }}" class="max-w-2xl rounded-2xl border bg-white dark:bg-slate-800 p-6 space-y-4">
     @csrf
@@ -10,11 +10,11 @@
         </select>
     </div>
     <div>
-        <label class="text-sm">نوع العملية *</label>
+        <label class="text-sm">النوع *</label>
         <select name="direction" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
             @foreach($directions as $d)<option value="{{ $d->value }}" @selected(old('direction', $selectedDirection)==$d->value)>{{ $d->label() }}</option>@endforeach
         </select>
-        <p class="text-xs text-slate-500 mt-1">الاقتراض يزيد رصيدك ويزيد مديونيتك. الإقراض ينقص رصيدك ويصبح الشخص مديناً لك.</p>
+        <p class="text-xs text-slate-500 mt-1">دائن: أخذت منه فيزيد رصيدك. مدين: أعطيته فينقص رصيدك.</p>
     </div>
     <div class="grid grid-cols-2 gap-3">
         <div><label class="text-sm">المبلغ *</label><input type="number" step="0.01" min="0.01" name="amount" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700"></div>

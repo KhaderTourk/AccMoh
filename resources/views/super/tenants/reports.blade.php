@@ -33,11 +33,11 @@
         </div>
         @endif
         <div class="rounded-2xl border p-4 bg-white">
-            <h3 class="font-bold mb-2">ديوني للعائلة</h3>
+            <h3 class="font-bold mb-2">دائن (عليّ)</h3>
             @foreach($snapshot['currencies'] as $c)<p>{{ $c->format($iOwe[$c->id] ?? 0) }}</p>@endforeach
         </div>
         <div class="rounded-2xl border p-4 bg-white">
-            <h3 class="font-bold mb-2">مستحق لي من العائلة</h3>
+            <h3 class="font-bold mb-2">مدين (لي)</h3>
             @foreach($snapshot['currencies'] as $c)<p>{{ $c->format($theyOwe[$c->id] ?? 0) }}</p>@endforeach
         </div>
     </section>
@@ -75,10 +75,10 @@
     @endif
 
     <section>
-        <h2 class="font-bold text-lg mb-3">تقرير العائلة</h2>
+        <h2 class="font-bold text-lg mb-3">دائن ومدين</h2>
         <div class="rounded-2xl border bg-white overflow-hidden">
             <table class="w-full text-sm text-right">
-                <thead class="bg-slate-50"><tr><th class="px-3 py-2">الشخص</th><th class="px-3 py-2">العملة</th><th class="px-3 py-2">أنا مدين</th><th class="px-3 py-2">مدين لي</th></tr></thead>
+                <thead class="bg-slate-50"><tr><th class="px-3 py-2">الشخص</th><th class="px-3 py-2">العملة</th><th class="px-3 py-2">دائن</th><th class="px-3 py-2">مدين</th></tr></thead>
                 <tbody class="divide-y">
                 @forelse($familySummary as $row)
                     @foreach($row['rows'] as $r)
@@ -98,10 +98,10 @@
     </section>
 
     <section>
-        <h2 class="font-bold text-lg mb-3">القروض المفتوحة</h2>
+        <h2 class="font-bold text-lg mb-3">دائن ومدين المفتوح</h2>
         <div class="rounded-2xl border bg-white overflow-hidden">
             <table class="w-full text-sm text-right">
-                <thead class="bg-slate-50"><tr><th class="px-3 py-2">الشخص</th><th class="px-3 py-2">الاتجاه</th><th class="px-3 py-2">المتبقي</th><th class="px-3 py-2">التاريخ</th></tr></thead>
+                <thead class="bg-slate-50"><tr><th class="px-3 py-2">الشخص</th><th class="px-3 py-2">النوع</th><th class="px-3 py-2">المتبقي</th><th class="px-3 py-2">التاريخ</th></tr></thead>
                 <tbody class="divide-y">
                 @forelse($openLoans as $loan)
                     <tr>
@@ -111,7 +111,7 @@
                         <td class="px-3 py-2">{{ $loan->loan_date->format('Y-m-d') }}</td>
                     </tr>
                 @empty
-                    <tr><td colspan="4" class="p-6 text-center text-slate-500">لا قروض مفتوحة.</td></tr>
+                    <tr><td colspan="4" class="p-6 text-center text-slate-500">لا حركات مفتوحة.</td></tr>
                 @endforelse
                 </tbody>
             </table>

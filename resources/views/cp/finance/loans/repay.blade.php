@@ -1,5 +1,5 @@
 @extends('cp.layout')
-@section('title', 'سداد قرض عائلي')
+@section('title', 'تسوية دائن أو مدين')
 @section('content')
 <div x-data="repayForm()" x-init="init()" class="max-w-3xl">
 <form method="post" action="{{ route('cp.family-loans.repay.store') }}" class="rounded-2xl border bg-white dark:bg-slate-800 p-6 space-y-4" @submit="prepareSubmit">
@@ -13,11 +13,11 @@
             </select>
         </div>
         <div>
-            <label class="text-sm">اتجاه السداد *</label>
+            <label class="text-sm">النوع *</label>
             <select name="direction" x-model="direction" @change="loadLoans()" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
                 @foreach($directions as $d)<option value="{{ $d->value }}" @selected(old('direction', $selectedDirection)==$d->value)>{{ $d->label() }}</option>@endforeach
             </select>
-            <p class="text-xs text-slate-500 mt-1">اقتراض = أنا أسدد له · إقراض = هو يسدد لي</p>
+            <p class="text-xs text-slate-500 mt-1">دائن = أرجّع له · مدين = يسترجع لي</p>
         </div>
         <div><label class="text-sm">المبلغ *</label><input type="number" step="0.01" min="0.01" name="amount" x-model="amount" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700"></div>
         <div><label class="text-sm">العملة *</label>
@@ -29,13 +29,13 @@
             <select name="payment_method_id" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
                 @foreach($paymentMethods as $m)<option value="{{ $m->id }}">{{ $m->name }}</option>@endforeach
             </select>
-            <p class="text-xs text-slate-500 mt-1">يمكن السداد بأي طريقة دفع حتى لو اختلفت عن طريقة القرض الأصلية.</p>
+            <p class="text-xs text-slate-500 mt-1">يمكن التسوية بأي طريقة دفع حتى لو اختلفت عن الحركة الأصلية.</p>
         </div>
         <div><label class="text-sm">التاريخ *</label><input type="date" name="repayment_date" value="{{ date('Y-m-d') }}" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700"></div>
     </div>
     <div><label class="text-sm">ملاحظة</label><textarea name="notes" rows="2" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700"></textarea></div>
     <div class="rounded-xl border border-dashed p-4">
-        <div class="flex justify-between mb-3"><h3 class="font-bold">توزيع على القروض</h3><button type="button" @click="autoFill()" class="text-sm text-primary">توزيع تلقائي</button></div>
+        <div class="flex justify-between mb-3"><h3 class="font-bold">توزيع على الحركات</h3><button type="button" @click="autoFill()" class="text-sm text-primary">توزيع تلقائي</button></div>
         <template x-for="(l, idx) in loans" :key="l.id">
             <div class="grid grid-cols-12 gap-2 mb-2 text-sm items-center">
                 <div class="col-span-7">
@@ -47,7 +47,7 @@
         </template>
         <p class="text-sm">المجموع: <strong x-text="allocatedSum().toFixed(2)"></strong></p>
     </div>
-    <button class="px-5 py-2 rounded-xl bg-primary text-white">حفظ السداد</button>
+    <button class="px-5 py-2 rounded-xl bg-primary text-white">حفظ التسوية</button>
 </form>
 </div>
 @endsection
@@ -84,7 +84,7 @@ function repayForm() {
                 this.autoFill();
             }
             if (Math.abs(this.allocatedSum() - (parseFloat(this.amount)||0)) > 0.001) {
-                e.preventDefault(); alert('مجموع التوزيع يجب أن يساوي مبلغ السداد.');
+                e.preventDefault(); alert('مجموع التوزيع يجب أن يساوي المبلغ.');
             }
         }
     }

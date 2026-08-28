@@ -8,20 +8,20 @@
             <p class="text-slate-500 text-sm">{{ $member->relationship }} {{ $member->phone }}</p>
         </div>
         <div class="flex gap-2 flex-wrap">
-            <a href="{{ route('cp.family-loans.create', ['family_member_id' => $member->id, 'direction' => 'borrowed']) }}" class="px-3 py-2 rounded-xl bg-primary text-white text-sm">اقتراض</a>
-            <a href="{{ route('cp.family-loans.create', ['family_member_id' => $member->id, 'direction' => 'lent']) }}" class="px-3 py-2 rounded-xl border text-sm">إقراض</a>
-            <a href="{{ route('cp.family-loans.repay', ['family_member_id' => $member->id]) }}" class="px-3 py-2 rounded-xl border text-sm">سداد</a>
+            <a href="{{ route('cp.family-loans.create', ['family_member_id' => $member->id, 'direction' => 'borrowed']) }}" class="px-3 py-2 rounded-xl bg-primary text-white text-sm">دائن</a>
+            <a href="{{ route('cp.family-loans.create', ['family_member_id' => $member->id, 'direction' => 'lent']) }}" class="px-3 py-2 rounded-xl border text-sm">مدين</a>
+            <a href="{{ route('cp.family-loans.repay', ['family_member_id' => $member->id]) }}" class="px-3 py-2 rounded-xl border text-sm">تسوية</a>
         </div>
     </div>
     <div class="grid md:grid-cols-2 gap-4">
         <div class="rounded-2xl border border-rose-200 bg-rose-50 dark:bg-rose-900/20 p-5">
-            <h3 class="font-bold text-rose-700 dark:text-rose-300 mb-2">أنا مدين له</h3>
+            <h3 class="font-bold text-rose-700 dark:text-rose-300 mb-2">دائن (عليّ)</h3>
             @foreach($currencies as $c)
                 <p class="text-lg font-extrabold">{{ $c->format($member->iOweAmount($c->id)) }}</p>
             @endforeach
         </div>
         <div class="rounded-2xl border border-emerald-200 bg-emerald-50 dark:bg-emerald-900/20 p-5">
-            <h3 class="font-bold text-emerald-700 dark:text-emerald-300 mb-2">هو مدين لي</h3>
+            <h3 class="font-bold text-emerald-700 dark:text-emerald-300 mb-2">مدين (لي)</h3>
             @foreach($currencies as $c)
                 <p class="text-lg font-extrabold">{{ $c->format($member->theyOweAmount($c->id)) }}</p>
             @endforeach
@@ -44,10 +44,10 @@
         @endforeach
     </div>
     <section class="rounded-2xl border bg-white dark:bg-slate-800 overflow-hidden">
-        <div class="px-4 py-3 border-b font-bold">القروض</div>
+        <div class="px-4 py-3 border-b font-bold">دائن ومدين</div>
         <table class="w-full text-sm text-right">
             <thead class="bg-slate-50 dark:bg-slate-700/40"><tr>
-                <th class="px-3 py-2">الاتجاه</th><th class="px-3 py-2">الأصل</th><th class="px-3 py-2">المتبقي</th>
+                <th class="px-3 py-2">النوع</th><th class="px-3 py-2">الأصل</th><th class="px-3 py-2">المتبقي</th>
                 <th class="px-3 py-2">الطريقة</th><th class="px-3 py-2">التاريخ</th><th class="px-3 py-2">الحالة</th><th class="px-3 py-2"></th>
             </tr></thead>
             <tbody class="divide-y dark:divide-slate-700">
@@ -61,7 +61,7 @@
                     <td class="px-3 py-2">{{ $loan->status->label() }}</td>
                     <td class="px-3 py-2">
                         @unless($loan->is_reversed)
-                        <form method="post" action="{{ route('cp.family-loans.reverse', $loan) }}" onsubmit="return confirm('إلغاء القرض؟')">@csrf<button class="text-rose-600 text-xs">إلغاء</button></form>
+                        <form method="post" action="{{ route('cp.family-loans.reverse', $loan) }}" onsubmit="return confirm('إلغاء الحركة؟')">@csrf<button class="text-rose-600 text-xs">إلغاء</button></form>
                         @endunless
                     </td>
                 </tr>
@@ -70,10 +70,10 @@
         </table>
     </section>
     <section class="rounded-2xl border bg-white dark:bg-slate-800 overflow-hidden">
-        <div class="px-4 py-3 border-b font-bold">عمليات السداد</div>
+        <div class="px-4 py-3 border-b font-bold">التسويات</div>
         <table class="w-full text-sm text-right">
             <thead class="bg-slate-50 dark:bg-slate-700/40"><tr>
-                <th class="px-3 py-2">الاتجاه</th><th class="px-3 py-2">المبلغ</th><th class="px-3 py-2">الطريقة</th><th class="px-3 py-2">التاريخ</th><th class="px-3 py-2"></th>
+                <th class="px-3 py-2">النوع</th><th class="px-3 py-2">المبلغ</th><th class="px-3 py-2">الطريقة</th><th class="px-3 py-2">التاريخ</th><th class="px-3 py-2"></th>
             </tr></thead>
             <tbody class="divide-y dark:divide-slate-700">
             @forelse($member->repayments as $repayment)
@@ -84,12 +84,12 @@
                     <td class="px-3 py-2">{{ $repayment->repayment_date->format('Y-m-d') }}</td>
                     <td class="px-3 py-2">
                         @unless($repayment->is_reversed)
-                        <form method="post" action="{{ route('cp.family-loan-repayments.reverse', $repayment) }}" onsubmit="return confirm('إلغاء السداد؟')">@csrf<button class="text-rose-600 text-xs">إلغاء</button></form>
+                        <form method="post" action="{{ route('cp.family-loan-repayments.reverse', $repayment) }}" onsubmit="return confirm('إلغاء التسوية؟')">@csrf<button class="text-rose-600 text-xs">إلغاء</button></form>
                         @endunless
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="5" class="p-6 text-center text-slate-500">لا توجد عمليات سداد.</td></tr>
+                <tr><td colspan="5" class="p-6 text-center text-slate-500">لا توجد تسويات.</td></tr>
             @endforelse
             </tbody>
         </table>

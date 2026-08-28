@@ -14,7 +14,7 @@
         </div>
     </div>
     <div class="rounded-2xl bg-white border p-5 space-y-2 text-sm">
-        <p>صندوق العمل: <strong>{{ $tenant->business_enabled ? 'ظاهر' : 'مخفي' }}</strong></p>
+        <p>العمل: <strong>{{ $tenant->business_enabled ? 'ظاهر' : 'مخفي' }}</strong></p>
         <p>الحالة: <strong>{{ $tenant->is_active ? 'نشطة' : 'موقوفة' }}</strong></p>
         <p>المالك: <strong>{{ $tenant->owner?->name }}</strong> — {{ $tenant->owner?->email }}</p>
         @if($tenant->notes)<p class="text-slate-500">{{ $tenant->notes }}</p>@endif

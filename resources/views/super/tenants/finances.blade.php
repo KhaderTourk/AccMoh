@@ -16,7 +16,7 @@
         <div class="rounded-2xl bg-white border p-4"><p class="text-xs text-slate-500">عملاء</p><p class="text-2xl font-extrabold">{{ $counts['clients'] }}</p></div>
         @endif
         <div class="rounded-2xl bg-white border p-4"><p class="text-xs text-slate-500">الأفراد</p><p class="text-2xl font-extrabold">{{ $counts['family'] }}</p></div>
-        <div class="rounded-2xl bg-white border p-4"><p class="text-xs text-slate-500">قروض مفتوحة</p><p class="text-2xl font-extrabold">{{ $counts['open_loans'] }}</p></div>
+        <div class="rounded-2xl bg-white border p-4"><p class="text-xs text-slate-500">دائن/مدين مفتوح</p><p class="text-2xl font-extrabold">{{ $counts['open_loans'] }}</p></div>
         <div class="rounded-2xl bg-white border p-4"><p class="text-xs text-slate-500">مستخدمو النسخة</p><p class="text-2xl font-extrabold">{{ $counts['users'] }}</p></div>
     </div>
 
@@ -61,13 +61,13 @@
         </div>
         @endif
         <div class="rounded-2xl bg-rose-50 border border-rose-200 p-4">
-            <p class="font-bold text-rose-800 mb-2">ديون العائلة (عليه)</p>
+            <p class="font-bold text-rose-800 mb-2">دائن (عليّ)</p>
             @foreach($snapshot['currencies'] as $c)
                 <p class="font-extrabold">{{ $c->format($iOwe[$c->id] ?? 0) }}</p>
             @endforeach
         </div>
         <div class="rounded-2xl bg-emerald-50 border border-emerald-200 p-4">
-            <p class="font-bold text-emerald-800 mb-2">مستحق من العائلة</p>
+            <p class="font-bold text-emerald-800 mb-2">مدين (لي)</p>
             @foreach($snapshot['currencies'] as $c)
                 <p class="font-extrabold">{{ $c->format($theyOwe[$c->id] ?? 0) }}</p>
             @endforeach
@@ -76,7 +76,7 @@
 
     <section class="grid lg:grid-cols-2 gap-6">
         <div class="rounded-2xl bg-white border overflow-hidden">
-            <div class="px-4 py-3 border-b font-bold">قروض مفتوحة</div>
+            <div class="px-4 py-3 border-b font-bold">دائن ومدين المفتوح</div>
             <div class="max-h-80 overflow-y-auto divide-y text-sm">
                 @forelse($openLoans as $loan)
                     <div class="px-4 py-2 flex justify-between gap-2">
@@ -84,7 +84,7 @@
                         <strong>{{ $loan->currency->format($loan->remainingAmount()) }}</strong>
                     </div>
                 @empty
-                    <p class="p-6 text-slate-500">لا قروض مفتوحة.</p>
+                    <p class="p-6 text-slate-500">لا حركات مفتوحة.</p>
                 @endforelse
             </div>
         </div>

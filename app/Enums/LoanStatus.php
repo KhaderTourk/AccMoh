@@ -12,8 +12,8 @@ enum LoanStatus: string
     {
         return match ($this) {
             self::Open => 'مفتوح',
-            self::Partial => 'سداد جزئي',
-            self::Paid => 'مسدد',
+            self::Partial => 'جزئي',
+            self::Paid => 'مغلق',
         };
     }
 }

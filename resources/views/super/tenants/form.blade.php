@@ -9,7 +9,7 @@
         <div class="md:col-span-2"><label class="text-sm">اسم النسخة *</label><input name="name" value="{{ old('name', $tenant->name) }}" required class="w-full rounded-xl border px-3 py-2"></div>
         <div><label class="text-sm">المعرّف (slug)</label><input name="slug" value="{{ old('slug', $tenant->slug) }}" class="w-full rounded-xl border px-3 py-2" placeholder="اختياري"></div>
         <div class="flex items-end gap-4 pb-2">
-            <label class="inline-flex items-center gap-2 text-sm"><input type="checkbox" name="business_enabled" value="1" @checked(old('business_enabled', $tenant->business_enabled ?? true))> تفعيل صندوق العمل</label>
+            <label class="inline-flex items-center gap-2 text-sm"><input type="checkbox" name="business_enabled" value="1" @checked(old('business_enabled', $tenant->business_enabled ?? true))> تفعيل العمل</label>
             @if($tenant->exists)
             <label class="inline-flex items-center gap-2 text-sm"><input type="checkbox" name="is_active" value="1" @checked(old('is_active', $tenant->is_active))> نشطة</label>
             @endif

@@ -28,7 +28,7 @@ class LoanRepaymentService
     {
         $amount = Money::of($data['amount']);
         if (! Money::isPositive($amount)) {
-            throw new FinanceException('مبلغ السداد يجب أن يكون أكبر من صفر.');
+            throw new FinanceException('المبلغ يجب أن يكون أكبر من صفر.');
         }
 
         $direction = $data['direction'] instanceof LoanDirection
@@ -87,8 +87,8 @@ class LoanRepaymentService
                 'amount' => $isPayingDebt ? Money::neg($amount) : $amount,
                 'occurred_on' => $data['repayment_date'],
                 'description' => $isPayingDebt
-                    ? 'سداد قرض لـ '.$member->name
-                    : 'استلام سداد من '.$member->name,
+                    ? 'تسوية دائن لـ '.$member->name
+                    : 'تسوية مدين من '.$member->name,
                 'notes' => $data['notes'] ?? null,
                 'related' => $repayment,
             ]]);
@@ -163,11 +163,11 @@ class LoanRepaymentService
         }
 
         if (Money::isPositive($left)) {
-            throw new FinanceException('تعذّر التوزيع التلقائي: لا توجد قروض مفتوحة كافية لتغطية مبلغ السداد.');
+            throw new FinanceException('تعذّر التوزيع التلقائي: لا توجد حركات دائن/مدين مفتوحة كافية لتغطية المبلغ.');
         }
 
         if ($auto === []) {
-            throw new FinanceException('لا توجد قروض مفتوحة لتوزيع السداد عليها.');
+            throw new FinanceException('لا توجد حركات دائن/مدين مفتوحة للتوزيع عليها.');
         }
 
         return $auto;
@@ -184,7 +184,7 @@ class LoanRepaymentService
         array $allocations
     ): void {
         if ($allocations === []) {
-            throw new FinanceException('يجب تحديد القرض أو القروض المراد السداد منها.');
+            throw new FinanceException('يجب تحديد الحركة أو الحركات المراد تسويتها.');
         }
 
         $seen = [];
@@ -196,37 +196,37 @@ class LoanRepaymentService
                 continue;
             }
             if (! Money::isPositive($allocated)) {
-                throw new FinanceException('مبلغ توزيع السداد يجب أن يكون أكبر من صفر.');
+                throw new FinanceException('مبلغ التوزيع يجب أن يكون أكبر من صفر.');
             }
 
             $loanId = (int) $row['family_loan_id'];
             if (isset($seen[$loanId])) {
-                throw new FinanceException('لا يجوز تكرار القرض في توزيع السداد.');
+                throw new FinanceException('لا يجوز تكرار الحركة في التوزيع.');
             }
             $seen[$loanId] = true;
 
             $loan = FamilyLoan::query()->active()->find($loanId);
             if (! $loan) {
-                throw new FinanceException('القرض المحدد غير موجود أو ملغى.');
+                throw new FinanceException('الحركة المحددة غير موجودة أو ملغاة.');
             }
             if ((int) $loan->family_member_id !== (int) $member->id) {
-                throw new FinanceException('القرض لا يخص الفرد المحدد.');
+                throw new FinanceException('الحركة لا تخص الفرد المحدد.');
             }
             if ($loan->direction !== $direction) {
-                throw new FinanceException('اتجاه القرض لا يطابق عملية السداد.');
+                throw new FinanceException('اتجاه الحركة لا يطابق عملية التسوية.');
             }
             if ((int) $loan->currency_id !== $currencyId) {
-                throw new FinanceException('عملة السداد يجب أن تطابق عملة القرض.');
+                throw new FinanceException('عملة التسوية يجب أن تطابق عملة الحركة.');
             }
             if (Money::cmp($allocated, $loan->remainingAmount()) > 0) {
-                throw new FinanceException('لا يجوز سداد مبلغ أكبر من المتبقي على القرض.');
+                throw new FinanceException('لا يجوز تسوية مبلغ أكبر من المتبقي على الحركة.');
             }
 
             $sum = Money::add($sum, $allocated);
         }
 
         if (Money::cmp($sum, $amount) !== 0) {
-            throw new FinanceException('مجموع توزيع السداد يجب أن يساوي مبلغ السداد بالكامل.');
+            throw new FinanceException('مجموع التوزيع يجب أن يساوي المبلغ بالكامل.');
         }
     }
 }

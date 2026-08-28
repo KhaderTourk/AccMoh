@@ -43,17 +43,17 @@ class ReversalService
     public function reverseLoan(FamilyLoan $loan, $occurredOn = null): void
     {
         if ($loan->is_reversed) {
-            throw new FinanceException('هذا القرض ملغى مسبقاً.');
+            throw new FinanceException('هذه الحركة ملغاة مسبقاً.');
         }
         if (Money::isPositive($loan->repaidAmount())) {
-            throw new FinanceException('لا يمكن إلغاء قرض عليه سداد. ألغِ عمليات السداد أولاً.');
+            throw new FinanceException('لا يمكن إلغاء حركة عليها تسوية. ألغِ عمليات التسوية أولاً.');
         }
 
         DB::transaction(function () use ($loan, $occurredOn) {
             $this->ledger->reverseGroup(
                 $loan->ledger_group_id,
                 $loan,
-                'إلغاء قرض عائلي',
+                'إلغاء حركة دائن/مدين',
                 $occurredOn ?? now()->toDateString()
             );
             $loan->update([
@@ -68,7 +68,7 @@ class ReversalService
     public function reverseRepayment(FamilyLoanRepayment $repayment, $occurredOn = null): void
     {
         if ($repayment->is_reversed) {
-            throw new FinanceException('عملية السداد ملغاة مسبقاً.');
+            throw new FinanceException('عملية التسوية ملغاة مسبقاً.');
         }
 
         DB::transaction(function () use ($repayment, $occurredOn) {
@@ -76,7 +76,7 @@ class ReversalService
             $this->ledger->reverseGroup(
                 $repayment->ledger_group_id,
                 $repayment,
-                'إلغاء سداد عائلي',
+                'إلغاء تسوية دائن/مدين',
                 $occurredOn ?? now()->toDateString()
             );
             $repayment->update([

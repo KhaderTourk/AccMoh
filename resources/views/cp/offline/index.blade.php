@@ -169,7 +169,7 @@
 
     {{-- Loan --}}
     <form x-show="tab === 'loan'" @submit.prevent="submitLoan()" class="rounded-2xl border bg-white dark:bg-slate-800 p-6 space-y-4 max-w-3xl">
-        <h3 class="font-bold">تسجيل قرض عائلي سريع</h3>
+        <h3 class="font-bold">تسجيل مدين أو دائن</h3>
         <div class="grid md:grid-cols-2 gap-3">
             <div>
                 <label class="text-xs">الفرد</label>
@@ -181,10 +181,10 @@
                 </select>
             </div>
             <div>
-                <label class="text-xs">الاتجاه</label>
+                <label class="text-xs">النوع</label>
                 <select x-model="loan.direction" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-                    <option value="borrowed">اقتراض (أنا مدين)</option>
-                    <option value="lent">إقراض (مدين لي)</option>
+                    <option value="borrowed">دائن (أخذت منه)</option>
+                    <option value="lent">مدين (أعطيته)</option>
                 </select>
             </div>
             <div>
@@ -217,7 +217,7 @@
 
     {{-- Repay --}}
     <form x-show="tab === 'repay'" @submit.prevent="submitRepay()" class="rounded-2xl border bg-white dark:bg-slate-800 p-6 space-y-4 max-w-3xl">
-        <h3 class="font-bold">سداد قرض عائلي سريع</h3>
+        <h3 class="font-bold">تسوية دائن أو مدين</h3>
         <div class="grid md:grid-cols-2 gap-3">
             <div>
                 <label class="text-xs">الفرد</label>
@@ -229,10 +229,10 @@
                 </select>
             </div>
             <div>
-                <label class="text-xs">الاتجاه</label>
+                <label class="text-xs">النوع</label>
                 <select x-model="repay.direction" @change="filterLoans()" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-                    <option value="borrowed">أسدد ديني</option>
-                    <option value="lent">أستلم سداداً</option>
+                    <option value="borrowed">تسوية دائن (أرجّع له)</option>
+                    <option value="lent">تسوية مدين (يسترجع لي)</option>
                 </select>
             </div>
             <div>
@@ -262,7 +262,7 @@
         </div>
         <div class="rounded-xl border border-dashed p-4 space-y-2">
             <div class="flex justify-between">
-                <p class="text-sm font-medium">توزيع على القروض</p>
+                <p class="text-sm font-medium">توزيع على الحركات</p>
                 <button type="button" class="text-sm text-primary" @click="autoAllocateLoans()">توزيع تلقائي</button>
             </div>
             <template x-for="l in repayLoans" :key="l.id">
@@ -326,8 +326,8 @@ function offlineWorkspace() {
         tabs: [
             { id: 'payment', label: 'دفعة عميل' },
             { id: 'expense', label: 'مصروف' },
-            { id: 'loan', label: 'قرض' },
-            { id: 'repay', label: 'سداد' },
+            { id: 'loan', label: 'مدين' },
+            { id: 'repay', label: 'دائن' },
         ],
         businessEnabled: true,
         payment: { client_id: '', currency_id: '', amount: '', payment_method_id: '', payment_date: today, payer_name: '' },
@@ -384,8 +384,8 @@ function offlineWorkspace() {
             return ({
                 client_payment: 'دفعة عميل',
                 expense: 'مصروف',
-                family_loan: 'قرض عائلي',
-                family_loan_repayment: 'سداد عائلي',
+                family_loan: 'مدين/دائن',
+                family_loan_repayment: 'تسوية',
             })[type] || type;
         },
 
@@ -548,7 +548,7 @@ function offlineWorkspace() {
                 sum = allocations.reduce((t, a) => t + a.amount, 0);
             }
             if (Math.abs(sum - (parseFloat(this.repay.amount) || 0)) > 0.001) {
-                return this.flash('مجموع التوزيع يجب أن يساوي مبلغ السداد', true);
+                return this.flash('مجموع التوزيع يجب أن يساوي المبلغ', true);
             }
             const payload = {
                 family_member_id: Number(this.repay.family_member_id),

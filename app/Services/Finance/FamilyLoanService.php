@@ -24,7 +24,7 @@ class FamilyLoanService
     {
         $amount = Money::of($data['amount']);
         if (! Money::isPositive($amount)) {
-            throw new FinanceException('مبلغ القرض يجب أن يكون أكبر من صفر.');
+            throw new FinanceException('المبلغ يجب أن يكون أكبر من صفر.');
         }
 
         $direction = $data['direction'] instanceof LoanDirection
@@ -67,8 +67,8 @@ class FamilyLoanService
                 'amount' => $isBorrowed ? $amount : Money::neg($amount),
                 'occurred_on' => $data['loan_date'],
                 'description' => $isBorrowed
-                    ? 'اقتراض من '.$member->name
-                    : 'إقراض '.$member->name,
+                    ? 'دائن من '.$member->name
+                    : 'مدين لـ '.$member->name,
                 'notes' => $data['notes'] ?? null,
                 'related' => $loan,
             ]]);

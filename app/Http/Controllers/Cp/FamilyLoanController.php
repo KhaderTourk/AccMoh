@@ -66,7 +66,7 @@ class FamilyLoanController extends Controller
         }
 
         return redirect()->route('cp.family-members.show', $loan->family_member_id)
-            ->with('success', 'تم تسجيل القرض.');
+            ->with('success', 'تم تسجيل الحركة.');
     }
 
     public function createRepayment(Request $request)
@@ -106,7 +106,7 @@ class FamilyLoanController extends Controller
         }
 
         return redirect()->route('cp.family-members.show', $repayment->family_member_id)
-            ->with('success', 'تم تسجيل السداد.');
+            ->with('success', 'تم تسجيل التسوية.');
     }
 
     public function reverse(FamilyLoan $loan, ReversalService $reversals)
@@ -117,7 +117,7 @@ class FamilyLoanController extends Controller
             return back()->with('error', $e->getMessage());
         }
 
-        return back()->with('success', 'تم إلغاء القرض.');
+        return back()->with('success', 'تم إلغاء الحركة.');
     }
 
     public function reverseRepayment(\App\Models\FamilyLoanRepayment $repayment, ReversalService $reversals)
@@ -128,7 +128,7 @@ class FamilyLoanController extends Controller
             return back()->with('error', $e->getMessage());
         }
 
-        return back()->with('success', 'تم إلغاء السداد.');
+        return back()->with('success', 'تم إلغاء التسوية.');
     }
 
     public function openLoans(FamilyMember $family_member, Request $request)

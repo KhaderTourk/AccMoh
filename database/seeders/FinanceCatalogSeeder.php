@@ -35,8 +35,8 @@ class FinanceCatalogSeeder extends Seeder
             PaymentMethod::query()->firstOrCreate(['slug' => $method['slug']], $method + ['is_active' => true]);
         }
 
-        Fund::query()->firstOrCreate(['slug' => 'family'], ['name' => 'صندوق العائلة']);
-        Fund::query()->firstOrCreate(['slug' => 'business'], ['name' => 'صندوق العمل']);
+        Fund::query()->firstOrCreate(['slug' => 'family'], ['name' => 'شخصي']);
+        Fund::query()->firstOrCreate(['slug' => 'business'], ['name' => 'العمل']);
 
         foreach ([
             ['name' => 'إعلان ممول', 'default_price' => 300],

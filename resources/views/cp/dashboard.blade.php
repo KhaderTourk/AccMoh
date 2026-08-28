@@ -15,8 +15,8 @@
             ['route' => 'cp.family-members.create', 'icon' => 'group_add', 'label' => 'فرد', 'business' => false],
             ['route' => 'cp.client-services.create', 'icon' => 'work', 'label' => 'خدمة', 'business' => true],
             ['route' => 'cp.payments.create', 'icon' => 'payments', 'label' => 'دفعة', 'business' => true],
-            ['route' => 'cp.family-loans.create', 'icon' => 'handshake', 'label' => 'قرض', 'business' => false],
-            ['route' => 'cp.family-loans.repay', 'icon' => 'replay', 'label' => 'سداد', 'business' => false],
+            ['route' => 'cp.family-loans.create', 'icon' => 'handshake', 'label' => 'مدين', 'business' => false],
+            ['route' => 'cp.family-loans.repay', 'icon' => 'replay', 'label' => 'دائن', 'business' => false],
             ['route' => 'cp.expenses.create', 'icon' => 'receipt_long', 'label' => 'مصروف', 'business' => false],
             ['route' => 'cp.transfers.create', 'icon' => 'swap_horiz', 'label' => 'تحويل', 'business' => false],
         ] as $action)
@@ -40,7 +40,7 @@
         @foreach($snapshot['funds'] as $fund)
         <div class="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
             <p class="text-sm text-slate-500 mb-3 flex items-center gap-2">
-                <span class="material-symbols-outlined text-primary">{{ $fund->slug === 'family' ? 'family_restroom' : 'business_center' }}</span>
+                <span class="material-symbols-outlined text-primary">{{ $fund->slug === 'family' ? 'person' : 'business_center' }}</span>
                 {{ $fund->name }}
             </p>
             @foreach($snapshot['currencies'] as $currency)
@@ -88,13 +88,13 @@
         </div>
         @endif
         <div class="rounded-2xl bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800/40 p-5">
-            <p class="font-bold text-rose-800 dark:text-rose-300 mb-2">ديوني للعائلة</p>
+            <p class="font-bold text-rose-800 dark:text-rose-300 mb-2">دائن (عليّ)</p>
             @foreach($snapshot['currencies'] as $currency)
                 <p class="text-lg font-extrabold">{{ $currency->format($iOwe[$currency->id] ?? 0) }}</p>
             @endforeach
         </div>
         <div class="rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/40 p-5">
-            <p class="font-bold text-emerald-800 dark:text-emerald-300 mb-2">مستحق لي من العائلة</p>
+            <p class="font-bold text-emerald-800 dark:text-emerald-300 mb-2">مدين (لي)</p>
             @foreach($snapshot['currencies'] as $currency)
                 <p class="text-lg font-extrabold">{{ $currency->format($theyOwe[$currency->id] ?? 0) }}</p>
             @endforeach
@@ -109,7 +109,7 @@
         @if(tenantBusinessEnabled())
         <div class="rounded-xl bg-white dark:bg-slate-800 border p-4"><p class="text-xs text-slate-500">الخدمات</p><p class="text-2xl font-bold">{{ $counts['open_services'] }}</p></div>
         @endif
-        <div class="rounded-xl bg-white dark:bg-slate-800 border p-4"><p class="text-xs text-slate-500">قروض مفتوحة</p><p class="text-2xl font-bold">{{ $counts['open_loans'] }}</p></div>
+        <div class="rounded-xl bg-white dark:bg-slate-800 border p-4"><p class="text-xs text-slate-500">دائن/مدين مفتوح</p><p class="text-2xl font-bold">{{ $counts['open_loans'] }}</p></div>
     </section>
 
     <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -10,8 +10,8 @@ enum FundSlug: string
     public function label(): string
     {
         return match ($this) {
-            self::Family => 'صندوق العائلة',
-            self::Business => 'صندوق العمل',
+            self::Family => 'شخصي',
+            self::Business => 'العمل',
         };
     }
 }

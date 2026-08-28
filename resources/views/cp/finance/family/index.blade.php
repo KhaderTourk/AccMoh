@@ -8,7 +8,7 @@
     </div>
     <div class="rounded-2xl border bg-white dark:bg-slate-800 overflow-hidden">
         <table class="w-full text-sm text-right">
-            <thead class="bg-slate-50 dark:bg-slate-700/50"><tr><th class="px-3 py-2">الاسم</th><th class="px-3 py-2">القرابة</th><th class="px-3 py-2">أنا مدين</th><th class="px-3 py-2">مدين لي</th><th class="px-3 py-2"></th></tr></thead>
+            <thead class="bg-slate-50 dark:bg-slate-700/50"><tr><th class="px-3 py-2">الاسم</th><th class="px-3 py-2">القرابة</th><th class="px-3 py-2">دائن</th><th class="px-3 py-2">مدين</th><th class="px-3 py-2"></th></tr></thead>
             <tbody class="divide-y dark:divide-slate-700">
             @forelse($members as $m)
                 <tr>

@@ -86,13 +86,13 @@ class TenantProvisioningService
 
             Fund::withoutGlobalScopes()->updateOrCreate(
                 ['tenant_id' => $tenant->id, 'slug' => FundSlug::Family->value],
-                ['name' => 'صندوق العائلة']
+                ['name' => 'شخصي']
             );
 
             if ($tenant->business_enabled) {
                 Fund::withoutGlobalScopes()->updateOrCreate(
                     ['tenant_id' => $tenant->id, 'slug' => FundSlug::Business->value],
-                    ['name' => 'صندوق العمل']
+                    ['name' => 'العمل']
                 );
             }
 
@@ -157,7 +157,7 @@ class TenantProvisioningService
 
         Fund::withoutGlobalScopes()->updateOrCreate(
             ['tenant_id' => $tenant->id, 'slug' => FundSlug::Business->value],
-            ['name' => 'صندوق العمل']
+            ['name' => 'العمل']
         );
     }
 
