@@ -6,12 +6,11 @@
         <select name="fund_id" class="rounded-xl border px-3 py-2 dark:bg-slate-700"><option value="">الصندوق</option>@foreach($funds as $f)<option value="{{ $f->id }}" @selected(request('fund_id')==$f->id)>{{ $f->name }}</option>@endforeach</select>
         <select name="currency_id" class="rounded-xl border px-3 py-2 dark:bg-slate-700"><option value="">العملة</option>@foreach($currencies as $c)<option value="{{ $c->id }}" @selected(request('currency_id')==$c->id)>{{ $c->code }}</option>@endforeach</select>
         <select name="transaction_type" class="rounded-xl border px-3 py-2 dark:bg-slate-700"><option value="">النوع</option>@foreach($types as $t)<option value="{{ $t->value }}" @selected(request('transaction_type')==$t->value)>{{ $t->label() }}</option>@endforeach</select>
-        <input type="date" name="from" value="{{ request('from') }}" class="rounded-xl border px-3 py-2 dark:bg-slate-700">
-        <input type="date" name="to" value="{{ request('to') }}" class="rounded-xl border px-3 py-2 dark:bg-slate-700">
+        @include('cp.partials.date-range-fields')
         <input type="text" name="q" value="{{ request('q') }}" placeholder="بحث" class="rounded-xl border px-3 py-2 dark:bg-slate-700">
         <button class="px-3 py-2 rounded-xl bg-slate-200 dark:bg-slate-700">تصفية</button>
+        @include('cp.partials.date-range-shortcuts')
     </form>
-    @include('cp.partials.date-range-shortcuts')
     @if($totals->isNotEmpty())
     <div class="rounded-2xl border bg-white dark:bg-slate-800 p-4">
         <h3 class="font-bold mb-2">مجموع الرصيد بعد التصفية</h3>

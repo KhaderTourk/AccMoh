@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Cp\Concerns\LoadsFinanceLookups;
 use App\Models\Currency;
 use App\Models\LedgerEntry;
+use App\Support\DateRange;
 use Illuminate\Http\Request;
 
 class LedgerController extends Controller
@@ -15,13 +16,14 @@ class LedgerController extends Controller
 
     public function index(Request $request)
     {
-        $apply = function ($q) use ($request) {
+        [$from, $to] = $this->dateRange($request);
+
+        $apply = function ($q) use ($request, $from, $to) {
             $q->when($request->fund_id, fn ($qq, $id) => $qq->where('fund_id', $id))
                 ->when($request->currency_id, fn ($qq, $id) => $qq->where('currency_id', $id))
                 ->when($request->payment_method_id, fn ($qq, $id) => $qq->where('payment_method_id', $id))
                 ->when($request->transaction_type, fn ($qq, $t) => $qq->where('transaction_type', $t))
-                ->when($request->from, fn ($qq, $d) => $qq->whereDate('occurred_on', '>=', $d))
-                ->when($request->to, fn ($qq, $d) => $qq->whereDate('occurred_on', '<=', $d))
+                ->tap(fn ($qq) => DateRange::constrain($qq, 'occurred_on', $from, $to))
                 ->when($request->q, fn ($qq, $term) => $qq->where('description', 'like', "%{$term}%"));
         };
 

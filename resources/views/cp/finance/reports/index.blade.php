@@ -3,15 +3,12 @@
 @section('content')
 <div class="space-y-8">
     <div class="flex flex-wrap justify-between gap-3 items-start">
-        <div class="space-y-2">
-            <form class="flex flex-wrap gap-2 items-end">
-                <div><label class="text-xs">من</label><input type="date" name="from" value="{{ $from }}" class="rounded-xl border px-3 py-2 dark:bg-slate-700 block"></div>
-                <div><label class="text-xs">إلى</label><input type="date" name="to" value="{{ $to }}" class="rounded-xl border px-3 py-2 dark:bg-slate-700 block"></div>
-                <button class="px-4 py-2 rounded-xl bg-primary text-white">تطبيق الفترة</button>
-            </form>
+        <form class="flex flex-wrap gap-2 items-end">
+            @include('cp.partials.date-range-fields')
+            <button class="px-4 py-2 rounded-xl bg-primary text-white">تطبيق الفترة</button>
             @include('cp.partials.date-range-shortcuts')
-        </div>
-        <a href="{{ route('cp.reports.export-pdf', request()->query()) }}" class="px-4 py-2 rounded-xl border text-sm">تصدير PDF</a>
+        </form>
+        <a href="{{ route('cp.reports.export-pdf', array_filter(['from' => $from, 'to' => $to])) }}" class="px-4 py-2 rounded-xl border text-sm">تصدير PDF</a>
     </div>
 
     @if(tenantBusinessEnabled() && count($profitRows))

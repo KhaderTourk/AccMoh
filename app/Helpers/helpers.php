@@ -176,7 +176,7 @@ if (! function_exists('date_range_presets')) {
 if (! function_exists('date_range_url')) {
     function date_range_url(?string $from, ?string $to): string
     {
-        $query = request()->except(['from', 'to', 'page']);
+        $query = request()->except(['from', 'to', '_preset', 'page']);
         if ($from) {
             $query['from'] = $from;
         }
@@ -191,14 +191,14 @@ if (! function_exists('date_range_url')) {
 }
 
 if (! function_exists('date_range_preset_active')) {
-    function date_range_preset_active(?string $from, ?string $to): bool
+    function date_range_preset_active(?string $from, ?string $to, ?string $key = null): bool
     {
-        $currentFrom = request('from');
-        $currentTo = request('to');
-
-        if ($from === null && $to === null) {
-            return ! $currentFrom && ! $currentTo;
+        $preset = (string) request('_preset', '');
+        if ($key && $preset !== '') {
+            return $preset === $key;
         }
+
+        [$currentFrom, $currentTo] = \App\Support\DateRange::fromRequest();
 
         return $currentFrom === $from && $currentTo === $to;
     }

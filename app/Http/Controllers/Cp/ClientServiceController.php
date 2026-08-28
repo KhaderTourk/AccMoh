@@ -10,6 +10,7 @@ use App\Models\Client;
 use App\Models\ClientService;
 use App\Models\Currency;
 use App\Services\Finance\ClientWorkService;
+use App\Support\DateRange;
 use Illuminate\Http\Request;
 
 class ClientServiceController extends Controller
@@ -18,12 +19,13 @@ class ClientServiceController extends Controller
 
     public function index(Request $request)
     {
+        [$from, $to] = $this->dateRange($request);
+
         $services = ClientService::query()
             ->with(['client', 'currency', 'fxCurrency', 'serviceType'])
             ->when($request->client_id, fn ($q, $id) => $q->where('client_id', $id))
             ->when($request->currency_id, fn ($q, $id) => $q->where('currency_id', $id))
-            ->when($request->from, fn ($q, $d) => $q->whereDate('service_date', '>=', $d))
-            ->when($request->to, fn ($q, $d) => $q->whereDate('service_date', '<=', $d))
+            ->tap(fn ($q) => DateRange::constrain($q, 'service_date', $from, $to))
             ->when($request->q, fn ($q, $term) => $q->where('title', 'like', "%{$term}%"))
             ->orderByDesc('service_date')
             ->orderByDesc('id')

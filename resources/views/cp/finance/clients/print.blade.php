@@ -1,13 +1,8 @@
 @extends('cp.print')
 @section('content')
-@php $title = $client->name; @endphp
-<h1>{{ $client->name }}</h1>
-<p class="muted">
-    @if($client->contact_name){{ $client->contact_name }} · @endif
-    {{ $client->phone }}
-    — تاريخ التصدير: {{ $exportedAt ?? now()->format('Y-m-d H:i') }}
-</p>
-
+@php
+    $hasBalances = false;
+@endphp
 @foreach($currencies as $currency)
     @php
         $billed = $client->billedAmount($currency->id);
@@ -15,21 +10,39 @@
         $due = $client->outstandingAmount($currency->id);
     @endphp
     @if(!\App\Support\Money::isZero($billed) || !\App\Support\Money::isZero($paid))
-    <div class="card">
-        <strong>{{ $currency->name }}</strong><br>
-        قيمة الخدمات: {{ $currency->format($billed) }}<br>
-        المدفوع: {{ $currency->format($paid) }}<br>
-        @if(\App\Support\Money::isNegative($due))
-            عربون / رصيد مدفوع مقدماً: {{ $currency->format(\App\Support\Money::abs($due)) }}
-        @else
-            المتبقي: {{ $currency->format($due) }}
-        @endif
-    </div>
+        @php $hasBalances = true; @endphp
     @endif
 @endforeach
 
+@if($hasBalances)
+<h2>ملخص الحساب</h2>
+<table class="kpis">
+    <tr>
+    @foreach($currencies as $currency)
+        @php
+            $billed = $client->billedAmount($currency->id);
+            $paid = $client->paidAmount($currency->id);
+            $due = $client->outstandingAmount($currency->id);
+        @endphp
+        @if(!\App\Support\Money::isZero($billed) || !\App\Support\Money::isZero($paid))
+        <td>
+            <div class="kpi-label">{{ $currency->name }}</div>
+            <div class="sub">قيمة الخدمات: {{ $currency->format($billed) }}</div>
+            <div class="sub">المدفوع: {{ $currency->format($paid) }}</div>
+            @if(\App\Support\Money::isNegative($due))
+                <div class="kpi-value">عربون {{ $currency->format(\App\Support\Money::abs($due)) }}</div>
+            @else
+                <div class="kpi-value {{ \App\Support\Money::isZero($due) ? '' : 'neg' }}">المتبقي {{ $currency->format($due) }}</div>
+            @endif
+        </td>
+        @endif
+    @endforeach
+    </tr>
+</table>
+@endif
+
 <h2>الخدمات</h2>
-<table>
+<table class="data">
     <thead><tr><th>الخدمة</th><th>السعر</th><th>التاريخ</th></tr></thead>
     <tbody>
     @forelse($client->services as $service)
@@ -38,28 +51,28 @@
             <td>
                 {{ $service->currency->format($service->amount) }}
                 @if($service->isFx())
-                    — {{ $service->fxCurrency?->format($service->source_amount) }} × {{ $service->formattedExchangeRate() }}
+                    <div class="sub">{{ $service->fxCurrency?->format($service->source_amount) }} × {{ $service->formattedExchangeRate() }}</div>
                 @endif
             </td>
             <td>{{ $service->service_date->format('Y-m-d') }}</td>
         </tr>
     @empty
-        <tr><td colspan="3">لا توجد خدمات.</td></tr>
+        <tr><td colspan="3" class="empty">لا توجد خدمات.</td></tr>
     @endforelse
     </tbody>
 </table>
 
 <h2>الدفعات</h2>
-<table>
+<table class="data">
     <thead><tr><th>المبلغ</th><th>الطريقة</th><th>المرسل</th><th>التاريخ</th></tr></thead>
     <tbody>
     @forelse($client->payments as $payment)
         <tr>
             <td>
                 {{ $payment->currency->format($payment->amount) }}
-                @if($payment->is_reversed) (ملغاة) @endif
+                @if($payment->is_reversed) <span class="sub">(ملغاة)</span> @endif
                 @if($payment->isFx())
-                    — {{ $payment->fxCurrency?->format($payment->source_amount) }} × {{ $payment->formattedExchangeRate() }}
+                    <div class="sub">{{ $payment->fxCurrency?->format($payment->source_amount) }} × {{ $payment->formattedExchangeRate() }}</div>
                 @endif
             </td>
             <td>{{ $payment->paymentMethod->name }}</td>
@@ -67,22 +80,24 @@
             <td>{{ $payment->payment_date->format('Y-m-d') }}</td>
         </tr>
     @empty
-        <tr><td colspan="4">لا توجد دفعات.</td></tr>
+        <tr><td colspan="4" class="empty">لا توجد دفعات.</td></tr>
     @endforelse
     </tbody>
 </table>
 
 <h2>السجل الزمني</h2>
-<table>
+<table class="data">
     <thead><tr><th>التاريخ</th><th>الحركة</th><th>المبلغ</th></tr></thead>
     <tbody>
-    @foreach($timeline as $item)
+    @forelse($timeline as $item)
         <tr>
             <td>{{ $item['date']->format('Y-m-d') }}</td>
             <td>{{ $item['title'] }}</td>
-            <td>{{ $item['currency']->format($item['amount']) }}</td>
+            <td class="amount">{{ $item['currency']->format($item['amount']) }}</td>
         </tr>
-    @endforeach
+    @empty
+        <tr><td colspan="3" class="empty">لا حركات.</td></tr>
+    @endforelse
     </tbody>
 </table>
 @endsection

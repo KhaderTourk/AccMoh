@@ -8,6 +8,7 @@ use App\Http\Controllers\Cp\Concerns\LoadsFinanceLookups;
 use App\Models\Expense;
 use App\Services\Finance\ExpenseService;
 use App\Services\Finance\ReversalService;
+use App\Support\DateRange;
 use Illuminate\Http\Request;
 
 class ExpenseController extends Controller
@@ -16,14 +17,15 @@ class ExpenseController extends Controller
 
     public function index(Request $request)
     {
+        [$from, $to] = $this->dateRange($request);
+
         $expenses = Expense::query()
             ->with(['fund', 'category', 'currency', 'paymentMethod', 'vendor'])
             ->when($request->fund_id, fn ($q, $id) => $q->where('fund_id', $id))
             ->when($request->vendor_id, fn ($q, $id) => $q->where('vendor_id', $id))
             ->when($request->currency_id, fn ($q, $id) => $q->where('currency_id', $id))
             ->when($request->payment_method_id, fn ($q, $id) => $q->where('payment_method_id', $id))
-            ->when($request->from, fn ($q, $d) => $q->whereDate('expense_date', '>=', $d))
-            ->when($request->to, fn ($q, $d) => $q->whereDate('expense_date', '<=', $d))
+            ->tap(fn ($q) => DateRange::constrain($q, 'expense_date', $from, $to))
             ->when($request->q, fn ($q, $term) => $q->where('description', 'like', "%{$term}%"))
             ->when($request->boolean('active_only', true), fn ($q) => $q->active())
             ->orderByDesc('expense_date')

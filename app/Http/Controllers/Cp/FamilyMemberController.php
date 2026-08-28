@@ -111,6 +111,7 @@ class FamilyMemberController extends Controller
             'directions' => LoanDirection::cases(),
             'exportedAt' => now()->format('Y-m-d H:i'),
             'title' => $familyMember->name,
+            'subtitle' => trim(implode(' · ', array_filter([$familyMember->relationship, $familyMember->phone]))),
         ];
     }
 }

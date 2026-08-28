@@ -9,9 +9,25 @@ use App\Models\Fund;
 use App\Models\PaymentMethod;
 use App\Models\Vendor;
 use App\Models\ServiceType;
+use App\Support\DateRange;
+use Illuminate\Http\Request;
 
 trait LoadsFinanceLookups
 {
+    /**
+     * @return array{0: ?string, 1: ?string}
+     */
+    protected function dateRange(Request $request): array
+    {
+        [$from, $to] = DateRange::fromRequest($request);
+        $request->merge([
+            'from' => $from,
+            'to' => $to,
+        ]);
+
+        return [$from, $to];
+    }
+
     protected function financeLookups(): array
     {
         $funds = Fund::query()->orderBy('id')->get();

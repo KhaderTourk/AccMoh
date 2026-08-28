@@ -13,6 +13,7 @@ use App\Models\FamilyMember;
 use App\Services\Export\PdfExporter;
 use App\Services\Finance\BalanceService;
 use App\Services\Finance\ProfitService;
+use App\Support\DateRange;
 use Illuminate\Http\Request;
 
 class ReportController extends Controller
@@ -43,8 +44,7 @@ class ReportController extends Controller
         $iOwe = $balances->familyBalance(LoanDirection::Borrowed);
         $theyOwe = $balances->familyBalance(LoanDirection::Lent);
 
-        $from = $request->from;
-        $to = $request->to;
+        [$from, $to] = $this->dateRange($request);
 
         $clientSummary = tenantBusinessEnabled()
             ? Client::query()->orderBy('name')->get()->map(function (Client $client) use ($snapshot) {
@@ -80,8 +80,7 @@ class ReportController extends Controller
         $revenue = tenantBusinessEnabled()
             ? ClientPayment::query()
                 ->active()
-                ->when($from, fn ($q) => $q->whereDate('payment_date', '>=', $from))
-                ->when($to, fn ($q) => $q->whereDate('payment_date', '<=', $to))
+                ->tap(fn ($q) => DateRange::constrain($q, 'payment_date', $from, $to))
                 ->with(['client', 'currency', 'paymentMethod'])
                 ->orderByDesc('payment_date')
                 ->limit(100)
@@ -90,8 +89,7 @@ class ReportController extends Controller
 
         $expenses = Expense::query()
             ->active()
-            ->when($from, fn ($q) => $q->whereDate('expense_date', '>=', $from))
-            ->when($to, fn ($q) => $q->whereDate('expense_date', '<=', $to))
+            ->tap(fn ($q) => DateRange::constrain($q, 'expense_date', $from, $to))
             ->with(['fund', 'category', 'currency', 'paymentMethod', 'vendor'])
             ->orderByDesc('expense_date')
             ->limit(100)
@@ -117,6 +115,7 @@ class ReportController extends Controller
             'profitRows' => $profit->forPeriod($from, $to),
             'from' => $from,
             'to' => $to,
+            'periodLabel' => DateRange::label($from, $to),
             'exportedAt' => now()->format('Y-m-d H:i'),
             'title' => 'التقارير',
         ] + $this->financeLookups();

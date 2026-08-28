@@ -137,6 +137,7 @@ class ClientController extends Controller
             'timeline' => $timeline,
             'exportedAt' => now()->format('Y-m-d H:i'),
             'title' => $client->name,
+            'subtitle' => trim(implode(' · ', array_filter([$client->contact_name, $client->phone]))),
         ];
     }
 }

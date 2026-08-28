@@ -8,6 +8,7 @@ use App\Models\ClientPayment;
 use App\Models\Currency;
 use App\Models\Expense;
 use App\Models\Fund;
+use App\Support\DateRange;
 use App\Support\Money;
 
 class ProfitService
@@ -29,6 +30,12 @@ class ProfitService
      */
     public function forPeriod(?string $from, ?string $to): array
     {
+        $from = DateRange::normalize($from);
+        $to = DateRange::normalize($to);
+        if ($from && $to && strcmp($from, $to) > 0) {
+            [$from, $to] = [$to, $from];
+        }
+
         if (! tenantBusinessEnabled()) {
             return [];
         }

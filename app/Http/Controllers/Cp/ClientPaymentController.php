@@ -11,6 +11,7 @@ use App\Models\ClientService;
 use App\Models\Currency;
 use App\Services\Finance\ClientPaymentService;
 use App\Services\Finance\ReversalService;
+use App\Support\DateRange;
 use App\Support\Money;
 use Illuminate\Http\Request;
 
@@ -20,13 +21,14 @@ class ClientPaymentController extends Controller
 
     public function index(Request $request)
     {
+        [$from, $to] = $this->dateRange($request);
+
         $payments = ClientPayment::query()
             ->with(['client', 'currency', 'fxCurrency', 'paymentMethod'])
             ->when($request->client_id, fn ($q, $id) => $q->where('client_id', $id))
             ->when($request->currency_id, fn ($q, $id) => $q->where('currency_id', $id))
             ->when($request->payment_method_id, fn ($q, $id) => $q->where('payment_method_id', $id))
-            ->when($request->from, fn ($q, $d) => $q->whereDate('payment_date', '>=', $d))
-            ->when($request->to, fn ($q, $d) => $q->whereDate('payment_date', '<=', $d))
+            ->tap(fn ($q) => DateRange::constrain($q, 'payment_date', $from, $to))
             ->when($request->boolean('active_only', true), fn ($q) => $q->active())
             ->orderByDesc('payment_date')
             ->orderByDesc('id')

@@ -16,17 +16,16 @@
                     <option value="{{ $m->id }}" @selected(request('family_member_id')==$m->id)>{{ $m->name }}</option>
                 @endforeach
             </select>
-            <input type="date" name="from" value="{{ request('from') }}" class="rounded-xl border px-3 py-2 dark:bg-slate-700">
-            <input type="date" name="to" value="{{ request('to') }}" class="rounded-xl border px-3 py-2 dark:bg-slate-700">
+            @include('cp.partials.date-range-fields')
             <label class="inline-flex items-center gap-1 text-sm"><input type="checkbox" name="open_only" value="1" @checked(request('open_only'))> المفتوحة فقط</label>
             <button class="px-3 py-2 rounded-xl bg-slate-200 dark:bg-slate-700">تصفية</button>
+            @include('cp.partials.date-range-shortcuts')
         </form>
         <div class="flex gap-2 flex-wrap">
             <a href="{{ route('cp.family-loans.repay', ['direction' => $createDirection]) }}" class="px-4 py-2 rounded-xl border">تسوية</a>
             <a href="{{ route('cp.family-loans.create', ['direction' => $createDirection]) }}" class="px-4 py-2 rounded-xl bg-primary text-white">إضافة</a>
         </div>
     </div>
-    @include('cp.partials.date-range-shortcuts')
     <div class="rounded-2xl border bg-white dark:bg-slate-800 overflow-hidden">
         <table class="w-full text-sm text-right">
             <thead class="bg-slate-50 dark:bg-slate-700/50"><tr>

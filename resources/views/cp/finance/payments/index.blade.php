@@ -3,16 +3,15 @@
 @section('content')
 <div class="space-y-4">
     <div class="flex justify-between gap-3 flex-wrap">
-        <form class="flex flex-wrap gap-2">
+        <form class="flex flex-wrap gap-2 items-end">
             <select name="client_id" class="rounded-xl border px-3 py-2 dark:bg-slate-700"><option value="">كل العملاء</option>@foreach($clients as $c)<option value="{{ $c->id }}" @selected(request('client_id')==$c->id)>{{ $c->name }}</option>@endforeach</select>
             <select name="currency_id" class="rounded-xl border px-3 py-2 dark:bg-slate-700"><option value="">العملة</option>@foreach($currencies as $c)<option value="{{ $c->id }}" @selected(request('currency_id')==$c->id)>{{ $c->code }}</option>@endforeach</select>
-            <input type="date" name="from" value="{{ request('from') }}" class="rounded-xl border px-3 py-2 dark:bg-slate-700">
-            <input type="date" name="to" value="{{ request('to') }}" class="rounded-xl border px-3 py-2 dark:bg-slate-700">
+            @include('cp.partials.date-range-fields')
             <button class="px-3 py-2 rounded-xl bg-slate-200 dark:bg-slate-700">تصفية</button>
+            @include('cp.partials.date-range-shortcuts')
         </form>
         <a href="{{ route('cp.payments.create') }}" class="px-4 py-2 rounded-xl bg-primary text-white">دفعة جديدة</a>
     </div>
-    @include('cp.partials.date-range-shortcuts')
     <div class="rounded-2xl border bg-white dark:bg-slate-800 overflow-hidden">
         <table class="w-full text-sm text-right">
             <thead class="bg-slate-50 dark:bg-slate-700/50"><tr>

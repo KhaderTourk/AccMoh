@@ -11,6 +11,7 @@ use App\Models\FamilyMember;
 use App\Services\Finance\FamilyLoanService;
 use App\Services\Finance\LoanRepaymentService;
 use App\Services\Finance\ReversalService;
+use App\Support\DateRange;
 use App\Support\IlsFx;
 use App\Support\Money;
 use Illuminate\Http\Request;
@@ -209,12 +210,13 @@ class FamilyLoanController extends Controller
 
     protected function listing(Request $request, LoanDirection $direction)
     {
+        [$from, $to] = $this->dateRange($request);
+
         $loans = FamilyLoan::query()
             ->with(['familyMember', 'currency', 'fxCurrency', 'paymentMethod'])
             ->where('direction', $direction)
             ->when($request->family_member_id, fn ($q, $id) => $q->where('family_member_id', $id))
-            ->when($request->from, fn ($q, $d) => $q->whereDate('loan_date', '>=', $d))
-            ->when($request->to, fn ($q, $d) => $q->whereDate('loan_date', '<=', $d))
+            ->tap(fn ($q) => DateRange::constrain($q, 'loan_date', $from, $to))
             ->when($request->boolean('open_only'), fn ($q) => $q->active()->whereIn('status', ['open', 'partial']))
             ->orderByDesc('loan_date')
             ->orderByDesc('id')
