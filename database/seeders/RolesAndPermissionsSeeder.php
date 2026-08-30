@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Permission;
 use App\Models\Role;
+use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -38,6 +39,16 @@ class RolesAndPermissionsSeeder extends Seeder
             Permission::whereIn('slug', ['finance'])->pluck('id')
         );
 
+        $tenant = Tenant::query()->first();
+        if (! $tenant) {
+            $tenant = Tenant::query()->create([
+                'name' => 'AccMa',
+                'slug' => 'default',
+                'business_enabled' => true,
+                'is_active' => true,
+            ]);
+        }
+
         $admin = User::firstOrCreate(
             ['email' => 'admin@example.com'],
             [
@@ -46,10 +57,18 @@ class RolesAndPermissionsSeeder extends Seeder
                 'is_super_admin' => true,
                 'role_id' => $adminRole->id,
                 'is_active' => true,
+                'tenant_id' => $tenant->id,
             ]
         );
-        if (! $admin->is_super_admin) {
-            $admin->update(['is_super_admin' => true, 'role_id' => $adminRole->id]);
+        if (! $admin->is_super_admin || ! $admin->tenant_id) {
+            $admin->update([
+                'is_super_admin' => true,
+                'role_id' => $adminRole->id,
+                'tenant_id' => $admin->tenant_id ?: $tenant->id,
+            ]);
+        }
+        if (! $tenant->owner_user_id) {
+            $tenant->update(['owner_user_id' => $admin->id]);
         }
     }
 }
