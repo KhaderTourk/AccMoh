@@ -7,14 +7,24 @@
         <table class="w-full text-sm text-right">
             <thead class="bg-slate-50 dark:bg-slate-700/50"><tr><th class="px-3 py-2">الاسم</th><th class="px-3 py-2">السعر الافتراضي</th><th class="px-3 py-2">الحالة</th><th class="px-3 py-2"></th></tr></thead>
             <tbody class="divide-y dark:divide-slate-700">
-            @foreach($types as $t)
-                <tr>
+            @forelse($types as $t)
+                <tr class="{{ $t->is_active ? '' : 'opacity-40' }}">
                     <td class="px-3 py-2">{{ $t->name }}</td>
                     <td class="px-3 py-2">{{ $t->default_price ? ($t->defaultCurrency?->format($t->default_price) ?? $t->default_price) : '—' }}</td>
                     <td class="px-3 py-2">{{ $t->is_active ? 'نشط' : 'معطّل' }}</td>
-                    <td class="px-3 py-2"><a href="{{ route('cp.service-types.edit', $t) }}" class="text-primary">تعديل</a></td>
+                    <td class="px-3 py-2">
+                        <div class="flex gap-2 justify-end">
+                            <a href="{{ route('cp.service-types.edit', $t) }}" class="text-primary text-sm">تعديل</a>
+                            <form method="post" action="{{ route('cp.service-types.destroy', $t) }}" onsubmit="return confirm('حذف نوع الخدمة؟')">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="text-rose-600 text-sm">حذف</button>
+                            </form>
+                        </div>
+                    </td>
                 </tr>
-            @endforeach
+            @empty
+                <tr><td colspan="4" class="p-8 text-center text-slate-500">لا توجد أنواع خدمات.</td></tr>
+            @endforelse
             </tbody>
         </table>
         <div class="p-3">{{ $types->links() }}</div>

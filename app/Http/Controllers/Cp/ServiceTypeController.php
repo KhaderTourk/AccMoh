@@ -51,12 +51,13 @@ class ServiceTypeController extends Controller
         if ($serviceType->clientServices()->exists()) {
             $serviceType->update(['is_active' => false]);
 
-            return back()->with('success', 'تم تعطيل نوع الخدمة لأنه مستخدم في سجلات.');
+            return redirect()->route('cp.service-types.index')
+                ->with('success', 'تم تعطيل نوع الخدمة لأنه مستخدم في سجلات.');
         }
 
         $serviceType->forceDelete();
 
-        return back()->with('success', 'تم الحذف.');
+        return redirect()->route('cp.service-types.index')->with('success', 'تم الحذف.');
     }
 
     protected function validated(Request $request): array
