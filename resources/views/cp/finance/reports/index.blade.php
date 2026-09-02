@@ -20,7 +20,7 @@
                 <h3 class="font-bold text-base">{{ $row['currency']->name }}</h3>
                 <p>دفعات العملاء: <strong>{{ $row['currency']->format($row['payments']) }}</strong></p>
                 <p>مصروفات العمل: <strong>{{ $row['currency']->format($row['work_expenses']) }}</strong></p>
-                <p class="text-xs text-slate-500">منها أبناء الشركة {{ $row['currency']->format($row['worker_expenses']) }} · موردون {{ $row['currency']->format($row['supplier_expenses']) }}</p>
+                <p class="text-xs text-slate-500">منها الموظفين {{ $row['currency']->format($row['worker_expenses']) }} · موردون {{ $row['currency']->format($row['supplier_expenses']) }}</p>
                 <p>المستحقات المتبقية: <strong>{{ $row['currency']->format($row['outstanding']) }}</strong></p>
                 <p class="pt-2 border-t">صافي الأرباح = دفعات − مصروفات العمل:
                     <strong class="{{ \App\Support\Money::isNegative($row['net_profit']) ? 'text-rose-600' : 'text-emerald-600' }}">{{ $row['currency']->format($row['net_profit']) }}</strong>

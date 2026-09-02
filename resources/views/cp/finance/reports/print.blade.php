@@ -12,7 +12,7 @@
                 <div class="sub" style="margin-top:6px;">
                     دفعات: {{ $row['currency']->format($row['payments']) }}<br>
                     مصروفات العمل: {{ $row['currency']->format($row['work_expenses']) }}<br>
-                    أبناء الشركة {{ $row['currency']->format($row['worker_expenses']) }} · موردون {{ $row['currency']->format($row['supplier_expenses']) }}<br>
+                    الموظفين {{ $row['currency']->format($row['worker_expenses']) }} · موردون {{ $row['currency']->format($row['supplier_expenses']) }}<br>
                     المستحقات: {{ $row['currency']->format($row['outstanding']) }}<br>
                     إجمالي الأرباح: {{ $row['currency']->format($row['gross_profit']) }}
                 </div>

@@ -63,7 +63,7 @@ class FinanceCatalogSeeder extends Seeder
             ['name' => 'اشتراك برنامج', 'fund_slug' => 'business', 'sort_order' => 11],
             ['name' => 'استضافة', 'fund_slug' => 'business', 'sort_order' => 12],
             ['name' => 'أدوات عمل', 'fund_slug' => 'business', 'sort_order' => 13],
-            ['name' => 'أجور أبناء الشركة', 'fund_slug' => 'business', 'sort_order' => 14],
+            ['name' => 'أجور الموظفين', 'fund_slug' => 'business', 'sort_order' => 14],
             ['name' => 'مشتريات موردين', 'fund_slug' => 'business', 'sort_order' => 15],
             ['name' => 'أخرى', 'fund_slug' => null, 'sort_order' => 99],
         ] as $category) {
