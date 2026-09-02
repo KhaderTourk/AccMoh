@@ -26,6 +26,7 @@ class CheckCpPermission
         'cp.expense-categories' => 'finance',
         'cp.workers' => 'finance',
         'cp.suppliers' => 'finance',
+        'cp.vendor-charges' => 'finance',
     ];
 
     public function handle(Request $request, Closure $next): Response

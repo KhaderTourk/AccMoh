@@ -30,6 +30,16 @@ class Vendor extends Model
         return $this->hasMany(Expense::class);
     }
 
+    public function charges(): HasMany
+    {
+        return $this->hasMany(VendorCharge::class);
+    }
+
+    public function hasFinancialHistory(): bool
+    {
+        return $this->expenses()->exists() || $this->charges()->exists();
+    }
+
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
@@ -40,6 +50,15 @@ class Vendor extends Model
         return $query->where('type', $type);
     }
 
+    public function billedAmount(int $currencyId): string
+    {
+        return Money::of(
+            $this->charges()
+                ->where('currency_id', $currencyId)
+                ->sum('amount')
+        );
+    }
+
     public function paidAmount(int $currencyId): string
     {
         return Money::of(
@@ -48,5 +67,10 @@ class Vendor extends Model
                 ->where('currency_id', $currencyId)
                 ->sum('amount')
         );
+    }
+
+    public function outstandingAmount(int $currencyId): string
+    {
+        return Money::sub($this->billedAmount($currencyId), $this->paidAmount($currencyId));
     }
 }

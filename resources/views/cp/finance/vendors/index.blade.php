@@ -13,7 +13,7 @@
         <table class="w-full text-sm text-right">
             <thead class="bg-slate-50 dark:bg-slate-700/50"><tr>
                 <th class="px-3 py-2">الاسم</th><th class="px-3 py-2">الهاتف</th>
-                @foreach($currencies as $c)<th class="px-3 py-2">المدفوع {{ $c->code }}</th>@endforeach
+                @foreach($currencies as $c)<th class="px-3 py-2">المتبقي {{ $c->code }}</th>@endforeach
                 <th class="px-3 py-2">الحالة</th><th class="px-3 py-2"></th>
             </tr></thead>
             <tbody class="divide-y dark:divide-slate-700">
@@ -25,7 +25,16 @@
                     </td>
                     <td class="px-3 py-2">{{ $v->phone ?: '—' }}</td>
                     @foreach($currencies as $c)
-                        <td class="px-3 py-2">{{ $c->format($v->paidAmount($c->id)) }}</td>
+                        @php $due = $v->outstandingAmount($c->id); @endphp
+                        <td class="px-3 py-2">
+                            @if(\App\Support\Money::isPositive($due))
+                                {{ $c->format($due) }}
+                            @elseif(\App\Support\Money::isNegative($due))
+                                <span class="text-emerald-600">مقدماً {{ $c->format(\App\Support\Money::abs($due)) }}</span>
+                            @else
+                                —
+                            @endif
+                        </td>
                     @endforeach
                     <td class="px-3 py-2">{{ $v->is_active ? 'نشط' : 'مؤرشف' }}</td>
                     <td class="px-3 py-2">

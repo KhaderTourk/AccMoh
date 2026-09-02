@@ -1,5 +1,5 @@
 @extends('cp.layout')
-@section('title', 'مصروف جديد')
+@section('title', request('vendor_id') ? 'سداد' : 'مصروف جديد')
 @section('content')
 <div x-data="expenseForm()" x-init="init()" class="max-w-2xl">
 <form method="post" action="{{ route('cp.expenses.store') }}" class="rounded-2xl border bg-white dark:bg-slate-800 p-6 space-y-4">

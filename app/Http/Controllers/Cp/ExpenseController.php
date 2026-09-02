@@ -67,9 +67,17 @@ class ExpenseController extends Controller
         ]);
 
         try {
-            $service->record($data);
+            $row = $service->record($data);
         } catch (FinanceException $e) {
             return back()->withInput()->with('error', $e->getMessage());
+        }
+
+        if ($row->vendor_id) {
+            $row->load('vendor');
+
+            return redirect()
+                ->route('cp.'.$row->vendor->type->routePrefix().'.show', $row->vendor_id)
+                ->with('success', 'تم تسجيل السداد.');
         }
 
         return redirect()->route('cp.expenses.index')->with('success', 'تم تسجيل المصروف.');

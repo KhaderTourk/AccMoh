@@ -58,8 +58,12 @@ class VendorController extends Controller
     {
         $this->assertType($vendor);
         $vendor->load([
+            'charges' => fn ($q) => $q->with(['currency', 'fxCurrency'])
+                ->orderBy('charge_date')
+                ->orderBy('id'),
             'expenses' => fn ($q) => $q->with(['currency', 'paymentMethod', 'category', 'fund'])
-                ->latest('expense_date'),
+                ->orderByDesc('expense_date')
+                ->orderByDesc('id'),
         ]);
         $currencies = Currency::query()->active()->get();
 
@@ -95,11 +99,11 @@ class VendorController extends Controller
         $this->assertType($vendor);
         $type = $this->type();
 
-        if ($vendor->expenses()->exists()) {
+        if ($vendor->hasFinancialHistory()) {
             $vendor->update(['is_active' => false]);
 
             return redirect()->route('cp.'.$type->routePrefix().'.index')
-                ->with('success', 'تم الأرشفة لأن هناك مصروفات مرتبطة.');
+                ->with('success', 'تم الأرشفة لأن هناك سجلات مرتبطة.');
         }
 
         $vendor->forceDelete();

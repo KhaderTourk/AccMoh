@@ -21,6 +21,7 @@ class PurgeOperationalData extends Command
         'family_loan_repayments',
         'family_loans',
         'expenses',
+        'vendor_charges',
         'vendors',
         'fund_transfers',
         'ledger_entries',

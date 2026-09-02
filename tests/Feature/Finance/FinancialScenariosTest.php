@@ -11,6 +11,7 @@ use App\Models\Fund;
 use App\Models\PaymentMethod;
 use App\Models\ServiceType;
 use App\Models\Vendor;
+use App\Services\Finance\AdjustmentService;
 use App\Services\Finance\BalanceService;
 use App\Services\Finance\ClientPaymentService;
 use App\Services\Finance\ClientWorkService;
@@ -19,6 +20,7 @@ use App\Services\Finance\FamilyLoanService;
 use App\Services\Finance\FundTransferService;
 use App\Services\Finance\LoanRepaymentService;
 use App\Services\Finance\ProfitService;
+use App\Services\Finance\VendorChargeService;
 use App\Support\Money;
 use Database\Seeders\FinanceCatalogSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -394,6 +396,70 @@ class FinancialScenariosTest extends TestCase
         $this->assertSame('300.00', $ilsRow['outstanding']);
         $this->assertSame('700.00', $ilsRow['gross_profit']);
         $this->assertSame('100.00', $worker->fresh()->paidAmount($this->ils->id));
+        $this->assertSame('-100.00', $worker->fresh()->outstandingAmount($this->ils->id));
+    }
+
+    public function test_supplier_charge_is_owed_until_paid(): void
+    {
+        $supplier = Vendor::query()->create([
+            'name' => 'مطبعة',
+            'type' => VendorType::Supplier,
+            'is_active' => true,
+        ]);
+
+        app(VendorChargeService::class)->create([
+            'vendor_id' => $supplier->id,
+            'title' => 'طباعة كروت',
+            'amount' => 400,
+            'currency_id' => $this->ils->id,
+            'charge_date' => '2026-08-10',
+        ]);
+
+        $this->assertSame('400.00', $supplier->fresh()->billedAmount($this->ils->id));
+        $this->assertSame('400.00', $supplier->fresh()->outstandingAmount($this->ils->id));
+
+        app(AdjustmentService::class)->opening([
+            'fund_id' => $this->business->id,
+            'payment_method_id' => $this->cash->id,
+            'currency_id' => $this->ils->id,
+            'amount' => 1000,
+            'occurred_on' => '2026-08-01',
+        ]);
+
+        app(ExpenseService::class)->record([
+            'fund_id' => $this->business->id,
+            'vendor_id' => $supplier->id,
+            'description' => 'سداد مطبعة',
+            'amount' => 150,
+            'currency_id' => $this->ils->id,
+            'payment_method_id' => $this->cash->id,
+            'expense_date' => '2026-08-12',
+            'payee' => 'مطبعة',
+        ]);
+
+        $supplier = $supplier->fresh();
+        $this->assertSame('400.00', $supplier->billedAmount($this->ils->id));
+        $this->assertSame('150.00', $supplier->paidAmount($this->ils->id));
+        $this->assertSame('250.00', $supplier->outstandingAmount($this->ils->id));
+    }
+
+    public function test_employee_charge_tracks_dues(): void
+    {
+        $employee = Vendor::query()->create([
+            'name' => 'موظف 1',
+            'type' => VendorType::Worker,
+            'is_active' => true,
+        ]);
+
+        app(VendorChargeService::class)->create([
+            'vendor_id' => $employee->id,
+            'title' => 'راتب شهر 8',
+            'amount' => 2000,
+            'currency_id' => $this->ils->id,
+            'charge_date' => '2026-08-31',
+        ]);
+
+        $this->assertSame('2000.00', $employee->fresh()->outstandingAmount($this->ils->id));
     }
 
     public function test_expense_notes_are_saved_on_expense_and_ledger(): void

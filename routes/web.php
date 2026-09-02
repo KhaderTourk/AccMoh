@@ -11,6 +11,7 @@ use App\Http\Controllers\Cp\FamilyLoanController;
 use App\Http\Controllers\Cp\ExpenseController;
 use App\Http\Controllers\Cp\ExpenseCategoryController;
 use App\Http\Controllers\Cp\VendorController;
+use App\Http\Controllers\Cp\VendorChargeController;
 use App\Http\Controllers\Cp\TransferController;
 use App\Http\Controllers\Cp\LedgerController;
 use App\Http\Controllers\Cp\ReportController;
@@ -72,6 +73,8 @@ Route::prefix('cp')->name('cp.')->middleware(['cp.auth', 'cp.check'])->group(fun
         Route::post('/payments/{payment}/reverse', [ClientPaymentController::class, 'reverse'])->name('payments.reverse');
         Route::get('/clients/{client}/unpaid-services', [ClientPaymentController::class, 'unpaidServices'])->name('clients.unpaid-services');
         Route::resource('service-types', ServiceTypeController::class)->except(['show']);
+
+        Route::resource('vendor-charges', VendorChargeController::class)->except(['index', 'show']);
 
         foreach (['workers', 'suppliers'] as $prefix) {
             Route::get("/{$prefix}", [VendorController::class, 'index'])->name("{$prefix}.index");
