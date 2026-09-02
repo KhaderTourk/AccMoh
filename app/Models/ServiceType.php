@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
+use App\Support\Money;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -45,5 +46,32 @@ class ServiceType extends Model
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true)->orderBy('name');
+    }
+
+    public function defaultPriceLabel(): ?string
+    {
+        if (! filled($this->default_price) || Money::isZero($this->default_price)) {
+            return null;
+        }
+
+        if ($this->defaultCurrency) {
+            return $this->defaultCurrency->format($this->default_price);
+        }
+
+        return number_format((float) $this->default_price, 2);
+    }
+
+    /**
+     * @return array{id: string, name: string, price: string, currency_id: string, price_label: ?string}
+     */
+    public function toFormOption(): array
+    {
+        return [
+            'id' => (string) $this->id,
+            'name' => $this->name,
+            'price' => (string) ($this->default_price ?? ''),
+            'currency_id' => (string) ($this->default_currency_id ?? ''),
+            'price_label' => $this->defaultPriceLabel(),
+        ];
     }
 }

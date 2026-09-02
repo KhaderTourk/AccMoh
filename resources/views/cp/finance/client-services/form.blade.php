@@ -9,6 +9,7 @@
     $usdAmount = old('source_amount', $service->source_amount ?? ($isExistingFx && ! $service->isFx() ? $service->amount : ''));
     $rate = old('exchange_rate', $service->formattedExchangeRate());
     $ilsAmount = old('amount', $isExistingFx && ! $service->isFx() ? '' : $service->amount);
+    $serviceTypeOptions = ($serviceTypes ?? collect())->map->toFormOption()->values();
 @endphp
 <form method="post"
       action="{{ $service->exists ? route('cp.client-services.update', $service) : route('cp.client-services.store') }}"
@@ -30,12 +31,7 @@
             <option value="">مخصص</option>
             @foreach($serviceTypes as $t)
                 <option value="{{ $t->id }}">
-                    {{ $t->name }}
-                    @if($t->defaultCurrency && filled($t->default_price) && ! \App\Support\Money::isZero($t->default_price))
-                        — {{ $t->defaultCurrency->format($t->default_price) }}
-                    @elseif(filled($t->default_price) && ! \App\Support\Money::isZero($t->default_price))
-                        — {{ number_format((float) $t->default_price, 2) }}
-                    @endif
+                    {{ $t->name }}@if($t->defaultPriceLabel()) — {{ $t->defaultPriceLabel() }}@endif
                 </option>
             @endforeach
         </select>
@@ -101,24 +97,8 @@ function serviceForm() {
         rate: @json((string) $rate),
         ilsAmount: @json((string) $ilsAmount),
         usdId: @json((string) $usdId),
-        lastTypeName: '',
         defaultPriceLabel: '',
-        types: @json(($serviceTypes ?? collect())->map(function ($t) {
-            $label = null;
-            if ($t->defaultCurrency && filled($t->default_price) && ! \App\Support\Money::isZero($t->default_price)) {
-                $label = $t->defaultCurrency->format($t->default_price);
-            } elseif (filled($t->default_price) && ! \App\Support\Money::isZero($t->default_price)) {
-                $label = number_format((float) $t->default_price, 2);
-            }
-
-            return [
-                'id' => (string) $t->id,
-                'name' => $t->name,
-                'price' => (string) ($t->default_price ?? ''),
-                'currency_id' => (string) ($t->default_currency_id ?? ''),
-                'price_label' => $label,
-            ];
-        })->values()),
+        types: @json($serviceTypeOptions),
         ilsTotal() {
             const usd = parseFloat(this.usdAmount) || 0;
             const rate = parseFloat(this.rate) || 0;
@@ -128,7 +108,7 @@ function serviceForm() {
             return this.types.find(t => String(t.id) === String(this.typeId)) || null;
         },
         applyPrice(type) {
-            if (!type || !type.price) return;
+            if (!type || !type.price || Number(type.price) === 0) return;
             if (String(type.currency_id) === String(this.usdId)) {
                 this.requiresFx = true;
                 this.usdAmount = type.price;
@@ -141,21 +121,15 @@ function serviceForm() {
             const type = this.selectedType();
             if (!type) {
                 this.defaultPriceLabel = '';
-                this.lastTypeName = '';
                 return;
             }
             this.defaultPriceLabel = type.price_label || '';
-            if (!this.title || this.title === this.lastTypeName) {
-                this.title = type.name;
-            }
-            this.lastTypeName = type.name;
             this.applyPrice(type);
         },
         init() {
             const type = this.selectedType();
             if (!type) return;
             this.defaultPriceLabel = type.price_label || '';
-            this.lastTypeName = type.name;
             if (!this.ilsAmount && !this.usdAmount) {
                 this.applyPrice(type);
             }
