@@ -17,7 +17,8 @@ class FamilyMemberController extends Controller
             ->when($request->q, fn ($q, $term) => $q->where(function ($qq) use ($term) {
                 $qq->where('name', 'like', "%{$term}%")
                     ->orWhere('relationship', 'like', "%{$term}%")
-                    ->orWhere('phone', 'like', "%{$term}%");
+                    ->orWhere('phone', 'like', "%{$term}%")
+                    ->orWhere('notes', 'like', "%{$term}%");
             }))
             ->when($request->filled('status'), fn ($q) => $q->where('is_active', $request->status === 'active'))
             ->orderBy('name')

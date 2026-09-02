@@ -41,13 +41,25 @@
 </table>
 @endif
 
+@if(filled($client->notes))
+<div class="card">
+    <div class="kpi-label">ملاحظات</div>
+    <div class="sub" style="white-space: pre-line;">{{ $client->notes }}</div>
+</div>
+@endif
+
 <h2>الخدمات</h2>
 <table class="data">
     <thead><tr><th>الخدمة</th><th>السعر</th><th>التاريخ</th></tr></thead>
     <tbody>
     @forelse($client->services as $service)
         <tr>
-            <td>{{ $service->title }}</td>
+            <td>
+                {{ $service->title }}
+                @if(filled($service->notes))
+                    <div class="sub" style="white-space: pre-line;">{{ $service->notes }}</div>
+                @endif
+            </td>
             <td>
                 {{ $service->currency->format($service->amount) }}
                 @if($service->isFx())
@@ -76,7 +88,12 @@
                 @endif
             </td>
             <td>{{ $payment->paymentMethod->name }}</td>
-            <td>{{ $payment->payer_name }}</td>
+            <td>
+                {{ $payment->payer_name }}
+                @if(filled($payment->notes))
+                    <div class="sub" style="white-space: pre-line;">{{ $payment->notes }}</div>
+                @endif
+            </td>
             <td>{{ $payment->payment_date->format('Y-m-d') }}</td>
         </tr>
     @empty
@@ -92,7 +109,12 @@
     @forelse($timeline as $item)
         <tr>
             <td>{{ $item['date']->format('Y-m-d') }}</td>
-            <td>{{ $item['title'] }}</td>
+            <td>
+                {{ $item['title'] }}
+                @if(!empty($item['notes']))
+                    <div class="sub" style="white-space: pre-line;">{{ $item['notes'] }}</div>
+                @endif
+            </td>
             <td class="amount">{{ $item['currency']->format($item['amount']) }}</td>
         </tr>
     @empty

@@ -70,7 +70,7 @@
     </div>
     <div>
         <label class="text-sm">ملاحظة</label>
-        <textarea name="notes" rows="2" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700"></textarea>
+        <textarea name="notes" rows="2" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">{{ old('notes') }}</textarea>
     </div>
     <button class="px-5 py-2 rounded-xl bg-primary text-white">تنفيذ التحويل</button>
 </form>

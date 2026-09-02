@@ -7,6 +7,7 @@
             <select name="client_id" class="rounded-xl border px-3 py-2 dark:bg-slate-700"><option value="">كل العملاء</option>@foreach($clients as $c)<option value="{{ $c->id }}" @selected(request('client_id')==$c->id)>{{ $c->name }}</option>@endforeach</select>
             <select name="currency_id" class="rounded-xl border px-3 py-2 dark:bg-slate-700"><option value="">العملة</option>@foreach($currencies as $c)<option value="{{ $c->id }}" @selected(request('currency_id')==$c->id)>{{ $c->code }}</option>@endforeach</select>
             @include('cp.partials.date-range-fields')
+            <input type="text" name="q" value="{{ request('q') }}" placeholder="بحث في الملاحظات" class="rounded-xl border px-3 py-2 dark:bg-slate-700">
             <button class="px-3 py-2 rounded-xl bg-slate-200 dark:bg-slate-700">تصفية</button>
             @include('cp.partials.date-range-shortcuts')
         </form>
@@ -20,7 +21,10 @@
             <tbody class="divide-y dark:divide-slate-700">
             @forelse($payments as $p)
                 <tr class="{{ $p->is_reversed ? 'opacity-40' : '' }}">
-                    <td class="px-3 py-2"><a class="text-primary" href="{{ route('cp.clients.show', $p->client) }}">{{ $p->client->name }}</a></td>
+                    <td class="px-3 py-2">
+                        <a class="text-primary" href="{{ route('cp.clients.show', $p->client) }}">{{ $p->client->name }}</a>
+                        @include('cp.partials.note-line', ['notes' => $p->notes])
+                    </td>
                     <td class="px-3 py-2">
                         {{ $p->currency->format($p->amount) }}
                         @if($p->isFx())

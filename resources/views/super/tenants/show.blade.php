@@ -17,7 +17,12 @@
         <p>العمل: <strong>{{ $tenant->business_enabled ? 'ظاهر' : 'مخفي' }}</strong></p>
         <p>الحالة: <strong>{{ $tenant->is_active ? 'نشطة' : 'موقوفة' }}</strong></p>
         <p>المالك: <strong>{{ $tenant->owner?->name }}</strong> — {{ $tenant->owner?->email }}</p>
-        @if($tenant->notes)<p class="text-slate-500">{{ $tenant->notes }}</p>@endif
+        @if($tenant->notes)
+            <div>
+                <p class="font-medium">ملاحظات</p>
+                <p class="text-slate-600 whitespace-pre-line">{{ $tenant->notes }}</p>
+            </div>
+        @endif
         <p class="pt-3 text-slate-500">دخول المالك إلى نسخته عبر <code class="bg-slate-100 px-1 rounded">/cp/login</code></p>
     </div>
 </div>

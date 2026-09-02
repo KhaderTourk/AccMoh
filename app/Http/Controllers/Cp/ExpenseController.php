@@ -26,7 +26,11 @@ class ExpenseController extends Controller
             ->when($request->currency_id, fn ($q, $id) => $q->where('currency_id', $id))
             ->when($request->payment_method_id, fn ($q, $id) => $q->where('payment_method_id', $id))
             ->tap(fn ($q) => DateRange::constrain($q, 'expense_date', $from, $to))
-            ->when($request->q, fn ($q, $term) => $q->where('description', 'like', "%{$term}%"))
+            ->when($request->q, fn ($q, $term) => $q->where(function ($qq) use ($term) {
+                $qq->where('description', 'like', "%{$term}%")
+                    ->orWhere('payee', 'like', "%{$term}%")
+                    ->orWhere('notes', 'like', "%{$term}%");
+            }))
             ->when($request->boolean('active_only', true), fn ($q) => $q->active())
             ->orderByDesc('expense_date')
             ->paginate(20)

@@ -17,7 +17,8 @@ class ClientController extends Controller
                 $qq->where('name', 'like', "%{$term}%")
                     ->orWhere('phone', 'like', "%{$term}%")
                     ->orWhere('contact_name', 'like', "%{$term}%")
-                    ->orWhere('company_name', 'like', "%{$term}%");
+                    ->orWhere('company_name', 'like', "%{$term}%")
+                    ->orWhere('notes', 'like', "%{$term}%");
             }))
             ->when($request->filled('status'), fn ($q) => $q->where('is_active', $request->status === 'active'))
             ->orderBy('name')
@@ -117,6 +118,7 @@ class ClientController extends Controller
                 'title' => 'خدمة: '.$service->title,
                 'amount' => $service->amount,
                 'currency' => $service->currency,
+                'notes' => $service->notes,
             ]);
         }
         foreach ($client->payments->where('is_reversed', false) as $payment) {
@@ -126,6 +128,7 @@ class ClientController extends Controller
                 'title' => 'دفعة عبر '.$payment->paymentMethod->name,
                 'amount' => $payment->amount,
                 'currency' => $payment->currency,
+                'notes' => $payment->notes,
             ]);
         }
 

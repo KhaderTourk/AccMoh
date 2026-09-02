@@ -105,7 +105,10 @@
                 <tbody class="divide-y">
                 @forelse($openLoans as $loan)
                     <tr>
-                        <td class="px-3 py-2">{{ $loan->familyMember->name }}</td>
+                        <td class="px-3 py-2">
+                            {{ $loan->familyMember->name }}
+                            @if($loan->notes)<div class="text-xs text-slate-500 mt-0.5 whitespace-pre-line">{{ $loan->notes }}</div>@endif
+                        </td>
                         <td class="px-3 py-2">{{ $loan->direction->label() }}</td>
                         <td class="px-3 py-2">{{ $loan->currency->format($loan->remainingAmount()) }}</td>
                         <td class="px-3 py-2">{{ $loan->loan_date->format('Y-m-d') }}</td>
@@ -124,7 +127,13 @@
             <h2 class="font-bold text-lg mb-3">آخر الإيرادات</h2>
             <div class="rounded-2xl border bg-white max-h-80 overflow-y-auto">
                 @forelse($revenue as $p)
-                    <div class="px-3 py-2 border-b text-sm flex justify-between"><span>{{ $p->client->name }} — {{ $p->payment_date->format('Y-m-d') }}</span><strong>{{ $p->currency->format($p->amount) }}</strong></div>
+                    <div class="px-3 py-2 border-b text-sm flex justify-between gap-3">
+                        <span>
+                            {{ $p->client->name }} — {{ $p->payment_date->format('Y-m-d') }}
+                            @if($p->notes)<div class="text-xs text-slate-500 whitespace-pre-line">{{ $p->notes }}</div>@endif
+                        </span>
+                        <strong>{{ $p->currency->format($p->amount) }}</strong>
+                    </div>
                 @empty
                     <p class="p-6 text-slate-500 text-sm">لا إيرادات.</p>
                 @endforelse
@@ -135,7 +144,13 @@
             <h2 class="font-bold text-lg mb-3">آخر المصروفات</h2>
             <div class="rounded-2xl border bg-white max-h-80 overflow-y-auto">
                 @forelse($expenses as $e)
-                    <div class="px-3 py-2 border-b text-sm flex justify-between"><span>{{ $e->description }} — {{ $e->expense_date->format('Y-m-d') }}</span><strong>{{ $e->currency->format($e->amount) }}</strong></div>
+                    <div class="px-3 py-2 border-b text-sm flex justify-between gap-3">
+                        <span>
+                            {{ $e->description }} — {{ $e->expense_date->format('Y-m-d') }}
+                            @if($e->notes)<div class="text-xs text-slate-500 whitespace-pre-line">{{ $e->notes }}</div>@endif
+                        </span>
+                        <strong>{{ $e->currency->format($e->amount) }}</strong>
+                    </div>
                 @empty
                     <p class="p-6 text-slate-500 text-sm">لا مصروفات.</p>
                 @endforelse

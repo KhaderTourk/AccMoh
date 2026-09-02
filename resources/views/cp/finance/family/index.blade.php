@@ -12,7 +12,10 @@
             <tbody class="divide-y dark:divide-slate-700">
             @forelse($members as $m)
                 <tr>
-                    <td class="px-3 py-2"><a href="{{ route('cp.family-members.show', $m) }}" class="text-primary font-medium">{{ $m->name }}</a></td>
+                    <td class="px-3 py-2">
+                        <a href="{{ route('cp.family-members.show', $m) }}" class="text-primary font-medium">{{ $m->name }}</a>
+                        @include('cp.partials.note-line', ['notes' => $m->notes])
+                    </td>
                     <td class="px-3 py-2">{{ $m->relationship ?: '—' }}</td>
                     <td class="px-3 py-2">@foreach($currencies as $c) @php $v=$m->iOweAmount($c->id); @endphp @if(\App\Support\Money::isPositive($v))<div>{{ $c->format($v) }}</div>@endif @endforeach</td>
                     <td class="px-3 py-2">@foreach($currencies as $c) @php $v=$m->theyOweAmount($c->id); @endphp @if(\App\Support\Money::isPositive($v))<div>{{ $c->format($v) }}</div>@endif @endforeach</td>

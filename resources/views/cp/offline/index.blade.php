@@ -103,6 +103,10 @@
                 <label class="text-xs">المرسل</label>
                 <input type="text" x-model="payment.payer_name" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
             </div>
+            <div class="md:col-span-2">
+                <label class="text-xs">ملاحظة</label>
+                <textarea x-model="payment.notes" rows="2" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700"></textarea>
+            </div>
         </div>
         <div class="rounded-xl border border-dashed p-4 space-y-2">
             <p class="font-medium text-sm">المستحق على العميل</p>
@@ -163,6 +167,10 @@
                 <label class="text-xs">التاريخ</label>
                 <input type="date" x-model="expense.expense_date" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
             </div>
+            <div class="md:col-span-2">
+                <label class="text-xs">ملاحظة</label>
+                <textarea x-model="expense.notes" rows="2" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700"></textarea>
+            </div>
         </div>
         <button class="px-5 py-2 rounded-xl bg-primary text-white" :disabled="busy">حفظ</button>
     </form>
@@ -210,6 +218,10 @@
             <div>
                 <label class="text-xs">التاريخ</label>
                 <input type="date" x-model="loan.loan_date" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
+            </div>
+            <div class="md:col-span-2">
+                <label class="text-xs">ملاحظة</label>
+                <textarea x-model="loan.notes" rows="2" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700"></textarea>
             </div>
         </div>
         <button class="px-5 py-2 rounded-xl bg-primary text-white" :disabled="busy">حفظ</button>
@@ -259,6 +271,10 @@
                 <label class="text-xs">التاريخ</label>
                 <input type="date" x-model="repay.repayment_date" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
             </div>
+            <div class="md:col-span-2">
+                <label class="text-xs">ملاحظة</label>
+                <textarea x-model="repay.notes" rows="2" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700"></textarea>
+            </div>
         </div>
         <div class="rounded-xl border border-dashed p-4 space-y-2">
             <div class="flex justify-between">
@@ -267,7 +283,10 @@
             </div>
             <template x-for="l in repayLoans" :key="l.id">
                 <div class="grid grid-cols-12 gap-2 text-sm items-center">
-                    <div class="col-span-7" x-text="l.loan_date + ' — متبقي ' + l.remaining"></div>
+                    <div class="col-span-7">
+                        <div x-text="l.loan_date + ' — متبقي ' + l.remaining"></div>
+                        <p class="text-xs text-slate-500 whitespace-pre-line" x-show="l.notes" x-text="l.notes"></p>
+                    </div>
                     <div class="col-span-5">
                         <input type="number" step="0.01" min="0" x-model="l.allocate" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
                     </div>
@@ -292,6 +311,7 @@
                     <div>
                         <p class="font-medium" x-text="typeLabel(item.type)"></p>
                         <p class="text-xs text-slate-500" x-text="item.operation_id"></p>
+                        <p class="text-xs text-slate-500 whitespace-pre-line" x-show="item.payload?.notes" x-text="item.payload.notes"></p>
                         <p class="text-xs text-rose-600" x-show="item.last_error" x-text="item.last_error"></p>
                     </div>
                     <div class="flex flex-col items-end gap-2">
@@ -330,10 +350,10 @@ function offlineWorkspace() {
             { id: 'repay', label: 'دائن' },
         ],
         businessEnabled: true,
-        payment: { client_id: '', currency_id: '', amount: '', payment_method_id: '', payment_date: today, payer_name: '' },
-        expense: { fund_id: '', expense_category_id: '', description: '', amount: '', currency_id: '', payment_method_id: '', expense_date: today },
-        loan: { family_member_id: '', direction: 'borrowed', amount: '', currency_id: '', payment_method_id: '', loan_date: today },
-        repay: { family_member_id: '', direction: 'borrowed', amount: '', currency_id: '', payment_method_id: '', repayment_date: today },
+        payment: { client_id: '', currency_id: '', amount: '', payment_method_id: '', payment_date: today, payer_name: '', notes: '' },
+        expense: { fund_id: '', expense_category_id: '', description: '', amount: '', currency_id: '', payment_method_id: '', expense_date: today, notes: '' },
+        loan: { family_member_id: '', direction: 'borrowed', amount: '', currency_id: '', payment_method_id: '', loan_date: today, notes: '' },
+        repay: { family_member_id: '', direction: 'borrowed', amount: '', currency_id: '', payment_method_id: '', repayment_date: today, notes: '' },
         repayLoans: [],
 
         async init() {
@@ -502,9 +522,11 @@ function offlineWorkspace() {
                 payment_method_id: Number(this.payment.payment_method_id),
                 payment_date: this.payment.payment_date,
                 payer_name: this.payment.payer_name || null,
+                notes: this.payment.notes || null,
             };
             await this.saveOp('client_payment', payload);
             this.payment.amount = '';
+            this.payment.notes = '';
         },
 
         async submitExpense() {
@@ -516,10 +538,12 @@ function offlineWorkspace() {
                 currency_id: Number(this.expense.currency_id),
                 payment_method_id: Number(this.expense.payment_method_id),
                 expense_date: this.expense.expense_date,
+                notes: this.expense.notes || null,
             };
             await this.saveOp('expense', payload);
             this.expense.description = '';
             this.expense.amount = '';
+            this.expense.notes = '';
         },
 
         async submitLoan() {
@@ -530,9 +554,11 @@ function offlineWorkspace() {
                 currency_id: Number(this.loan.currency_id),
                 payment_method_id: Number(this.loan.payment_method_id),
                 loan_date: this.loan.loan_date,
+                notes: this.loan.notes || null,
             };
             await this.saveOp('family_loan', payload);
             this.loan.amount = '';
+            this.loan.notes = '';
         },
 
         async submitRepay() {
@@ -557,10 +583,12 @@ function offlineWorkspace() {
                 currency_id: Number(this.repay.currency_id),
                 payment_method_id: Number(this.repay.payment_method_id),
                 repayment_date: this.repay.repayment_date,
+                notes: this.repay.notes || null,
                 allocations,
             };
             await this.saveOp('family_loan_repayment', payload);
             this.repay.amount = '';
+            this.repay.notes = '';
             this.filterLoans();
         },
 

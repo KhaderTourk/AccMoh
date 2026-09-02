@@ -14,7 +14,11 @@
             <tbody class="divide-y">
             @forelse($tenants as $t)
                 <tr>
-                    <td class="px-3 py-2 font-medium">{{ $t->name }}<div class="text-xs text-slate-400">{{ $t->slug }}</div></td>
+                    <td class="px-3 py-2 font-medium">
+                        {{ $t->name }}
+                        <div class="text-xs text-slate-400">{{ $t->slug }}</div>
+                        @if($t->notes)<div class="text-xs text-slate-500 mt-0.5 whitespace-pre-line">{{ $t->notes }}</div>@endif
+                    </td>
                     <td class="px-3 py-2">{{ $t->owner?->email ?: '—' }}</td>
                     <td class="px-3 py-2">{{ $t->business_enabled ? 'مفعّل' : 'مخفي' }}</td>
                     <td class="px-3 py-2">{{ $t->is_active ? 'نشط' : 'موقوف' }}</td>

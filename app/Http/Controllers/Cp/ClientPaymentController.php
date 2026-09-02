@@ -29,6 +29,10 @@ class ClientPaymentController extends Controller
             ->when($request->currency_id, fn ($q, $id) => $q->where('currency_id', $id))
             ->when($request->payment_method_id, fn ($q, $id) => $q->where('payment_method_id', $id))
             ->tap(fn ($q) => DateRange::constrain($q, 'payment_date', $from, $to))
+            ->when($request->q, fn ($q, $term) => $q->where(function ($qq) use ($term) {
+                $qq->where('payer_name', 'like', "%{$term}%")
+                    ->orWhere('notes', 'like', "%{$term}%");
+            }))
             ->when($request->boolean('active_only', true), fn ($q) => $q->active())
             ->orderByDesc('payment_date')
             ->orderByDesc('id')

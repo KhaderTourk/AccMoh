@@ -67,6 +67,7 @@ class FinancialScenariosTest extends TestCase
         $balances = app(BalanceService::class);
         $this->assertSame('1000.00', $balances->cash($this->family->id, $this->cash->id, $this->ils->id));
         $this->assertSame('1000.00', $ahmed->fresh()->iOweAmount($this->ils->id));
+        $this->assertSame('قرض شخصي', $ahmed->loans()->first()->notes);
     }
 
     public function test_scenario_2_repay_ahmed_400_from_bank_after_transfer(): void
@@ -393,5 +394,34 @@ class FinancialScenariosTest extends TestCase
         $this->assertSame('300.00', $ilsRow['outstanding']);
         $this->assertSame('700.00', $ilsRow['gross_profit']);
         $this->assertSame('100.00', $worker->fresh()->paidAmount($this->ils->id));
+    }
+
+    public function test_expense_notes_are_saved_on_expense_and_ledger(): void
+    {
+        $ahmed = FamilyMember::query()->create(['name' => 'أحمد', 'is_active' => true]);
+        app(FamilyLoanService::class)->create([
+            'family_member_id' => $ahmed->id,
+            'direction' => LoanDirection::Borrowed,
+            'amount' => 1000,
+            'currency_id' => $this->ils->id,
+            'payment_method_id' => $this->cash->id,
+            'loan_date' => '2026-08-20',
+        ]);
+
+        $expense = app(ExpenseService::class)->record([
+            'fund_id' => $this->family->id,
+            'description' => 'خضار',
+            'amount' => 50,
+            'currency_id' => $this->ils->id,
+            'payment_method_id' => $this->cash->id,
+            'expense_date' => '2026-08-21',
+            'notes' => 'من السوق المركزي',
+        ]);
+
+        $this->assertSame('من السوق المركزي', $expense->fresh()->notes);
+        $this->assertDatabaseHas('ledger_entries', [
+            'description' => 'خضار',
+            'notes' => 'من السوق المركزي',
+        ]);
     }
 }

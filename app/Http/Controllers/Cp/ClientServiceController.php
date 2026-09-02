@@ -26,7 +26,10 @@ class ClientServiceController extends Controller
             ->when($request->client_id, fn ($q, $id) => $q->where('client_id', $id))
             ->when($request->currency_id, fn ($q, $id) => $q->where('currency_id', $id))
             ->tap(fn ($q) => DateRange::constrain($q, 'service_date', $from, $to))
-            ->when($request->q, fn ($q, $term) => $q->where('title', 'like', "%{$term}%"))
+            ->when($request->q, fn ($q, $term) => $q->where(function ($qq) use ($term) {
+                $qq->where('title', 'like', "%{$term}%")
+                    ->orWhere('notes', 'like', "%{$term}%");
+            }))
             ->orderByDesc('service_date')
             ->orderByDesc('id')
             ->paginate(20)

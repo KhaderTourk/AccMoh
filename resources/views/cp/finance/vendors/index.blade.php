@@ -19,7 +19,10 @@
             <tbody class="divide-y dark:divide-slate-700">
             @forelse($vendors as $v)
                 <tr>
-                    <td class="px-3 py-2"><a class="text-primary" href="{{ route('cp.'.$type->routePrefix().'.show', $v) }}">{{ $v->name }}</a></td>
+                    <td class="px-3 py-2">
+                        <a class="text-primary" href="{{ route('cp.'.$type->routePrefix().'.show', $v) }}">{{ $v->name }}</a>
+                        @include('cp.partials.note-line', ['notes' => $v->notes])
+                    </td>
                     <td class="px-3 py-2">{{ $v->phone ?: '—' }}</td>
                     @foreach($currencies as $c)
                         <td class="px-3 py-2">{{ $c->format($v->paidAmount($c->id)) }}</td>

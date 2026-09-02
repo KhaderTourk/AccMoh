@@ -25,7 +25,10 @@
             <tbody class="divide-y dark:divide-slate-700">
             @foreach($clients as $client)
                 <tr>
-                    <td class="px-4 py-3"><a href="{{ route('cp.clients.show', $client) }}" class="font-medium text-primary">{{ $client->name }}</a></td>
+                    <td class="px-4 py-3">
+                        <a href="{{ route('cp.clients.show', $client) }}" class="font-medium text-primary">{{ $client->name }}</a>
+                        @include('cp.partials.note-line', ['notes' => $client->notes])
+                    </td>
                     <td class="px-4 py-3">{{ $client->contact_name ?: '—' }}</td>
                     <td class="px-4 py-3">{{ $client->phone ?: '—' }}</td>
                     <td class="px-4 py-3">

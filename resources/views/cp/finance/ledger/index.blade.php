@@ -34,7 +34,9 @@
             @forelse($entries as $e)
                 <tr>
                     <td class="px-3 py-2 whitespace-nowrap">{{ $e->occurred_on->format('Y-m-d') }}</td>
-                    <td class="px-3 py-2">{{ $e->description }}@if($e->is_reversal)<span class="text-xs text-rose-600"> (إلغاء)</span>@endif</td>
+                    <td class="px-3 py-2">{{ $e->description }}@if($e->is_reversal)<span class="text-xs text-rose-600"> (إلغاء)</span>@endif
+                        @include('cp.partials.note-line', ['notes' => $e->notes])
+                    </td>
                     <td class="px-3 py-2">{{ $e->transaction_type->label() }}</td>
                     <td class="px-3 py-2">{{ $e->fund->name }}</td>
                     <td class="px-3 py-2">{{ $e->paymentMethod->name }}</td>

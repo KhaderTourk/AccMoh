@@ -21,7 +21,10 @@
             @forelse($services as $s)
                 <tr>
                     <td class="px-3 py-2"><a href="{{ route('cp.clients.show', $s->client) }}" class="text-primary">{{ $s->client->name }}</a></td>
-                    <td class="px-3 py-2">{{ $s->title }}</td>
+                    <td class="px-3 py-2">
+                        {{ $s->title }}
+                        @include('cp.partials.note-line', ['notes' => $s->notes])
+                    </td>
                     <td class="px-3 py-2">
                         {{ $s->currency->format($s->amount) }}
                         @if($s->isFx())

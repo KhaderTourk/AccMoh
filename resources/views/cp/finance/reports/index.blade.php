@@ -106,7 +106,10 @@
                 <tbody class="divide-y dark:divide-slate-700">
                 @forelse($openLoans as $loan)
                     <tr>
-                        <td class="px-3 py-2">{{ $loan->familyMember->name }}</td>
+                        <td class="px-3 py-2">
+                            {{ $loan->familyMember->name }}
+                            @include('cp.partials.note-line', ['notes' => $loan->notes])
+                        </td>
                         <td class="px-3 py-2">{{ $loan->direction->label() }}</td>
                         <td class="px-3 py-2">{{ $loan->currency->format($loan->remainingAmount()) }}</td>
                         <td class="px-3 py-2">{{ $loan->loan_date->format('Y-m-d') }}</td>
@@ -125,7 +128,13 @@
             <h2 class="font-bold text-lg mb-3">إيرادات الفترة</h2>
             <div class="rounded-2xl border bg-white dark:bg-slate-800 max-h-96 overflow-y-auto">
                 @forelse($revenue as $p)
-                    <div class="px-3 py-2 border-b text-sm flex justify-between"><span>{{ $p->client->name }} — {{ $p->payment_date->format('Y-m-d') }}</span><strong>{{ $p->currency->format($p->amount) }}</strong></div>
+                    <div class="px-3 py-2 border-b text-sm flex justify-between gap-3">
+                        <span>
+                            {{ $p->client->name }} — {{ $p->payment_date->format('Y-m-d') }}
+                            @include('cp.partials.note-line', ['notes' => $p->notes])
+                        </span>
+                        <strong>{{ $p->currency->format($p->amount) }}</strong>
+                    </div>
                 @empty
                     <p class="p-6 text-slate-500 text-sm">لا إيرادات في الفترة.</p>
                 @endforelse
@@ -136,7 +145,13 @@
             <h2 class="font-bold text-lg mb-3">مصروفات الفترة</h2>
             <div class="rounded-2xl border bg-white dark:bg-slate-800 max-h-96 overflow-y-auto">
                 @forelse($expenses as $e)
-                    <div class="px-3 py-2 border-b text-sm flex justify-between"><span>{{ $e->description }} — {{ $e->expense_date->format('Y-m-d') }}</span><strong>{{ $e->currency->format($e->amount) }}</strong></div>
+                    <div class="px-3 py-2 border-b text-sm flex justify-between gap-3">
+                        <span>
+                            {{ $e->description }} — {{ $e->expense_date->format('Y-m-d') }}
+                            @include('cp.partials.note-line', ['notes' => $e->notes])
+                        </span>
+                        <strong>{{ $e->currency->format($e->amount) }}</strong>
+                    </div>
                 @empty
                     <p class="p-6 text-slate-500 text-sm">لا مصروفات في الفترة.</p>
                 @endforelse

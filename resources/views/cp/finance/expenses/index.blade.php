@@ -6,6 +6,7 @@
         <form class="flex flex-wrap gap-2 items-end">
             <select name="fund_id" class="rounded-xl border px-3 py-2 dark:bg-slate-700"><option value="">الصندوق</option>@foreach($funds as $f)<option value="{{ $f->id }}" @selected(request('fund_id')==$f->id)>{{ $f->name }}</option>@endforeach</select>
             @include('cp.partials.date-range-fields')
+            <input type="text" name="q" value="{{ request('q') }}" placeholder="بحث في الجهة أو الملاحظات" class="rounded-xl border px-3 py-2 dark:bg-slate-700">
             <button class="px-3 py-2 rounded-xl bg-slate-200 dark:bg-slate-700">تصفية</button>
             @include('cp.partials.date-range-shortcuts')
         </form>
@@ -24,6 +25,7 @@
                         @if($e->vendor)
                             <div class="text-xs text-slate-500">{{ $e->vendor->type->label() }}: {{ $e->vendor->name }}</div>
                         @endif
+                        @include('cp.partials.note-line', ['notes' => $e->notes])
                     </td>
                     <td class="px-3 py-2">{{ $e->payee ?: '—' }}</td>
                     <td class="px-3 py-2">{{ $e->fund->name }}</td>

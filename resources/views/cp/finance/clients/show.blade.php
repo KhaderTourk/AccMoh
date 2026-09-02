@@ -18,6 +18,8 @@
         </div>
     </div>
 
+    @include('cp.partials.note-card', ['notes' => $client->notes])
+
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         @foreach($currencies as $currency)
             @php
@@ -51,7 +53,10 @@
             <tbody class="divide-y dark:divide-slate-700">
             @forelse($client->services as $service)
                 <tr>
-                    <td class="px-3 py-2">{{ $service->title }}</td>
+                    <td class="px-3 py-2">
+                        {{ $service->title }}
+                        @include('cp.partials.note-line', ['notes' => $service->notes])
+                    </td>
                     <td class="px-3 py-2">
                         {{ $service->currency->format($service->amount) }}
                         @if($service->isFx())
@@ -92,7 +97,10 @@
                         @endif
                     </td>
                     <td class="px-3 py-2">{{ $payment->paymentMethod->name }}</td>
-                    <td class="px-3 py-2">{{ $payment->payer_name }}</td>
+                    <td class="px-3 py-2">
+                        {{ $payment->payer_name }}
+                        @include('cp.partials.note-line', ['notes' => $payment->notes])
+                    </td>
                     <td class="px-3 py-2">{{ $payment->payment_date->format('Y-m-d') }}</td>
                 </tr>
             @empty
@@ -110,6 +118,7 @@
                 <span class="absolute -start-1.5 mt-1.5 h-3 w-3 rounded-full {{ $item['type']==='payment' ? 'bg-emerald-500' : 'bg-primary' }}"></span>
                 <p class="text-xs text-slate-500">{{ $item['date']->format('Y-m-d') }}</p>
                 <p class="font-medium">{{ $item['title'] }} — {{ $item['currency']->format($item['amount']) }}</p>
+                @include('cp.partials.note-line', ['notes' => $item['notes'] ?? null])
             </li>
             @endforeach
         </ol>

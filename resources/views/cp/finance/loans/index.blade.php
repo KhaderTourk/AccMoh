@@ -17,6 +17,7 @@
                 @endforeach
             </select>
             @include('cp.partials.date-range-fields')
+            <input type="text" name="q" value="{{ request('q') }}" placeholder="بحث في الملاحظات" class="rounded-xl border px-3 py-2 dark:bg-slate-700">
             <label class="inline-flex items-center gap-1 text-sm"><input type="checkbox" name="open_only" value="1" @checked(request('open_only'))> المفتوحة فقط</label>
             <button class="px-3 py-2 rounded-xl bg-slate-200 dark:bg-slate-700">تصفية</button>
             @include('cp.partials.date-range-shortcuts')
@@ -40,7 +41,10 @@
             <tbody class="divide-y dark:divide-slate-700">
             @forelse($loans as $loan)
                 <tr class="{{ $loan->is_reversed ? 'opacity-40' : '' }}">
-                    <td class="px-3 py-2"><a class="text-primary" href="{{ route('cp.family-members.show', $loan->familyMember) }}">{{ $loan->familyMember->name }}</a></td>
+                    <td class="px-3 py-2">
+                        <a class="text-primary" href="{{ route('cp.family-members.show', $loan->familyMember) }}">{{ $loan->familyMember->name }}</a>
+                        @include('cp.partials.note-line', ['notes' => $loan->notes])
+                    </td>
                     <td class="px-3 py-2">
                         {{ $loan->currency->format($loan->amount) }}
                         @if($loan->isFx())

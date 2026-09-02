@@ -150,6 +150,7 @@
                 <div class="flex items-start justify-between gap-3 text-sm py-2 border-b border-slate-100 dark:border-slate-700">
                     <div>
                         <p class="font-medium">{{ $entry->description }}</p>
+                        @include('cp.partials.note-line', ['notes' => $entry->notes])
                         <p class="text-xs text-slate-500">{{ $entry->transaction_type->label() }} · {{ $entry->paymentMethod->name }} · {{ $entry->occurred_on->format('Y-m-d') }}</p>
                     </div>
                     <span class="font-bold {{ \App\Support\Money::isNegative($entry->amount) ? 'text-rose-600' : 'text-emerald-600' }}">

@@ -14,6 +14,7 @@
             <a href="{{ route('cp.family-members.export-pdf', $member) }}" class="px-3 py-2 rounded-xl border text-sm">تصدير PDF</a>
         </div>
     </div>
+    @include('cp.partials.note-card', ['notes' => $member->notes])
     <div class="grid md:grid-cols-2 gap-4">
         <div class="rounded-2xl border border-rose-200 bg-rose-50 dark:bg-rose-900/20 p-5">
             <h3 class="font-bold text-rose-700 dark:text-rose-300 mb-2">دائن (عليّ)</h3>
@@ -54,7 +55,10 @@
             <tbody class="divide-y dark:divide-slate-700">
             @foreach($member->loans as $loan)
                 <tr class="{{ $loan->is_reversed ? 'opacity-40' : '' }}">
-                    <td class="px-3 py-2">{{ $loan->direction->label() }}</td>
+                    <td class="px-3 py-2">
+                        {{ $loan->direction->label() }}
+                        @include('cp.partials.note-line', ['notes' => $loan->notes])
+                    </td>
                     <td class="px-3 py-2">{{ $loan->currency->format($loan->amount) }}
                         @if($loan->isFx())
                             <div class="text-xs text-slate-500">{{ $loan->fxCurrency?->format($loan->source_amount) }} × {{ $loan->formattedExchangeRate() }}</div>
@@ -88,7 +92,10 @@
             <tbody class="divide-y dark:divide-slate-700">
             @forelse($member->repayments as $repayment)
                 <tr class="{{ $repayment->is_reversed ? 'opacity-40' : '' }}">
-                    <td class="px-3 py-2">{{ $repayment->direction->label() }}</td>
+                    <td class="px-3 py-2">
+                        {{ $repayment->direction->label() }}
+                        @include('cp.partials.note-line', ['notes' => $repayment->notes])
+                    </td>
                     <td class="px-3 py-2">{{ $repayment->currency->format($repayment->amount) }}</td>
                     <td class="px-3 py-2">{{ $repayment->paymentMethod->name }}</td>
                     <td class="px-3 py-2">{{ $repayment->repayment_date->format('Y-m-d') }}</td>

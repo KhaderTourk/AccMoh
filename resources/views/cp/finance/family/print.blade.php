@@ -1,5 +1,11 @@
 @extends('cp.print')
 @section('content')
+@if(filled($member->notes))
+<div class="card">
+    <div class="kpi-label">ملاحظات</div>
+    <div class="sub" style="white-space: pre-line;">{{ $member->notes }}</div>
+</div>
+@endif
 <h2>ملخص الحساب</h2>
 <table class="kpis">
     <tr>
@@ -31,7 +37,12 @@
     <tbody>
     @forelse($member->loans as $loan)
         <tr>
-            <td>{{ $loan->direction->label() }}</td>
+            <td>
+                {{ $loan->direction->label() }}
+                @if(filled($loan->notes))
+                    <div class="sub" style="white-space: pre-line;">{{ $loan->notes }}</div>
+                @endif
+            </td>
             <td>
                 {{ $loan->currency->format($loan->amount) }}
                 @if($loan->isFx())
@@ -55,7 +66,12 @@
     <tbody>
     @forelse($member->repayments as $repayment)
         <tr>
-            <td>{{ $repayment->direction->label() }}{{ $repayment->is_reversed ? ' (ملغاة)' : '' }}</td>
+            <td>
+                {{ $repayment->direction->label() }}{{ $repayment->is_reversed ? ' (ملغاة)' : '' }}
+                @if(filled($repayment->notes))
+                    <div class="sub" style="white-space: pre-line;">{{ $repayment->notes }}</div>
+                @endif
+            </td>
             <td class="amount">{{ $repayment->currency->format($repayment->amount) }}</td>
             <td>{{ $repayment->paymentMethod->name }}</td>
             <td>{{ $repayment->repayment_date->format('Y-m-d') }}</td>

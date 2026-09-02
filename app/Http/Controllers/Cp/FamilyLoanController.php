@@ -217,6 +217,7 @@ class FamilyLoanController extends Controller
             ->where('direction', $direction)
             ->when($request->family_member_id, fn ($q, $id) => $q->where('family_member_id', $id))
             ->tap(fn ($q) => DateRange::constrain($q, 'loan_date', $from, $to))
+            ->when($request->q, fn ($q, $term) => $q->where('notes', 'like', "%{$term}%"))
             ->when($request->boolean('open_only'), fn ($q) => $q->active()->whereIn('status', ['open', 'partial']))
             ->orderByDesc('loan_date')
             ->orderByDesc('id')

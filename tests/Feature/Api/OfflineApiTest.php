@@ -133,6 +133,7 @@ class OfflineApiTest extends TestCase
                     'currency_id' => $this->ils->id,
                     'payment_method_id' => $this->cash->id,
                     'expense_date' => '2026-08-21',
+                    'notes' => 'ملاحظة أوفلاين',
                 ],
             ]],
         ]);
@@ -142,6 +143,7 @@ class OfflineApiTest extends TestCase
             ->assertJsonStructure(['snapshot' => ['balances', 'catalog']]);
 
         $this->assertDatabaseCount('expenses', 1);
+        $this->assertDatabaseHas('expenses', ['notes' => 'ملاحظة أوفلاين']);
     }
 
     public function test_family_loan_via_api(): void

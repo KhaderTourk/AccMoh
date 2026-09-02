@@ -22,6 +22,7 @@ class TransferController extends Controller
             ->when($request->currency_id, fn ($q, $id) => $q->where(function ($qq) use ($id) {
                 $qq->where('currency_id', $id)->orWhere('to_currency_id', $id);
             }))
+            ->when($request->q, fn ($q, $term) => $q->where('notes', 'like', "%{$term}%"))
             ->when($request->boolean('active_only', true), fn ($q) => $q->active())
             ->orderByDesc('transfer_date')
             ->paginate(20)

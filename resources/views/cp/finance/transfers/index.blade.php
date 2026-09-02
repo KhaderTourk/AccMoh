@@ -2,7 +2,13 @@
 @section('title', 'التحويلات')
 @section('content')
 <div class="space-y-4">
-    <div class="flex justify-end"><a href="{{ route('cp.transfers.create') }}" class="px-4 py-2 rounded-xl bg-primary text-white">تحويل / صرف جديد</a></div>
+    <div class="flex justify-between flex-wrap gap-3">
+        <form class="flex flex-wrap gap-2">
+            <input type="text" name="q" value="{{ request('q') }}" placeholder="بحث في الملاحظات" class="rounded-xl border px-3 py-2 dark:bg-slate-700">
+            <button class="px-3 py-2 rounded-xl bg-slate-200 dark:bg-slate-700">تصفية</button>
+        </form>
+        <a href="{{ route('cp.transfers.create') }}" class="px-4 py-2 rounded-xl bg-primary text-white">تحويل / صرف جديد</a>
+    </div>
     <div class="rounded-2xl border bg-white dark:bg-slate-800 overflow-hidden">
         <table class="w-full text-sm text-right">
             <thead class="bg-slate-50 dark:bg-slate-700/50"><tr>
@@ -12,7 +18,10 @@
             <tbody class="divide-y dark:divide-slate-700">
             @forelse($transfers as $t)
                 <tr class="{{ $t->is_reversed ? 'opacity-40' : '' }}">
-                    <td class="px-3 py-2">{{ $t->fund->name }}</td>
+                    <td class="px-3 py-2">
+                        {{ $t->fund->name }}
+                        @include('cp.partials.note-line', ['notes' => $t->notes])
+                    </td>
                     <td class="px-3 py-2">{{ $t->fromMethod->name }} / {{ $t->currency->code }}</td>
                     <td class="px-3 py-2">{{ $t->toMethod->name }} / {{ ($t->toCurrency ?? $t->currency)->code }}</td>
                     <td class="px-3 py-2">

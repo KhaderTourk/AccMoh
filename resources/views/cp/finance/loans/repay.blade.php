@@ -33,7 +33,7 @@
         </div>
     </div>
     @include('cp.partials.ils-fx-fields')
-    <div><label class="text-sm">ملاحظة</label><textarea name="notes" rows="2" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700"></textarea></div>
+    <div><label class="text-sm">ملاحظة</label><textarea name="notes" rows="2" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">{{ old('notes') }}</textarea></div>
     <div class="rounded-xl border border-dashed p-4">
         <div class="flex justify-between mb-3"><h3 class="font-bold">توزيع على الحركات</h3><button type="button" @click="autoFill()" class="text-sm text-primary">توزيع تلقائي</button></div>
         <template x-for="(l, idx) in loans" :key="l.id">
@@ -41,6 +41,7 @@
                 <div class="col-span-7">
                     <input type="hidden" :name="`allocations[${idx}][family_loan_id]`" :value="l.id">
                     <span x-text="l.loan_date + ' — متبقي ' + l.remaining"></span>
+                    <p class="text-xs text-slate-500 whitespace-pre-line" x-show="l.notes" x-text="l.notes"></p>
                 </div>
                 <div class="col-span-5"><input type="number" step="0.01" min="0" :name="`allocations[${idx}][amount]`" x-model="l.allocate" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700"></div>
             </div>

@@ -11,7 +11,12 @@
         <p>الطريقة: {{ $payment->paymentMethod->name }}</p>
         <p>المرسل: {{ $payment->payer_name }}</p>
         <p>التاريخ: {{ $payment->payment_date->format('Y-m-d') }}</p>
-        @if($payment->notes)<p>ملاحظة: {{ $payment->notes }}</p>@endif
+        @if($payment->notes)
+            <div>
+                <p class="font-medium">ملاحظة</p>
+                <p class="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-line">{{ $payment->notes }}</p>
+            </div>
+        @endif
         @if($payment->is_reversed)<p class="text-rose-600 font-bold">ملغاة</p>@endif
         @unless($payment->is_reversed)
         <form method="post" action="{{ route('cp.payments.reverse', $payment) }}" onsubmit="return confirm('إلغاء الدفعة وإرجاع أثرها على الرصيد والمستحقات؟')">

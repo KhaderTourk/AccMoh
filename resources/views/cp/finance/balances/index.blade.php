@@ -67,9 +67,17 @@
             </div>
             <div>
                 <label class="text-xs text-slate-500">التاريخ</label>
-                <input type="date" name="occurred_on" value="{{ date('Y-m-d') }}" required class="cp-input w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
+                <input type="date" name="occurred_on" value="{{ old('occurred_on', date('Y-m-d')) }}" required class="cp-input w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
             </div>
             <button class="px-4 py-2 rounded-xl bg-primary text-white font-medium">تسجيل</button>
+            <div class="md:col-span-3 lg:col-span-3">
+                <label class="text-xs text-slate-500">الوصف</label>
+                <input type="text" name="description" value="{{ old('description') }}" placeholder="رصيد افتتاحي" class="cp-input w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
+            </div>
+            <div class="md:col-span-3 lg:col-span-3">
+                <label class="text-xs text-slate-500">ملاحظة</label>
+                <input type="text" name="notes" value="{{ old('notes') }}" class="cp-input w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
+            </div>
         </form>
     </section>
 </div>

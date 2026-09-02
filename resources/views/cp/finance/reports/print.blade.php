@@ -107,7 +107,12 @@
     <tbody>
     @forelse($openLoans as $loan)
         <tr>
-            <td>{{ $loan->familyMember->name }}</td>
+            <td>
+                {{ $loan->familyMember->name }}
+                @if(filled($loan->notes))
+                    <div class="sub" style="white-space: pre-line;">{{ $loan->notes }}</div>
+                @endif
+            </td>
             <td>{{ $loan->direction->label() }}</td>
             <td>{{ $loan->currency->format($loan->remainingAmount()) }}</td>
             <td>{{ $loan->loan_date->format('Y-m-d') }}</td>
@@ -125,7 +130,12 @@
     <tbody>
     @forelse($revenue as $p)
         <tr>
-            <td>{{ $p->client->name }}</td>
+            <td>
+                {{ $p->client->name }}
+                @if(filled($p->notes))
+                    <div class="sub" style="white-space: pre-line;">{{ $p->notes }}</div>
+                @endif
+            </td>
             <td>{{ $p->payment_date->format('Y-m-d') }}</td>
             <td class="amount">{{ $p->currency->format($p->amount) }}</td>
         </tr>
@@ -142,7 +152,12 @@
     <tbody>
     @forelse($expenses as $e)
         <tr>
-            <td>{{ $e->description }}</td>
+            <td>
+                {{ $e->description }}
+                @if(filled($e->notes))
+                    <div class="sub" style="white-space: pre-line;">{{ $e->notes }}</div>
+                @endif
+            </td>
             <td>{{ $e->expense_date->format('Y-m-d') }}</td>
             <td class="amount">{{ $e->currency->format($e->amount) }}</td>
         </tr>

@@ -24,7 +24,10 @@ class LedgerController extends Controller
                 ->when($request->payment_method_id, fn ($qq, $id) => $qq->where('payment_method_id', $id))
                 ->when($request->transaction_type, fn ($qq, $t) => $qq->where('transaction_type', $t))
                 ->tap(fn ($qq) => DateRange::constrain($qq, 'occurred_on', $from, $to))
-                ->when($request->q, fn ($qq, $term) => $qq->where('description', 'like', "%{$term}%"));
+                ->when($request->q, fn ($qq, $term) => $qq->where(function ($inner) use ($term) {
+                    $inner->where('description', 'like', "%{$term}%")
+                        ->orWhere('notes', 'like', "%{$term}%");
+                }));
         };
 
         $entries = LedgerEntry::query()

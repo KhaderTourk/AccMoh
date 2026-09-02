@@ -13,6 +13,7 @@
             <a href="{{ route('cp.'.$type->routePrefix().'.edit', $vendor) }}" class="px-3 py-2 rounded-xl border text-sm">تعديل</a>
         </div>
     </div>
+    @include('cp.partials.note-card', ['notes' => $vendor->notes])
     <div class="grid md:grid-cols-2 gap-4">
         @foreach($currencies as $c)
             @php $paid = $vendor->paidAmount($c->id); @endphp
@@ -34,7 +35,10 @@
             <tbody class="divide-y dark:divide-slate-700">
             @forelse($vendor->expenses as $e)
                 <tr class="{{ $e->is_reversed ? 'opacity-40' : '' }}">
-                    <td class="px-3 py-2">{{ $e->description }}</td>
+                    <td class="px-3 py-2">
+                        {{ $e->description }}
+                        @include('cp.partials.note-line', ['notes' => $e->notes])
+                    </td>
                     <td class="px-3 py-2">{{ $e->payee ?: '—' }}</td>
                     <td class="px-3 py-2">{{ $e->category?->name ?: '—' }}</td>
                     <td class="px-3 py-2">{{ $e->currency->format($e->amount) }}</td>
