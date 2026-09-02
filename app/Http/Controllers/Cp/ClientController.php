@@ -156,10 +156,7 @@ class ClientController extends Controller
             ->groupBy(fn ($s) => $s->service_type_id ?: 0)
             ->map(function (Collection $rows) {
                 $type = $rows->first()->serviceType;
-                $rows = $rows->sortBy([
-                    fn ($s) => $s->service_date->format('Y-m-d'),
-                    fn ($s) => $s->id,
-                ])->values();
+                $rows = $rows->sortBy(fn ($s) => $s->service_date->format('Y-m-d').sprintf('%010d', $s->id))->values();
 
                 return [
                     'name' => $type?->name ?: 'بدون نوع',
@@ -168,10 +165,7 @@ class ClientController extends Controller
                     'totals' => $this->totalsByCurrency($rows),
                 ];
             })
-            ->sortBy([
-                fn ($group) => $group['uncategorized'] ? 1 : 0,
-                fn ($group) => $group['name'],
-            ])
+            ->sortBy(fn ($group) => ($group['uncategorized'] ? '1-' : '0-').$group['name'])
             ->values();
     }
 
