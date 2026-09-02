@@ -11,6 +11,10 @@
         <div class="flex flex-wrap gap-2">
             <a href="{{ route('cp.expenses.create', ['vendor_id' => $vendor->id, 'fund_id' => $businessFundId]) }}" class="px-3 py-2 rounded-xl bg-primary text-white text-sm">مصروف جديد</a>
             <a href="{{ route('cp.'.$type->routePrefix().'.edit', $vendor) }}" class="px-3 py-2 rounded-xl border text-sm">تعديل</a>
+            <form method="post" action="{{ route('cp.'.$type->routePrefix().'.destroy', $vendor) }}" onsubmit="return confirm('حذف/أرشفة {{ $type->label() }}؟')">
+                @csrf @method('DELETE')
+                <button type="submit" class="px-3 py-2 rounded-xl border border-rose-200 text-rose-600 text-sm">حذف</button>
+            </form>
         </div>
     </div>
     @include('cp.partials.note-card', ['notes' => $vendor->notes])

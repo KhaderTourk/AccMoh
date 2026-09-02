@@ -28,7 +28,15 @@
                         <td class="px-3 py-2">{{ $c->format($v->paidAmount($c->id)) }}</td>
                     @endforeach
                     <td class="px-3 py-2">{{ $v->is_active ? 'نشط' : 'مؤرشف' }}</td>
-                    <td class="px-3 py-2"><a href="{{ route('cp.'.$type->routePrefix().'.edit', $v) }}" class="text-primary text-sm">تعديل</a></td>
+                    <td class="px-3 py-2">
+                        <div class="flex items-center gap-1 justify-end">
+                            <a href="{{ route('cp.'.$type->routePrefix().'.edit', $v) }}" class="p-1" title="تعديل"><span class="material-symbols-outlined text-base">edit</span></a>
+                            <form method="post" action="{{ route('cp.'.$type->routePrefix().'.destroy', $v) }}" onsubmit="return confirm('حذف/أرشفة {{ $type->label() }}؟')">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="p-1 text-rose-600" title="حذف"><span class="material-symbols-outlined text-base">delete</span></button>
+                            </form>
+                        </div>
+                    </td>
                 </tr>
             @empty
                 <tr><td colspan="{{ 4 + $currencies->count() }}" class="p-8 text-center text-slate-500">لا توجد سجلات.</td></tr>

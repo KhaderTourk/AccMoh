@@ -22,7 +22,7 @@
         </div>
         @if(tenantBusinessEnabled() && ($vendors ?? collect())->isNotEmpty())
         <div class="md:col-span-2" x-show="showVendors">
-            <label class="text-sm">عامل / مورد</label>
+            <label class="text-sm">ابن الشركة / مورد</label>
             <select name="vendor_id" x-model="vendorId" @change="onVendorChange()" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
                 <option value="">—</option>
                 @foreach($vendors as $v)

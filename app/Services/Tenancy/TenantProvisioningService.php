@@ -119,7 +119,7 @@ class TenantProvisioningService
                     ['name' => 'اشتراك برنامج', 'fund_slug' => 'business', 'sort_order' => 11],
                     ['name' => 'استضافة', 'fund_slug' => 'business', 'sort_order' => 12],
                     ['name' => 'أدوات عمل', 'fund_slug' => 'business', 'sort_order' => 13],
-                    ['name' => 'أجور عمال', 'fund_slug' => 'business', 'sort_order' => 14],
+                    ['name' => 'أجور أبناء الشركة', 'fund_slug' => 'business', 'sort_order' => 14],
                     ['name' => 'مشتريات موردين', 'fund_slug' => 'business', 'sort_order' => 15],
                 ] as $category) {
                     ExpenseCategory::query()->firstOrCreate(

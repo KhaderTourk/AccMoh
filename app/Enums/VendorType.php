@@ -10,7 +10,7 @@ enum VendorType: string
     public function label(): string
     {
         return match ($this) {
-            self::Worker => 'عامل',
+            self::Worker => 'ابن الشركة',
             self::Supplier => 'مورد',
         };
     }
@@ -18,7 +18,7 @@ enum VendorType: string
     public function plural(): string
     {
         return match ($this) {
-            self::Worker => 'العمال',
+            self::Worker => 'أبناء الشركة',
             self::Supplier => 'الموردون',
         };
     }
