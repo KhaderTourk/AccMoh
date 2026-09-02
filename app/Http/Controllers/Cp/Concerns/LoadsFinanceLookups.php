@@ -32,7 +32,7 @@ trait LoadsFinanceLookups
     {
         $funds = Fund::query()->orderBy('id')->get();
         $categories = ExpenseCategory::query()->active()->get();
-        $serviceTypes = ServiceType::query()->active()->get();
+        $serviceTypes = ServiceType::query()->active()->with('defaultCurrency')->get();
 
         if (! tenantBusinessEnabled()) {
             $funds = $funds->where('slug', '!=', FundSlug::Business->value)->values();

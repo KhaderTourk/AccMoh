@@ -15,12 +15,13 @@
     <div class="rounded-2xl border bg-white dark:bg-slate-800 overflow-hidden">
         <table class="w-full text-sm text-right">
             <thead class="bg-slate-50 dark:bg-slate-700/50"><tr>
-                <th class="px-3 py-2">العميل</th><th class="px-3 py-2">الخدمة</th><th class="px-3 py-2">السعر</th><th class="px-3 py-2">التاريخ</th><th class="px-3 py-2"></th>
+                <th class="px-3 py-2">العميل</th><th class="px-3 py-2">النوع</th><th class="px-3 py-2">تفاصيل الخدمة</th><th class="px-3 py-2">السعر</th><th class="px-3 py-2">التاريخ</th><th class="px-3 py-2"></th>
             </tr></thead>
             <tbody class="divide-y dark:divide-slate-700">
             @forelse($services as $s)
                 <tr>
                     <td class="px-3 py-2"><a href="{{ route('cp.clients.show', $s->client) }}" class="text-primary">{{ $s->client->name }}</a></td>
+                    <td class="px-3 py-2">{{ $s->serviceType?->name ?: '—' }}</td>
                     <td class="px-3 py-2">
                         {{ $s->title }}
                         @include('cp.partials.note-line', ['notes' => $s->notes])
@@ -43,7 +44,7 @@
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="5" class="p-8 text-center text-slate-500">لا توجد خدمات.</td></tr>
+                <tr><td colspan="6" class="p-8 text-center text-slate-500">لا توجد خدمات.</td></tr>
             @endforelse
             </tbody>
         </table>

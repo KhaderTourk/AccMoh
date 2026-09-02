@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Client;
 use App\Models\Currency;
 use App\Services\Export\PdfExporter;
+use App\Support\Money;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 class ClientController extends Controller
 {
@@ -103,10 +105,12 @@ class ClientController extends Controller
     protected function showPayload(Client $client): array
     {
         $client->load([
-            'services.currency',
-            'services.fxCurrency',
-            'services.serviceType',
-            'payments' => fn ($q) => $q->with(['currency', 'fxCurrency', 'paymentMethod'])->latest('payment_date'),
+            'services' => fn ($q) => $q->with(['currency', 'fxCurrency', 'serviceType'])
+                ->orderBy('service_date')
+                ->orderBy('id'),
+            'payments' => fn ($q) => $q->with(['currency', 'fxCurrency', 'paymentMethod'])
+                ->orderByDesc('payment_date')
+                ->orderByDesc('id'),
         ]);
         $currencies = Currency::query()->active()->get();
 
@@ -137,10 +141,73 @@ class ClientController extends Controller
         return [
             'client' => $client,
             'currencies' => $currencies,
+            'serviceGroups' => $this->groupServices($client->services),
+            'paymentGroups' => $this->groupPayments($client->payments),
             'timeline' => $timeline,
             'exportedAt' => now()->format('Y-m-d H:i'),
             'title' => $client->name,
             'subtitle' => trim(implode(' · ', array_filter([$client->contact_name, $client->phone]))),
         ];
+    }
+
+    protected function groupServices(Collection $services): Collection
+    {
+        return $services
+            ->groupBy(fn ($s) => $s->service_type_id ?: 0)
+            ->map(function (Collection $rows) {
+                $type = $rows->first()->serviceType;
+                $rows = $rows->sortBy([
+                    fn ($s) => $s->service_date->format('Y-m-d'),
+                    fn ($s) => $s->id,
+                ])->values();
+
+                return [
+                    'name' => $type?->name ?: 'بدون نوع',
+                    'uncategorized' => $type === null,
+                    'services' => $rows,
+                    'totals' => $this->totalsByCurrency($rows),
+                ];
+            })
+            ->sortBy([
+                fn ($group) => $group['uncategorized'] ? 1 : 0,
+                fn ($group) => $group['name'],
+            ])
+            ->values();
+    }
+
+    protected function groupPayments(Collection $payments): Collection
+    {
+        return $payments
+            ->groupBy('payment_method_id')
+            ->map(function (Collection $rows) {
+                $method = $rows->first()->paymentMethod;
+                $rows = $rows->sortByDesc(fn ($p) => $p->payment_date->format('Y-m-d').sprintf('%010d', $p->id))->values();
+
+                return [
+                    'name' => $method?->name ?: '—',
+                    'sort' => $method?->sort_order ?? 999,
+                    'payments' => $rows,
+                    'totals' => $this->totalsByCurrency($rows->where('is_reversed', false)),
+                ];
+            })
+            ->sortBy('sort')
+            ->values();
+    }
+
+    protected function totalsByCurrency(Collection $rows): Collection
+    {
+        return $rows
+            ->groupBy('currency_id')
+            ->map(function (Collection $byCurrency) {
+                $currency = $byCurrency->first()->currency;
+                $total = $byCurrency->reduce(fn ($sum, $row) => Money::add($sum, $row->amount), '0');
+
+                return [
+                    'currency' => $currency,
+                    'total' => $total,
+                    'formatted' => $currency->format($total),
+                ];
+            })
+            ->values();
     }
 }

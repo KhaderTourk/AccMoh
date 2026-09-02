@@ -13,7 +13,8 @@
 <form method="post"
       action="{{ $service->exists ? route('cp.client-services.update', $service) : route('cp.client-services.store') }}"
       class="max-w-2xl rounded-2xl border bg-white dark:bg-slate-800 p-6 space-y-4"
-      x-data="serviceForm()">
+      x-data="serviceForm()"
+      x-init="init()">
     @csrf
     @if($service->exists) @method('PUT') @endif
     <div>
@@ -28,13 +29,23 @@
         <select name="service_type_id" x-model="typeId" @change="applyType()" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
             <option value="">مخصص</option>
             @foreach($serviceTypes as $t)
-                <option value="{{ $t->id }}" data-name="{{ $t->name }}" data-price="{{ $t->default_price }}" data-currency="{{ $t->default_currency_id }}">{{ $t->name }}</option>
+                <option value="{{ $t->id }}">
+                    {{ $t->name }}
+                    @if($t->defaultCurrency && filled($t->default_price) && ! \App\Support\Money::isZero($t->default_price))
+                        — {{ $t->defaultCurrency->format($t->default_price) }}
+                    @elseif(filled($t->default_price) && ! \App\Support\Money::isZero($t->default_price))
+                        — {{ number_format((float) $t->default_price, 2) }}
+                    @endif
+                </option>
             @endforeach
         </select>
+        <p class="text-xs text-slate-500 mt-1" x-show="defaultPriceLabel" x-cloak>
+            السعر الافتراضي: <strong x-text="defaultPriceLabel"></strong>
+        </p>
     </div>
     <div>
-        <label class="text-sm">عنوان الخدمة *</label>
-        <input name="title" x-model="title" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
+        <label class="text-sm">تفاصيل الخدمة *</label>
+        <textarea name="title" x-model="title" rows="2" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700"></textarea>
     </div>
 
     <label class="flex items-center gap-2 text-sm cursor-pointer">
@@ -90,22 +101,63 @@ function serviceForm() {
         rate: @json((string) $rate),
         ilsAmount: @json((string) $ilsAmount),
         usdId: @json((string) $usdId),
+        lastTypeName: '',
+        defaultPriceLabel: '',
+        types: @json(($serviceTypes ?? collect())->map(function ($t) {
+            $label = null;
+            if ($t->defaultCurrency && filled($t->default_price) && ! \App\Support\Money::isZero($t->default_price)) {
+                $label = $t->defaultCurrency->format($t->default_price);
+            } elseif (filled($t->default_price) && ! \App\Support\Money::isZero($t->default_price)) {
+                $label = number_format((float) $t->default_price, 2);
+            }
+
+            return [
+                'id' => (string) $t->id,
+                'name' => $t->name,
+                'price' => (string) ($t->default_price ?? ''),
+                'currency_id' => (string) ($t->default_currency_id ?? ''),
+                'price_label' => $label,
+            ];
+        })->values()),
         ilsTotal() {
             const usd = parseFloat(this.usdAmount) || 0;
             const rate = parseFloat(this.rate) || 0;
             return (Math.round(usd * rate * 100) / 100).toFixed(2);
         },
-        applyType() {
-            const select = this.$el.querySelector('select[name=service_type_id]');
-            const opt = select?.selectedOptions[0];
-            if (!opt || !opt.value) return;
-            if (opt.dataset.name) this.title = opt.dataset.name;
-            if (String(opt.dataset.currency) === String(this.usdId)) {
+        selectedType() {
+            return this.types.find(t => String(t.id) === String(this.typeId)) || null;
+        },
+        applyPrice(type) {
+            if (!type || !type.price) return;
+            if (String(type.currency_id) === String(this.usdId)) {
                 this.requiresFx = true;
-                this.usdAmount = opt.dataset.price || this.usdAmount;
-            } else if (opt.dataset.price) {
+                this.usdAmount = type.price;
+            } else {
                 this.requiresFx = false;
-                this.ilsAmount = opt.dataset.price;
+                this.ilsAmount = type.price;
+            }
+        },
+        applyType() {
+            const type = this.selectedType();
+            if (!type) {
+                this.defaultPriceLabel = '';
+                this.lastTypeName = '';
+                return;
+            }
+            this.defaultPriceLabel = type.price_label || '';
+            if (!this.title || this.title === this.lastTypeName) {
+                this.title = type.name;
+            }
+            this.lastTypeName = type.name;
+            this.applyPrice(type);
+        },
+        init() {
+            const type = this.selectedType();
+            if (!type) return;
+            this.defaultPriceLabel = type.price_label || '';
+            this.lastTypeName = type.name;
+            if (!this.ilsAmount && !this.usdAmount) {
+                this.applyPrice(type);
             }
         }
     };

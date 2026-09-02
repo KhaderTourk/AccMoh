@@ -44,70 +44,108 @@
         @endforeach
     </div>
 
-    <section class="rounded-2xl border bg-white dark:bg-slate-800 overflow-hidden">
-        <div class="px-4 py-3 border-b font-bold">الخدمات</div>
-        <table class="w-full text-sm text-right">
-            <thead class="bg-slate-50 dark:bg-slate-700/40"><tr>
-                <th class="px-3 py-2">الخدمة</th><th class="px-3 py-2">السعر</th><th class="px-3 py-2">التاريخ</th><th class="px-3 py-2"></th>
-            </tr></thead>
-            <tbody class="divide-y dark:divide-slate-700">
-            @forelse($client->services as $service)
-                <tr>
-                    <td class="px-3 py-2">
-                        {{ $service->title }}
-                        @include('cp.partials.note-line', ['notes' => $service->notes])
-                    </td>
-                    <td class="px-3 py-2">
-                        {{ $service->currency->format($service->amount) }}
-                        @if($service->isFx())
-                            <div class="text-xs text-slate-500">{{ $service->fxCurrency?->format($service->source_amount) }} × {{ $service->formattedExchangeRate() }}</div>
-                        @endif
-                    </td>
-                    <td class="px-3 py-2">{{ $service->service_date->format('Y-m-d') }}</td>
-                    <td class="px-3 py-2">
-                        <div class="flex items-center gap-1 justify-end">
-                            <a href="{{ route('cp.client-services.edit', $service) }}" class="p-1" title="تعديل"><span class="material-symbols-outlined text-base">edit</span></a>
-                            <form method="post" action="{{ route('cp.client-services.destroy', $service) }}" onsubmit="return confirm('حذف هذه الخدمة؟')">
-                                @csrf @method('DELETE')
-                                <button type="submit" class="p-1 text-rose-600" title="حذف"><span class="material-symbols-outlined text-base">delete</span></button>
-                            </form>
-                        </div>
-                    </td>
-                </tr>
-            @empty
-                <tr><td colspan="4" class="p-6 text-center text-slate-500">لا توجد خدمات.</td></tr>
-            @endforelse
-            </tbody>
-        </table>
+    <section class="space-y-4">
+        <div class="flex items-center justify-between gap-3">
+            <h3 class="font-bold text-lg">الخدمات</h3>
+            <a href="{{ route('cp.client-services.create', ['client_id' => $client->id]) }}" class="text-sm text-primary">إضافة خدمة</a>
+        </div>
+        @forelse($serviceGroups as $group)
+            <div class="rounded-2xl border bg-white dark:bg-slate-800 overflow-hidden">
+                <div class="px-4 py-3 border-b bg-primary/5 dark:bg-primary/10 flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                        <p class="text-xs text-primary font-medium">نوع الخدمة</p>
+                        <h4 class="font-bold">{{ $group['name'] }}</h4>
+                    </div>
+                    <div class="text-sm font-bold">
+                        @foreach($group['totals'] as $total)
+                            <span>{{ $total['formatted'] }}</span>@if(! $loop->last) · @endif
+                        @endforeach
+                    </div>
+                </div>
+                <table class="w-full text-sm text-right">
+                    <thead class="bg-slate-50 dark:bg-slate-700/40"><tr>
+                        <th class="px-3 py-2">تفاصيل الخدمة</th><th class="px-3 py-2">السعر</th><th class="px-3 py-2">التاريخ</th><th class="px-3 py-2"></th>
+                    </tr></thead>
+                    <tbody class="divide-y dark:divide-slate-700">
+                    @foreach($group['services'] as $service)
+                        <tr>
+                            <td class="px-3 py-2">
+                                {{ $service->title }}
+                                @include('cp.partials.note-line', ['notes' => $service->notes])
+                            </td>
+                            <td class="px-3 py-2">
+                                {{ $service->currency->format($service->amount) }}
+                                @if($service->isFx())
+                                    <div class="text-xs text-slate-500">{{ $service->fxCurrency?->format($service->source_amount) }} × {{ $service->formattedExchangeRate() }}</div>
+                                @endif
+                            </td>
+                            <td class="px-3 py-2 whitespace-nowrap">{{ $service->service_date->format('Y-m-d') }}</td>
+                            <td class="px-3 py-2">
+                                <div class="flex items-center gap-1 justify-end">
+                                    <a href="{{ route('cp.client-services.edit', $service) }}" class="p-1" title="تعديل"><span class="material-symbols-outlined text-base">edit</span></a>
+                                    <form method="post" action="{{ route('cp.client-services.destroy', $service) }}" onsubmit="return confirm('حذف هذه الخدمة؟')">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="p-1 text-rose-600" title="حذف"><span class="material-symbols-outlined text-base">delete</span></button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @empty
+            <div class="rounded-2xl border bg-white dark:bg-slate-800 p-8 text-center text-slate-500">لا توجد خدمات.</div>
+        @endforelse
     </section>
 
-    <section class="rounded-2xl border bg-white dark:bg-slate-800 overflow-hidden">
-        <div class="px-4 py-3 border-b font-bold">الدفعات</div>
-        <table class="w-full text-sm text-right">
-            <thead class="bg-slate-50 dark:bg-slate-700/40"><tr>
-                <th class="px-3 py-2">المبلغ</th><th class="px-3 py-2">الطريقة</th><th class="px-3 py-2">المرسل</th><th class="px-3 py-2">التاريخ</th>
-            </tr></thead>
-            <tbody class="divide-y dark:divide-slate-700">
-            @forelse($client->payments as $payment)
-                <tr class="{{ $payment->is_reversed ? 'opacity-50 line-through' : '' }}">
-                    <td class="px-3 py-2">
-                        <a href="{{ route('cp.payments.show', $payment) }}" class="text-primary">{{ $payment->currency->format($payment->amount) }}</a>
-                        @if($payment->isFx())
-                            <div class="text-xs text-slate-500">{{ $payment->fxCurrency?->format($payment->source_amount) }} × {{ $payment->formattedExchangeRate() }}</div>
-                        @endif
-                    </td>
-                    <td class="px-3 py-2">{{ $payment->paymentMethod->name }}</td>
-                    <td class="px-3 py-2">
-                        {{ $payment->payer_name }}
-                        @include('cp.partials.note-line', ['notes' => $payment->notes])
-                    </td>
-                    <td class="px-3 py-2">{{ $payment->payment_date->format('Y-m-d') }}</td>
-                </tr>
-            @empty
-                <tr><td colspan="4" class="p-6 text-center text-slate-500">لا توجد دفعات.</td></tr>
-            @endforelse
-            </tbody>
-        </table>
+    <section class="space-y-4">
+        <div class="flex items-center justify-between gap-3">
+            <h3 class="font-bold text-lg">الدفعات</h3>
+            <a href="{{ route('cp.payments.create', ['client_id' => $client->id]) }}" class="text-sm text-primary">إضافة دفعة</a>
+        </div>
+        @forelse($paymentGroups as $group)
+            <div class="rounded-2xl border bg-white dark:bg-slate-800 overflow-hidden">
+                <div class="px-4 py-3 border-b bg-emerald-50 dark:bg-emerald-900/20 flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                        <p class="text-xs text-emerald-700 dark:text-emerald-300 font-medium">طريقة الدفع</p>
+                        <h4 class="font-bold">{{ $group['name'] }}</h4>
+                    </div>
+                    <div class="text-sm font-bold text-emerald-700 dark:text-emerald-300">
+                        الإجمالي:
+                        @forelse($group['totals'] as $total)
+                            <span>{{ $total['formatted'] }}</span>@if(! $loop->last) · @endif
+                        @empty
+                            <span>0</span>
+                        @endforelse
+                    </div>
+                </div>
+                <table class="w-full text-sm text-right">
+                    <thead class="bg-slate-50 dark:bg-slate-700/40"><tr>
+                        <th class="px-3 py-2">المبلغ</th><th class="px-3 py-2">المرسل</th><th class="px-3 py-2">التاريخ</th>
+                    </tr></thead>
+                    <tbody class="divide-y dark:divide-slate-700">
+                    @foreach($group['payments'] as $payment)
+                        <tr class="{{ $payment->is_reversed ? 'opacity-50 line-through' : '' }}">
+                            <td class="px-3 py-2">
+                                <a href="{{ route('cp.payments.show', $payment) }}" class="text-primary">{{ $payment->currency->format($payment->amount) }}</a>
+                                @if($payment->isFx())
+                                    <div class="text-xs text-slate-500">{{ $payment->fxCurrency?->format($payment->source_amount) }} × {{ $payment->formattedExchangeRate() }}</div>
+                                @endif
+                            </td>
+                            <td class="px-3 py-2">
+                                {{ $payment->payer_name }}
+                                @include('cp.partials.note-line', ['notes' => $payment->notes])
+                            </td>
+                            <td class="px-3 py-2 whitespace-nowrap">{{ $payment->payment_date->format('Y-m-d') }}</td>
+                        </tr>
+                    @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @empty
+            <div class="rounded-2xl border bg-white dark:bg-slate-800 p-8 text-center text-slate-500">لا توجد دفعات.</div>
+        @endforelse
     </section>
 
     <section class="rounded-2xl border bg-white dark:bg-slate-800 p-5">
