@@ -13,10 +13,10 @@
                     دفعات الزبائن: {{ $row['currency']->format($row['payments']) }}<br>
                     صادر العمل: {{ $row['currency']->format($row['work_expenses']) }}<br>
                     الموظفون {{ $row['currency']->format($row['worker_expenses']) }} · موردون {{ $row['currency']->format($row['supplier_expenses']) }}<br>
-                    مستحقات الزبائن: {{ $row['currency']->format($row['client_outstanding']) }}<br>
+                    مستحقات على الزبائن: {{ $row['currency']->format($row['client_outstanding']) }}<br>
                     مستحقات الموظفين: {{ $row['currency']->format($row['worker_outstanding']) }}<br>
                     مستحقات الموردين: {{ $row['currency']->format($row['supplier_outstanding']) }}<br>
-                    إجمالي الأرباح = مستحقات الموظفين والموردين + دفعات الزبائن − صادر العمل: {{ $row['currency']->format($row['gross_profit']) }}
+                    إجمالي الأرباح = مستحقات على الزبائن − صادر العمل − مستحقات الموظفين والموردين − دفعات الزبائن: {{ $row['currency']->format($row['gross_profit']) }}
                 </div>
             </td>
         @endforeach

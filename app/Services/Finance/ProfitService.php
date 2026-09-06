@@ -108,7 +108,13 @@ class ProfitService
                 'supplier_outstanding' => $supplierOutstanding,
                 'outstanding' => $vendorOutstanding,
                 'net_profit' => Money::sub($payments, $workExpenses),
-                'gross_profit' => Money::sub(Money::add($vendorOutstanding, $payments), $workExpenses),
+                'gross_profit' => Money::sub(
+                    Money::sub(
+                        Money::sub($clientOutstanding, $workExpenses),
+                        $vendorOutstanding
+                    ),
+                    $payments
+                ),
             ];
         }
 

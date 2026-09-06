@@ -89,7 +89,7 @@ class CashPaymentController extends Controller
             'partyLocked' => filled($payment->party_id),
             'selectedPartyType' => $this->partyKey($payment),
             'selectedPartyId' => $payment->party_id,
-            'parties' => $this->partyOptions(),
+            'parties' => $this->partyOptions($payment),
         ] + $this->financeLookups());
     }
 
@@ -153,9 +153,19 @@ class CashPaymentController extends Controller
         $currency = Currency::query()->find($request->input('currency_id'));
         $isFx = $currency && $currency->code !== 'ILS';
 
+        if ($request->filled('party_key') && preg_match('/^(client|person|vendor):(\d+)$/', (string) $request->party_key, $m)) {
+            $request->merge([
+                'party_type' => $m[1],
+                'party_id' => (int) $m[2],
+            ]);
+        }
+
         $data = $request->validate([
             'occurred_on' => ['required', 'date'],
-            'name' => ['required', 'string', 'max:255'],
+            'party_key' => ['required', 'string'],
+            'party_type' => ['required', Rule::in(['client', 'person', 'vendor'])],
+            'party_id' => ['required', 'integer'],
+            'name' => ['nullable', 'string', 'max:255'],
             'fund_id' => ['required', 'exists:funds,id'],
             'payment_method_id' => ['required', 'exists:payment_methods,id'],
             'currency_id' => ['required', 'exists:currencies,id'],
@@ -164,9 +174,23 @@ class CashPaymentController extends Controller
             'exchange_rate' => [$isFx ? 'required' : 'nullable', 'numeric', 'gt:0'],
             'account_holder_name' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],
-            'party_type' => ['nullable', Rule::in(['client', 'person', 'vendor'])],
-            'party_id' => ['nullable', 'integer'],
+        ], [
+            'party_key.required' => 'اختر اسماً من قائمة الزبائن أو الأشخاص أو الموظفين أو الموردين.',
         ]);
+
+        $party = match ($data['party_type']) {
+            'client' => Client::query()->find($data['party_id']),
+            'person' => Person::query()->find($data['party_id']),
+            'vendor' => Vendor::query()->find($data['party_id']),
+            default => null,
+        };
+        if (! $party) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'party_key' => 'اختر اسماً من قائمة الزبائن أو الأشخاص أو الموظفين أو الموردين.',
+            ]);
+        }
+        $data['name'] = $party->name;
+        unset($data['party_key']);
 
         $data['direction'] = $direction;
         if ($isFx && empty($data['source_amount']) && filled($data['amount'] ?? null)) {
@@ -207,13 +231,22 @@ class CashPaymentController extends Controller
     /**
      * @return array<string, \Illuminate\Support\Collection>
      */
-    protected function partyOptions(): array
+    protected function partyOptions(?CashPayment $payment = null): array
     {
-        return [
-            'clients' => tenantBusinessEnabled() ? Client::query()->active()->orderBy('name')->get(['id', 'name']) : collect(),
-            'persons' => Person::query()->active()->orderBy('name')->get(['id', 'name']),
-            'vendors' => tenantBusinessEnabled() ? Vendor::query()->active()->orderBy('name')->get(['id', 'name', 'type']) : collect(),
-        ];
+        $clients = tenantBusinessEnabled() ? Client::query()->active()->orderBy('name')->get(['id', 'name']) : collect();
+        $persons = Person::query()->active()->orderBy('name')->get(['id', 'name']);
+        $vendors = tenantBusinessEnabled() ? Vendor::query()->active()->orderBy('name')->get(['id', 'name', 'type']) : collect();
+
+        $party = $payment?->party;
+        if ($party instanceof Client && $clients->doesntContain('id', $party->id)) {
+            $clients = $clients->prepend($party);
+        } elseif ($party instanceof Person && $persons->doesntContain('id', $party->id)) {
+            $persons = $persons->prepend($party);
+        } elseif ($party instanceof Vendor && $vendors->doesntContain('id', $party->id)) {
+            $vendors = $vendors->prepend($party);
+        }
+
+        return compact('clients', 'persons', 'vendors');
     }
 
     protected function partyKey(CashPayment $payment): ?string

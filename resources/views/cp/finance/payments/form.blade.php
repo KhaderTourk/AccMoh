@@ -6,15 +6,18 @@
     $action = $payment->exists
         ? route('cp.payments.update', $payment)
         : route('cp.payments.store', $direction->value);
+    $workers = ($parties['vendors'] ?? collect())->filter(fn ($v) => $v->type === \App\Enums\VendorType::Worker);
+    $suppliers = ($parties['vendors'] ?? collect())->filter(fn ($v) => $v->type === \App\Enums\VendorType::Supplier);
+    $initialPartyKey = old('party_key', ($selectedPartyType && $selectedPartyId) ? $selectedPartyType.':'.$selectedPartyId : '');
+    $initialPartyName = old('name', $payment->name);
 @endphp
 <div x-data="cashPaymentForm()" class="max-w-3xl space-y-4">
 <form method="post" action="{{ $action }}" class="rounded-2xl bg-white dark:bg-slate-800 border p-6 space-y-4">
     @csrf
     @if($payment->exists) @method('PUT') @endif
-    @if($selectedPartyType)
-        <input type="hidden" name="party_type" value="{{ $selectedPartyType }}">
-        <input type="hidden" name="party_id" value="{{ $selectedPartyId }}">
-    @endif
+    <input type="hidden" name="party_type" value="{{ $selectedPartyType }}" x-model="partyType">
+    <input type="hidden" name="party_id" value="{{ $selectedPartyId }}" x-model="partyId">
+    <input type="hidden" name="name" value="{{ $initialPartyName }}" x-model="partyName">
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>
@@ -23,8 +26,40 @@
         </div>
         <div>
             <label class="text-sm">الاسم *</label>
-            <input name="name" value="{{ old('name', $payment->name) }}" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700" @disabled($partyLocked)>
-            @if($partyLocked)<input type="hidden" name="name" value="{{ old('name', $payment->name) }}">@endif
+            <select name="party_key" x-ref="partySelect" x-model="partyKey" @change="syncParty()" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700" @disabled($partyLocked)>
+                <option value="">اختر الاسم</option>
+                @if(($parties['clients'] ?? collect())->isNotEmpty())
+                    <optgroup label="الزبائن">
+                        @foreach($parties['clients'] as $c)
+                            <option value="client:{{ $c->id }}" data-name="{{ $c->name }}" @selected($initialPartyKey === 'client:'.$c->id)>{{ $c->name }}</option>
+                        @endforeach
+                    </optgroup>
+                @endif
+                @if(($parties['persons'] ?? collect())->isNotEmpty())
+                    <optgroup label="الأشخاص">
+                        @foreach($parties['persons'] as $p)
+                            <option value="person:{{ $p->id }}" data-name="{{ $p->name }}" @selected($initialPartyKey === 'person:'.$p->id)>{{ $p->name }}</option>
+                        @endforeach
+                    </optgroup>
+                @endif
+                @if($workers->isNotEmpty())
+                    <optgroup label="الموظفون">
+                        @foreach($workers as $w)
+                            <option value="vendor:{{ $w->id }}" data-name="{{ $w->name }}" @selected($initialPartyKey === 'vendor:'.$w->id)>{{ $w->name }}</option>
+                        @endforeach
+                    </optgroup>
+                @endif
+                @if($suppliers->isNotEmpty())
+                    <optgroup label="الموردون">
+                        @foreach($suppliers as $s)
+                            <option value="vendor:{{ $s->id }}" data-name="{{ $s->name }}" @selected($initialPartyKey === 'vendor:'.$s->id)>{{ $s->name }}</option>
+                        @endforeach
+                    </optgroup>
+                @endif
+            </select>
+            @if($partyLocked)
+                <input type="hidden" name="party_key" value="{{ $initialPartyKey }}">
+            @endif
         </div>
         <div>
             <label class="text-sm">الدرج *</label>
@@ -96,6 +131,20 @@ function cashPaymentForm() {
         currencyId: @json((string) old('currency_id', $payment->fx_currency_id ?: $payment->currency_id ?: $ilsId)),
         amount: @json((string) old('source_amount', old('amount', $payment->source_amount ?: $payment->amount))),
         rate: @json((string) old('exchange_rate', $payment->formattedExchangeRate())),
+        partyKey: @json($initialPartyKey),
+        partyType: @json($selectedPartyType ?: ''),
+        partyId: @json($selectedPartyId ? (string) $selectedPartyId : ''),
+        partyName: @json($initialPartyName ?: ''),
+        init() { this.syncParty(); },
+        syncParty() {
+            const key = String(this.partyKey || '');
+            const [type, id] = key.includes(':') ? key.split(':') : ['', ''];
+            this.partyType = type || '';
+            this.partyId = id || '';
+            const select = this.$refs.partySelect;
+            const option = select?.selectedOptions?.[0];
+            this.partyName = option?.dataset?.name || this.partyName || '';
+        },
         get isFx() { return String(this.currencyId) !== String(this.ilsId); },
         ilsTotal() {
             const amt = parseFloat(this.amount) || 0;

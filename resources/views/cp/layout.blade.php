@@ -112,8 +112,8 @@
                         </li>
                         @endif
                         @if(cpCan('users'))
-                        <li class="cp-nav-section pt-2 mt-2 {{ request()->routeIs('cp.users.*', 'cp.roles.*') ? '' : 'cp-collapsed' }}" data-section="system">
-                            <button type="button" class="cp-section-toggle" aria-expanded="{{ request()->routeIs('cp.users.*', 'cp.roles.*') ? 'true' : 'false' }}">
+                        <li class="cp-nav-section pt-2 mt-2 {{ request()->routeIs('cp.users.*') ? '' : 'cp-collapsed' }}" data-section="system">
+                            <button type="button" class="cp-section-toggle" aria-expanded="{{ request()->routeIs('cp.users.*') ? 'true' : 'false' }}">
                                 <span>النظام</span>
                                 <span class="material-symbols-outlined cp-chevron">expand_more</span>
                             </button>
@@ -122,12 +122,6 @@
                                     <a href="{{ route('cp.users.index') }}" class="cp-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary transition-colors {{ request()->routeIs('cp.users.*') ? 'bg-primary/10 text-primary dark:bg-primary/20' : '' }}">
                                         <span class="material-symbols-outlined text-xl">people</span>
                                         <span>المستخدمون</span>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="{{ route('cp.roles.index') }}" class="cp-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary transition-colors {{ request()->routeIs('cp.roles.*') ? 'bg-primary/10 text-primary dark:bg-primary/20' : '' }}">
-                                        <span class="material-symbols-outlined text-xl">admin_panel_settings</span>
-                                        <span>الأدوار والصلاحيات</span>
                                     </a>
                                 </li>
                             </ul>

@@ -28,13 +28,13 @@
                 <p>دفعات واردة من الزبائن: <strong class="text-emerald-600">{{ $row['currency']->format($row['payments']) }}</strong></p>
                 <p>صادر العمل: <strong class="text-rose-600">{{ $row['currency']->format($row['work_expenses']) }}</strong></p>
                 <p class="text-xs text-slate-500">منها الموظفون {{ $row['currency']->format($row['worker_expenses']) }} · الموردون {{ $row['currency']->format($row['supplier_expenses']) }}</p>
-                <p>مستحقات الزبائن: <strong>{{ $row['currency']->format($row['client_outstanding']) }}</strong></p>
+                <p>مستحقات على الزبائن: <strong>{{ $row['currency']->format($row['client_outstanding']) }}</strong></p>
                 <p>مستحقات الموظفين: <strong class="text-amber-700 dark:text-amber-300">{{ $row['currency']->format($row['worker_outstanding']) }}</strong></p>
                 <p>مستحقات الموردين: <strong class="text-amber-700 dark:text-amber-300">{{ $row['currency']->format($row['supplier_outstanding']) }}</strong></p>
                 <p class="pt-2 border-t">صافي الأرباح = دفعات الزبائن − صادر العمل:
                     <strong class="{{ \App\Support\Money::isNegative($row['net_profit']) ? 'text-rose-600' : 'text-emerald-600' }}">{{ $row['currency']->format($row['net_profit']) }}</strong>
                 </p>
-                <p>إجمالي الأرباح = مستحقات الموظفين والموردين + دفعات الزبائن − صادر العمل:
+                <p>إجمالي الأرباح = مستحقات على الزبائن − صادر العمل − مستحقات الموظفين والموردين − دفعات الزبائن:
                     <strong class="{{ \App\Support\Money::isNegative($row['gross_profit']) ? 'text-rose-600' : 'text-emerald-600' }}">{{ $row['currency']->format($row['gross_profit']) }}</strong>
                 </p>
             </div>
