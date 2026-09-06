@@ -2,14 +2,11 @@
 
 namespace App\Http\Controllers\Cp;
 
-use App\Enums\LoanDirection;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Cp\Concerns\LoadsFinanceLookups;
+use App\Models\CashPayment;
 use App\Models\Client;
-use App\Models\ClientPayment;
-use App\Models\Expense;
-use App\Models\FamilyLoan;
-use App\Models\FamilyMember;
+use App\Models\Person;
 use App\Services\Export\PdfExporter;
 use App\Services\Finance\BalanceService;
 use App\Services\Finance\ProfitService;
@@ -41,8 +38,7 @@ class ReportController extends Controller
     {
         $snapshot = $balances->snapshot();
         $receivables = $balances->clientReceivables();
-        $iOwe = $balances->familyBalance(LoanDirection::Borrowed);
-        $theyOwe = $balances->familyBalance(LoanDirection::Lent);
+        $personNet = $balances->personNet();
 
         [$from, $to] = $this->dateRange($request);
 
@@ -63,55 +59,46 @@ class ReportController extends Controller
             })->filter(fn ($r) => $r['rows'] !== [])
             : collect();
 
-        $familySummary = FamilyMember::query()->orderBy('name')->get()->map(function (FamilyMember $member) use ($snapshot) {
+        $personSummary = Person::query()->orderBy('name')->get()->map(function (Person $person) use ($snapshot) {
             $rows = [];
             foreach ($snapshot['currencies'] as $currency) {
-                $owe = $member->iOweAmount($currency->id);
-                $owed = $member->theyOweAmount($currency->id);
-                if (\App\Support\Money::isZero($owe) && \App\Support\Money::isZero($owed)) {
+                $in = $person->incomingAmount($currency->id);
+                $out = $person->outgoingAmount($currency->id);
+                if (\App\Support\Money::isZero($in) && \App\Support\Money::isZero($out)) {
                     continue;
                 }
-                $rows[] = compact('currency', 'owe', 'owed');
+                $rows[] = compact('currency', 'in', 'out');
             }
 
-            return ['member' => $member, 'rows' => $rows];
+            return ['member' => $person, 'rows' => $rows];
         })->filter(fn ($r) => $r['rows'] !== []);
 
-        $revenue = tenantBusinessEnabled()
-            ? ClientPayment::query()
-                ->active()
-                ->tap(fn ($q) => DateRange::constrain($q, 'payment_date', $from, $to))
-                ->with(['client', 'currency', 'paymentMethod'])
-                ->orderByDesc('payment_date')
-                ->limit(100)
-                ->get()
-            : collect();
-
-        $expenses = Expense::query()
+        $incoming = CashPayment::query()
+            ->incoming()
             ->active()
-            ->tap(fn ($q) => DateRange::constrain($q, 'expense_date', $from, $to))
-            ->with(['fund', 'category', 'currency', 'paymentMethod', 'vendor'])
-            ->orderByDesc('expense_date')
+            ->tap(fn ($q) => DateRange::constrain($q, 'occurred_on', $from, $to))
+            ->with(['party', 'currency', 'paymentMethod'])
+            ->orderByDesc('occurred_on')
             ->limit(100)
             ->get();
 
-        $openLoans = FamilyLoan::query()
+        $outgoing = CashPayment::query()
+            ->outgoing()
             ->active()
-            ->whereIn('status', ['open', 'partial'])
-            ->with(['familyMember', 'currency'])
-            ->orderBy('loan_date')
+            ->tap(fn ($q) => DateRange::constrain($q, 'occurred_on', $from, $to))
+            ->with(['party', 'fund', 'currency', 'paymentMethod'])
+            ->orderByDesc('occurred_on')
+            ->limit(100)
             ->get();
 
         return [
             'snapshot' => $snapshot,
             'receivables' => tenantBusinessEnabled() ? $receivables : [],
-            'iOwe' => $iOwe,
-            'theyOwe' => $theyOwe,
+            'personNet' => $personNet,
             'clientSummary' => $clientSummary,
-            'familySummary' => $familySummary,
-            'revenue' => $revenue,
-            'expenses' => $expenses,
-            'openLoans' => $openLoans,
+            'personSummary' => $personSummary,
+            'incoming' => $incoming,
+            'outgoing' => $outgoing,
             'profitRows' => $profit->forPeriod($from, $to),
             'from' => $from,
             'to' => $to,

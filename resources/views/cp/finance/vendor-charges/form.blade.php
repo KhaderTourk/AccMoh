@@ -2,13 +2,7 @@
 @section('title', $vendor->type->chargeFormTitle($charge->exists))
 @section('content')
 @php
-    $usdId = $usdCurrency?->id;
-    $isExistingFx = $charge->exists && ($charge->isFx() || $charge->currency?->code === 'USD');
-    $oldFx = old('requires_fx');
-    $requiresFx = $oldFx === null ? $isExistingFx : filter_var($oldFx, FILTER_VALIDATE_BOOLEAN);
-    $usdAmount = old('source_amount', $charge->source_amount ?? ($isExistingFx && ! $charge->isFx() ? $charge->amount : ''));
-    $rate = old('exchange_rate', $charge->formattedExchangeRate());
-    $ilsAmount = old('amount', $isExistingFx && ! $charge->isFx() ? '' : $charge->amount);
+    $ilsId = (string) ($ilsCurrency?->id ?? '');
     $backUrl = route('cp.'.$vendor->type->routePrefix().'.show', $vendor);
 @endphp
 <form method="post"
@@ -28,37 +22,35 @@
     </div>
     <div>
         <label class="text-sm">{{ $vendor->type->chargeDetailsLabel() }} *</label>
-        <textarea name="title" x-model="title" rows="2" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700"></textarea>
+        <textarea name="title" rows="2" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">{{ old('title', $charge->title) }}</textarea>
     </div>
-
-    <label class="flex items-center gap-2 text-sm cursor-pointer">
-        <input type="hidden" name="requires_fx" value="0">
-        <input type="checkbox" name="requires_fx" value="1" x-model="requiresFx" class="rounded border">
-        يتطلب تحويل بين العملات
-    </label>
-
-    <div x-show="!requiresFx">
-        <label class="text-sm">السعر / شيكل *</label>
-        <input type="number" step="0.01" min="0.01" name="amount" x-model="ilsAmount" x-bind:disabled="requiresFx" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
+    <div>
+        <label class="text-sm">العملة *</label>
+        <select name="currency_id" x-model="currencyId" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
+            @foreach($currencies as $c)
+                <option value="{{ $c->id }}">{{ $c->name }}</option>
+            @endforeach
+        </select>
     </div>
-
-    <div x-show="requiresFx" x-cloak class="space-y-3 rounded-xl border border-dashed p-4">
+    <div x-show="!isFx">
+        <label class="text-sm">المبلغ *</label>
+        <input type="number" step="0.01" min="0.01" name="amount" x-model="amount" x-bind:disabled="isFx" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
+    </div>
+    <div x-show="isFx" x-cloak class="space-y-3 rounded-xl border border-dashed p-4">
         <div>
-            <label class="text-sm">السعر / دولار *</label>
-            <input type="number" step="0.01" min="0.01" name="source_amount" x-model="usdAmount" x-bind:disabled="!requiresFx" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
+            <label class="text-sm">المبلغ *</label>
+            <input type="number" step="0.01" min="0.01" name="source_amount" x-model="amount" x-bind:disabled="!isFx" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
         </div>
         <div>
-            <label class="text-sm">سعر الدولار *</label>
-            <input type="number" step="0.0001" min="0.0001" name="exchange_rate" x-model="rate" x-bind:disabled="!requiresFx" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700" placeholder="مثال: 3.65">
+            <label class="text-sm">سعر الصرف *</label>
+            <input type="number" step="0.0001" min="0.0001" name="exchange_rate" x-model="rate" x-bind:disabled="!isFx" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700" placeholder="مثال: 3.65">
         </div>
         <div>
-            <label class="text-sm">القيمة الإجمالية / شيكل</label>
+            <label class="text-sm">المجموع بالشيكل</label>
             <input type="text" :value="ilsTotal()" readonly tabindex="-1" class="w-full rounded-xl border px-3 py-2 bg-slate-50 dark:bg-slate-700/60">
-            <input type="hidden" name="amount" :value="ilsTotal()" x-bind:disabled="!requiresFx">
+            <input type="hidden" name="amount" :value="ilsTotal()" x-bind:disabled="!isFx">
         </div>
-        <p class="text-xs text-slate-500">الإجمالي = السعر بالدولار × سعر الدولار. يترصد المبلغ بالشيكل ضمن المستحقات.</p>
     </div>
-
     <div>
         <label class="text-sm">التاريخ *</label>
         <input type="date" name="charge_date" value="{{ old('charge_date', optional($charge->charge_date)->format('Y-m-d') ?? date('Y-m-d')) }}" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
@@ -77,16 +69,15 @@
 <script>
 function vendorChargeForm() {
     return {
-        title: @json((string) old('title', $charge->title)),
-        requiresFx: @json($requiresFx),
-        usdAmount: @json((string) $usdAmount),
-        rate: @json((string) $rate),
-        ilsAmount: @json((string) $ilsAmount),
-        usdId: @json((string) $usdId),
+        ilsId: @json($ilsId),
+        currencyId: @json((string) old('currency_id', $charge->fx_currency_id ?: $charge->currency_id ?: $ilsId)),
+        amount: @json((string) old('source_amount', old('amount', $charge->source_amount ?: $charge->amount))),
+        rate: @json((string) old('exchange_rate', $charge->formattedExchangeRate())),
+        get isFx() { return String(this.currencyId) !== String(this.ilsId); },
         ilsTotal() {
-            const usd = parseFloat(this.usdAmount) || 0;
+            const amt = parseFloat(this.amount) || 0;
             const rate = parseFloat(this.rate) || 0;
-            return (Math.round(usd * rate * 100) / 100).toFixed(2);
+            return (Math.round(amt * rate * 100) / 100).toFixed(2);
         }
     };
 }

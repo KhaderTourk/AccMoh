@@ -2,11 +2,11 @@
 
 namespace App\Services\Finance;
 
+use App\Enums\PaymentDirection;
 use App\Enums\VendorType;
+use App\Models\CashPayment;
 use App\Models\Client;
-use App\Models\ClientPayment;
 use App\Models\Currency;
-use App\Models\Expense;
 use App\Models\Fund;
 use App\Support\DateRange;
 use App\Support\Money;
@@ -14,9 +14,6 @@ use App\Support\Money;
 class ProfitService
 {
     /**
-     * Period applies to client payments and work-fund expenses.
-     * Outstanding receivables are the current remaining dues (positive only).
-     *
      * @return list<array{
      *     currency: Currency,
      *     payments: string,
@@ -48,27 +45,30 @@ class ProfitService
         $rows = [];
         foreach (Currency::query()->active()->get() as $currency) {
             $payments = Money::of(
-                ClientPayment::query()
+                CashPayment::query()
+                    ->incoming()
                     ->active()
+                    ->where('party_type', 'client')
                     ->where('currency_id', $currency->id)
-                    ->when($from, fn ($q) => $q->whereDate('payment_date', '>=', $from))
-                    ->when($to, fn ($q) => $q->whereDate('payment_date', '<=', $to))
+                    ->tap(fn ($q) => DateRange::constrain($q, 'occurred_on', $from, $to))
                     ->sum('amount')
             );
 
-            $workQuery = Expense::query()
+            $workQuery = CashPayment::query()
+                ->outgoing()
                 ->active()
                 ->where('fund_id', $business->id)
                 ->where('currency_id', $currency->id)
-                ->when($from, fn ($q) => $q->whereDate('expense_date', '>=', $from))
-                ->when($to, fn ($q) => $q->whereDate('expense_date', '<=', $to));
+                ->tap(fn ($q) => DateRange::constrain($q, 'occurred_on', $from, $to));
 
             $workExpenses = Money::of((clone $workQuery)->sum('amount'));
+            $workerIds = \App\Models\Vendor::query()->ofType(VendorType::Worker)->pluck('id');
+            $supplierIds = \App\Models\Vendor::query()->ofType(VendorType::Supplier)->pluck('id');
             $workerExpenses = Money::of(
-                (clone $workQuery)->whereHas('vendor', fn ($q) => $q->where('type', VendorType::Worker))->sum('amount')
+                (clone $workQuery)->where('party_type', 'vendor')->whereIn('party_id', $workerIds)->sum('amount')
             );
             $supplierExpenses = Money::of(
-                (clone $workQuery)->whereHas('vendor', fn ($q) => $q->where('type', VendorType::Supplier))->sum('amount')
+                (clone $workQuery)->where('party_type', 'vendor')->whereIn('party_id', $supplierIds)->sum('amount')
             );
 
             $outstanding = '0.00';

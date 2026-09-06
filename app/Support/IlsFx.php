@@ -51,10 +51,10 @@ class IlsFx
             $source = $data['source_amount'];
             $rate = $data['exchange_rate'];
             if (! is_numeric($source) || ! Money::isPositive($source)) {
-                throw new FinanceException('المبلغ بالدولار يجب أن يكون أكبر من صفر.');
+                throw new FinanceException('المبلغ بالعملة الأجنبية يجب أن يكون أكبر من صفر.');
             }
             if (! is_numeric($rate) || (float) $rate <= 0) {
-                throw new FinanceException('سعر الدولار يجب أن يكون أكبر من صفر.');
+                throw new FinanceException('سعر الصرف يجب أن يكون أكبر من صفر.');
             }
 
             $amount = Money::mul($source, $rate);

@@ -4,6 +4,8 @@ namespace App\Enums;
 
 enum TransactionType: string
 {
+    case IncomingPayment = 'incoming_payment';
+    case OutgoingPayment = 'outgoing_payment';
     case ClientPayment = 'client_payment';
     case FamilyLoanReceived = 'family_loan_received';
     case FamilyLoanGiven = 'family_loan_given';
@@ -19,18 +21,34 @@ enum TransactionType: string
     public function label(): string
     {
         return match ($this) {
-            self::ClientPayment => 'دفعة عميل',
-            self::FamilyLoanReceived => 'دائن — استلام من فرد',
-            self::FamilyLoanGiven => 'مدين — تسليم لفرد',
-            self::FamilyLoanRepaymentPaid => 'تسوية دائن',
-            self::FamilyLoanRepaymentReceived => 'تسوية مدين',
-            self::Expense => 'مصروف',
+            self::IncomingPayment, self::ClientPayment, self::FamilyLoanReceived, self::FamilyLoanRepaymentReceived => 'دفعة واردة',
+            self::OutgoingPayment, self::Expense, self::FamilyLoanGiven, self::FamilyLoanRepaymentPaid => 'دفعة صادرة',
             self::TransferOut => 'تحويل صادر',
             self::TransferIn => 'تحويل وارد',
             self::TransferFee => 'رسوم تحويل',
             self::Adjustment => 'رصيد افتتاحي / تسوية',
             self::Reversal => 'إلغاء عملية',
         };
+    }
+
+    public function isIncomingCash(): bool
+    {
+        return in_array($this, [
+            self::IncomingPayment,
+            self::ClientPayment,
+            self::FamilyLoanReceived,
+            self::FamilyLoanRepaymentReceived,
+        ], true);
+    }
+
+    public function isOutgoingCash(): bool
+    {
+        return in_array($this, [
+            self::OutgoingPayment,
+            self::Expense,
+            self::FamilyLoanGiven,
+            self::FamilyLoanRepaymentPaid,
+        ], true);
     }
 
     public function affectsCash(): bool

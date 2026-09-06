@@ -2,14 +2,11 @@
 
 namespace App\Http\Controllers\Super;
 
-use App\Enums\LoanDirection;
 use App\Http\Controllers\Controller;
+use App\Models\CashPayment;
 use App\Models\Client;
-use App\Models\ClientPayment;
-use App\Models\Expense;
-use App\Models\FamilyLoan;
-use App\Models\FamilyMember;
 use App\Models\LedgerEntry;
+use App\Models\Person;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\Finance\BalanceService;
@@ -76,8 +73,7 @@ class TenantController extends Controller
         return $this->withTenantContext($tenant, function () use ($tenant, $balances) {
             $snapshot = $balances->snapshot();
             $receivables = $tenant->business_enabled ? $balances->clientReceivables() : [];
-            $iOwe = $balances->familyBalance(LoanDirection::Borrowed);
-            $theyOwe = $balances->familyBalance(LoanDirection::Lent);
+            $personNet = $balances->personNet();
 
             $recent = LedgerEntry::query()
                 ->with(['fund', 'paymentMethod', 'currency'])
@@ -86,23 +82,14 @@ class TenantController extends Controller
                 ->limit(30)
                 ->get();
 
-            $openLoans = FamilyLoan::query()
-                ->active()
-                ->whereIn('status', ['open', 'partial'])
-                ->with(['familyMember', 'currency', 'paymentMethod'])
-                ->orderByDesc('loan_date')
-                ->limit(50)
-                ->get();
-
             $counts = [
                 'clients' => $tenant->business_enabled ? Client::query()->count() : 0,
-                'family' => FamilyMember::query()->count(),
-                'open_loans' => FamilyLoan::query()->active()->whereIn('status', ['open', 'partial'])->count(),
+                'persons' => Person::query()->count(),
                 'users' => User::query()->where('tenant_id', $tenant->id)->count(),
             ];
 
             return view('super.tenants.finances', compact(
-                'tenant', 'snapshot', 'receivables', 'iOwe', 'theyOwe', 'recent', 'openLoans', 'counts'
+                'tenant', 'snapshot', 'receivables', 'personNet', 'recent', 'counts'
             ));
         });
     }
@@ -112,8 +99,7 @@ class TenantController extends Controller
         return $this->withTenantContext($tenant, function () use ($tenant, $balances) {
             $snapshot = $balances->snapshot();
             $receivables = $tenant->business_enabled ? $balances->clientReceivables() : [];
-            $iOwe = $balances->familyBalance(LoanDirection::Borrowed);
-            $theyOwe = $balances->familyBalance(LoanDirection::Lent);
+            $personNet = $balances->personNet();
 
             $clientSummary = $tenant->business_enabled
                 ? Client::query()->orderBy('name')->get()->map(function (Client $client) use ($snapshot) {
@@ -132,36 +118,26 @@ class TenantController extends Controller
                 })->filter(fn ($r) => $r['rows'] !== [])
                 : collect();
 
-            $familySummary = FamilyMember::query()->orderBy('name')->get()->map(function (FamilyMember $member) use ($snapshot) {
+            $personSummary = Person::query()->orderBy('name')->get()->map(function (Person $person) use ($snapshot) {
                 $rows = [];
                 foreach ($snapshot['currencies'] as $currency) {
-                    $owe = $member->iOweAmount($currency->id);
-                    $owed = $member->theyOweAmount($currency->id);
-                    if (\App\Support\Money::isZero($owe) && \App\Support\Money::isZero($owed)) {
+                    $in = $person->incomingAmount($currency->id);
+                    $out = $person->outgoingAmount($currency->id);
+                    if (\App\Support\Money::isZero($in) && \App\Support\Money::isZero($out)) {
                         continue;
                     }
-                    $rows[] = compact('currency', 'owe', 'owed');
+                    $rows[] = compact('currency', 'in', 'out');
                 }
 
-                return ['member' => $member, 'rows' => $rows];
+                return ['member' => $person, 'rows' => $rows];
             })->filter(fn ($r) => $r['rows'] !== []);
 
-            $revenue = $tenant->business_enabled
-                ? ClientPayment::query()->active()->with(['client', 'currency'])->orderByDesc('payment_date')->limit(50)->get()
-                : collect();
-
-            $expenses = Expense::query()->active()->with(['fund', 'currency'])->orderByDesc('expense_date')->limit(50)->get();
-
-            $openLoans = FamilyLoan::query()
-                ->active()
-                ->whereIn('status', ['open', 'partial'])
-                ->with(['familyMember', 'currency'])
-                ->orderBy('loan_date')
-                ->get();
+            $incoming = CashPayment::query()->incoming()->active()->with(['currency'])->orderByDesc('occurred_on')->limit(50)->get();
+            $outgoing = CashPayment::query()->outgoing()->active()->with(['currency'])->orderByDesc('occurred_on')->limit(50)->get();
 
             return view('super.tenants.reports', compact(
-                'tenant', 'snapshot', 'receivables', 'iOwe', 'theyOwe',
-                'clientSummary', 'familySummary', 'revenue', 'expenses', 'openLoans'
+                'tenant', 'snapshot', 'receivables', 'personNet',
+                'clientSummary', 'personSummary', 'incoming', 'outgoing'
             ));
         });
     }

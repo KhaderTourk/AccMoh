@@ -22,7 +22,16 @@ class LedgerController extends Controller
             $q->when($request->fund_id, fn ($qq, $id) => $qq->where('fund_id', $id))
                 ->when($request->currency_id, fn ($qq, $id) => $qq->where('currency_id', $id))
                 ->when($request->payment_method_id, fn ($qq, $id) => $qq->where('payment_method_id', $id))
-                ->when($request->transaction_type, fn ($qq, $t) => $qq->where('transaction_type', $t))
+                ->when($request->transaction_type, function ($qq, $t) {
+                    $type = TransactionType::tryFrom($t);
+                    if ($type?->isIncomingCash()) {
+                        $qq->whereIn('transaction_type', collect(TransactionType::cases())->filter->isIncomingCash()->map->value);
+                    } elseif ($type?->isOutgoingCash()) {
+                        $qq->whereIn('transaction_type', collect(TransactionType::cases())->filter->isOutgoingCash()->map->value);
+                    } else {
+                        $qq->where('transaction_type', $t);
+                    }
+                })
                 ->tap(fn ($qq) => DateRange::constrain($qq, 'occurred_on', $from, $to))
                 ->when($request->q, fn ($qq, $term) => $qq->where(function ($inner) use ($term) {
                     $inner->where('description', 'like', "%{$term}%")
@@ -55,7 +64,15 @@ class LedgerController extends Controller
         return view('cp.finance.ledger.index', [
             'entries' => $entries,
             'totals' => $totals,
-            'types' => TransactionType::cases(),
+            'types' => [
+                TransactionType::IncomingPayment,
+                TransactionType::OutgoingPayment,
+                TransactionType::TransferOut,
+                TransactionType::TransferIn,
+                TransactionType::TransferFee,
+                TransactionType::Adjustment,
+                TransactionType::Reversal,
+            ],
         ] + $this->financeLookups());
     }
 }

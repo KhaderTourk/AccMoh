@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Cp;
 
 use App\Http\Controllers\Controller;
 use App\Models\Client;
+use App\Models\ClientService;
 use App\Models\Currency;
 use App\Services\Export\PdfExporter;
 use App\Support\Money;
+use App\Support\Phone;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 
@@ -18,7 +20,6 @@ class ClientController extends Controller
             ->when($request->q, fn ($q, $term) => $q->where(function ($qq) use ($term) {
                 $qq->where('name', 'like', "%{$term}%")
                     ->orWhere('phone', 'like', "%{$term}%")
-                    ->orWhere('contact_name', 'like', "%{$term}%")
                     ->orWhere('company_name', 'like', "%{$term}%")
                     ->orWhere('notes', 'like', "%{$term}%");
             }))
@@ -42,7 +43,7 @@ class ClientController extends Controller
         $data = $this->validated($request);
         $client = Client::query()->create($data);
 
-        return redirect()->route('cp.clients.show', $client)->with('success', 'تم إضافة العميل.');
+        return redirect()->route('cp.clients.show', $client)->with('success', 'تم إضافة الزبون.');
     }
 
     public function show(Client $client)
@@ -71,7 +72,7 @@ class ClientController extends Controller
     {
         $client->update($this->validated($request));
 
-        return redirect()->route('cp.clients.show', $client)->with('success', 'تم تحديث بيانات العميل.');
+        return redirect()->route('cp.clients.show', $client)->with('success', 'تم تحديث بيانات الزبون.');
     }
 
     public function destroy(Client $client)
@@ -80,23 +81,22 @@ class ClientController extends Controller
             $client->update(['is_active' => false]);
 
             return redirect()->route('cp.clients.index')
-                ->with('success', 'تم أرشفة العميل لأنه يملك سجلاً مالياً (لا يمكن حذفه نهائياً).');
+                ->with('success', 'تم أرشفة الزبون لأنه يملك سجلاً مالياً (لا يمكن حذفه نهائياً).');
         }
 
         $client->forceDelete();
 
-        return redirect()->route('cp.clients.index')->with('success', 'تم حذف العميل.');
+        return redirect()->route('cp.clients.index')->with('success', 'تم حذف الزبون.');
     }
 
     protected function validated(Request $request): array
     {
         return $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'contact_name' => ['nullable', 'string', 'max:255'],
-            'phone' => ['nullable', 'string', 'max:50'],
+            'company_name' => ['nullable', 'string', 'max:255'],
+            'phone' => Phone::rules(),
             'notes' => ['nullable', 'string'],
-            'is_active' => ['nullable', 'boolean'],
-        ]) + ['is_active' => $request->boolean('is_active', true)];
+        ], ['phone.regex' => Phone::message()]) + ['is_active' => true];
     }
 
     /**
@@ -109,7 +109,7 @@ class ClientController extends Controller
                 ->orderBy('service_date')
                 ->orderBy('id'),
             'payments' => fn ($q) => $q->with(['currency', 'fxCurrency', 'paymentMethod'])
-                ->orderByDesc('payment_date')
+                ->orderByDesc('occurred_on')
                 ->orderByDesc('id'),
         ]);
         $currencies = Currency::query()->active()->get();
@@ -127,7 +127,7 @@ class ClientController extends Controller
         }
         foreach ($client->payments->where('is_reversed', false) as $payment) {
             $timeline->push([
-                'date' => $payment->payment_date,
+                'date' => $payment->occurred_on,
                 'type' => 'payment',
                 'title' => 'دفعة عبر '.$payment->paymentMethod->name,
                 'amount' => $payment->amount,
@@ -146,8 +146,44 @@ class ClientController extends Controller
             'timeline' => $timeline,
             'exportedAt' => now()->format('Y-m-d H:i'),
             'title' => $client->name,
-            'subtitle' => trim(implode(' · ', array_filter([$client->contact_name, $client->phone]))),
+            'subtitle' => trim(implode(' · ', array_filter([$client->company_name, $client->phone]))),
         ];
+    }
+
+    public function unpaidServices(Client $client, Request $request)
+    {
+        $ils = Currency::byCode('ILS');
+        $currencyId = (int) ($request->currency_id ?: $ils->id);
+        $currency = Currency::query()->find($currencyId);
+        $outstanding = $client->outstandingAmount($currencyId);
+
+        $services = ClientService::query()
+            ->billable()
+            ->where('client_id', $client->id)
+            ->when($currencyId, fn ($q) => $q->where('currency_id', $currencyId))
+            ->with(['currency', 'fxCurrency'])
+            ->orderByDesc('service_date')
+            ->get()
+            ->map(fn ($s) => [
+                'id' => $s->id,
+                'title' => $s->title,
+                'amount' => $s->amount,
+                'currency_id' => $s->currency_id,
+                'currency_code' => $s->currency->code,
+                'is_fx' => $s->isFx(),
+                'source_amount' => $s->source_amount,
+            ]);
+
+        return response()->json([
+            'outstanding' => $outstanding,
+            'outstanding_formatted' => $currency?->format($outstanding) ?? $outstanding,
+            'is_credit' => Money::isNegative($outstanding),
+            'credit' => Money::isNegative($outstanding) ? Money::abs($outstanding) : '0.00',
+            'credit_formatted' => Money::isNegative($outstanding)
+                ? ($currency?->format(Money::abs($outstanding)) ?? Money::abs($outstanding))
+                : null,
+            'services' => $services,
+        ]);
     }
 
     protected function groupServices(Collection $services): Collection
@@ -175,7 +211,7 @@ class ClientController extends Controller
             ->groupBy('payment_method_id')
             ->map(function (Collection $rows) {
                 $method = $rows->first()->paymentMethod;
-                $rows = $rows->sortByDesc(fn ($p) => $p->payment_date->format('Y-m-d').sprintf('%010d', $p->id))->values();
+                $rows = $rows->sortByDesc(fn ($p) => $p->occurred_on->format('Y-m-d').sprintf('%010d', $p->id))->values();
 
                 return [
                     'name' => $method?->name ?: '—',

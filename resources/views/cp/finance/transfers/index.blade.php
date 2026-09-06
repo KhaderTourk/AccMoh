@@ -12,7 +12,7 @@
     <div class="rounded-2xl border bg-white dark:bg-slate-800 overflow-hidden">
         <table class="w-full text-sm text-right">
             <thead class="bg-slate-50 dark:bg-slate-700/50"><tr>
-                <th class="px-3 py-2">الصندوق</th><th class="px-3 py-2">من</th><th class="px-3 py-2">إلى</th>
+                <th class="px-3 py-2">الدرج</th><th class="px-3 py-2">من</th><th class="px-3 py-2">إلى</th>
                 <th class="px-3 py-2">المبلغ</th><th class="px-3 py-2">السعر</th><th class="px-3 py-2">التاريخ</th><th class="px-3 py-2"></th>
             </tr></thead>
             <tbody class="divide-y dark:divide-slate-700">

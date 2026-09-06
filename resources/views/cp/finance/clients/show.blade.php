@@ -6,13 +6,13 @@
         <div>
             <h2 class="text-2xl font-bold">{{ $client->name }}</h2>
             <p class="text-slate-500 text-sm">
-                @if($client->contact_name){{ $client->contact_name }} · @endif
+                @if($client->company_name){{ $client->company_name }} · @endif
                 {{ $client->phone }}
             </p>
         </div>
         <div class="flex flex-wrap gap-2">
             <a href="{{ route('cp.client-services.create', ['client_id' => $client->id]) }}" class="px-3 py-2 rounded-xl bg-primary text-white text-sm">خدمة</a>
-            <a href="{{ route('cp.payments.create', ['client_id' => $client->id]) }}" class="px-3 py-2 rounded-xl border text-sm">دفعة</a>
+            <a href="{{ route('cp.payments.create', ['incoming', 'client_id' => $client->id]) }}" class="px-3 py-2 rounded-xl bg-emerald-600 text-white text-sm">دفعة واردة</a>
             <a href="{{ route('cp.clients.export-pdf', $client) }}" class="px-3 py-2 rounded-xl border text-sm">تصدير PDF</a>
             <a href="{{ route('cp.clients.edit', $client) }}" class="px-3 py-2 rounded-xl border text-sm">تعديل</a>
         </div>
@@ -102,7 +102,7 @@
     <section class="space-y-4">
         <div class="flex items-center justify-between gap-3">
             <h3 class="font-bold text-lg">الدفعات</h3>
-            <a href="{{ route('cp.payments.create', ['client_id' => $client->id]) }}" class="text-sm text-primary">إضافة دفعة</a>
+            <a href="{{ route('cp.payments.create', ['incoming', 'client_id' => $client->id]) }}" class="text-sm text-primary">إضافة دفعة</a>
         </div>
         @forelse($paymentGroups as $group)
             <div class="rounded-2xl border bg-white dark:bg-slate-800 overflow-hidden">
@@ -122,22 +122,33 @@
                 </div>
                 <table class="w-full text-sm text-right">
                     <thead class="bg-slate-50 dark:bg-slate-700/40"><tr>
-                        <th class="px-3 py-2">المبلغ</th><th class="px-3 py-2">المرسل</th><th class="px-3 py-2">التاريخ</th>
+                        <th class="px-3 py-2">المبلغ</th><th class="px-3 py-2">الاسم</th><th class="px-3 py-2">التاريخ</th><th class="px-3 py-2"></th>
                     </tr></thead>
                     <tbody class="divide-y dark:divide-slate-700">
                     @foreach($group['payments'] as $payment)
-                        <tr class="{{ $payment->is_reversed ? 'opacity-50 line-through' : '' }}">
+                        <tr class="{{ $payment->is_reversed ? 'opacity-50 line-through' : 'bg-emerald-50/70 dark:bg-emerald-900/20' }}">
                             <td class="px-3 py-2">
-                                <a href="{{ route('cp.payments.show', $payment) }}" class="text-primary">{{ $payment->currency->format($payment->amount) }}</a>
+                                <a href="{{ route('cp.payments.show', $payment) }}" class="text-emerald-700 dark:text-emerald-300 font-bold">{{ $payment->currency->format($payment->amount) }}</a>
                                 @if($payment->isFx())
                                     <div class="text-xs text-slate-500">{{ $payment->fxCurrency?->format($payment->source_amount) }} × {{ $payment->formattedExchangeRate() }}</div>
                                 @endif
                             </td>
                             <td class="px-3 py-2">
-                                {{ $payment->payer_name }}
+                                {{ $payment->name }}
                                 @include('cp.partials.note-line', ['notes' => $payment->notes])
                             </td>
-                            <td class="px-3 py-2 whitespace-nowrap">{{ $payment->payment_date->format('Y-m-d') }}</td>
+                            <td class="px-3 py-2 whitespace-nowrap">{{ $payment->occurred_on->format('Y-m-d') }}</td>
+                            <td class="px-3 py-2">
+                                @unless($payment->is_reversed)
+                                <div class="flex items-center gap-1 justify-end">
+                                    <a href="{{ route('cp.payments.edit', $payment) }}" class="p-1" title="تعديل"><span class="material-symbols-outlined text-base">edit</span></a>
+                                    <form method="post" action="{{ route('cp.payments.destroy', $payment) }}" onsubmit="return confirm('حذف هذه الدفعة؟')">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="p-1 text-rose-600" title="حذف"><span class="material-symbols-outlined text-base">delete</span></button>
+                                    </form>
+                                </div>
+                                @endunless
+                            </td>
                         </tr>
                     @endforeach
                     </tbody>

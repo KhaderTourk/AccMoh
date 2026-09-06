@@ -14,6 +14,7 @@ class PurgeOperationalData extends Command
 
     /** @var list<string> */
     protected array $tables = [
+        'cash_payments',
         'payment_allocations',
         'family_loan_repayment_items',
         'client_payments',
@@ -65,7 +66,7 @@ class PurgeOperationalData extends Command
             Schema::enableForeignKeyConstraints();
         }
 
-        $this->info('تم إفراغ البيانات غير الأساسية. بقي: المستخدمون، الأدوار، العملات، طرق الدفع، الصناديق، أنواع الخدمات، فئات المصروف.');
+        $this->info('تم إفراغ البيانات غير الأساسية. بقي: المستخدمون، الأدوار، العملات، طرق الدفع، الأدراج، الخدمات.');
 
         return self::SUCCESS;
     }

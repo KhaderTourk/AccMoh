@@ -29,7 +29,7 @@ class ServiceTypeController extends Controller
     {
         ServiceType::query()->create($this->validated($request));
 
-        return redirect()->route('cp.service-types.index')->with('success', 'تم إضافة نوع الخدمة.');
+        return redirect()->route('cp.service-types.index')->with('success', 'تم إضافة الخدمة.');
     }
 
     public function edit(ServiceType $serviceType)
@@ -65,9 +65,6 @@ class ServiceTypeController extends Controller
         return $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
-            'default_price' => ['nullable', 'numeric', 'gte:0'],
-            'default_currency_id' => ['nullable', 'exists:currencies,id'],
-            'is_active' => ['nullable', 'boolean'],
-        ]) + ['is_active' => $request->boolean('is_active', true)];
+        ]) + ['is_active' => true];
     }
 }

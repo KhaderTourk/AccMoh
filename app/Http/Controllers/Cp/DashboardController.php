@@ -2,14 +2,12 @@
 
 namespace App\Http\Controllers\Cp;
 
-use App\Enums\LoanDirection;
 use App\Enums\TransactionType;
 use App\Http\Controllers\Controller;
 use App\Models\Client;
 use App\Models\ClientService;
-use App\Models\FamilyLoan;
-use App\Models\FamilyMember;
 use App\Models\LedgerEntry;
+use App\Models\Person;
 use App\Services\Finance\BalanceService;
 
 class DashboardController extends Controller
@@ -18,8 +16,7 @@ class DashboardController extends Controller
     {
         $snapshot = $balances->snapshot();
         $receivables = $balances->clientReceivables();
-        $iOwe = $balances->familyBalance(LoanDirection::Borrowed);
-        $theyOwe = $balances->familyBalance(LoanDirection::Lent);
+        $personNet = $balances->personNet();
 
         $recent = LedgerEntry::query()
             ->with(['fund', 'paymentMethod', 'currency', 'related'])
@@ -37,7 +34,12 @@ class DashboardController extends Controller
                 $key = $month->format('Y-m');
                 $revenueByMonth[$currency->code][$key] = (float) LedgerEntry::query()
                     ->where('currency_id', $currency->id)
-                    ->where('transaction_type', TransactionType::ClientPayment)
+                    ->whereIn('transaction_type', [
+                        TransactionType::IncomingPayment,
+                        TransactionType::ClientPayment,
+                        TransactionType::FamilyLoanReceived,
+                        TransactionType::FamilyLoanRepaymentReceived,
+                    ])
                     ->where('is_reversal', false)
                     ->whereYear('occurred_on', $month->year)
                     ->whereMonth('occurred_on', $month->month)
@@ -45,7 +47,12 @@ class DashboardController extends Controller
 
                 $expenseByMonth[$currency->code][$key] = abs((float) LedgerEntry::query()
                     ->where('currency_id', $currency->id)
-                    ->where('transaction_type', TransactionType::Expense)
+                    ->whereIn('transaction_type', [
+                        TransactionType::OutgoingPayment,
+                        TransactionType::Expense,
+                        TransactionType::FamilyLoanGiven,
+                        TransactionType::FamilyLoanRepaymentPaid,
+                    ])
                     ->where('is_reversal', false)
                     ->whereYear('occurred_on', $month->year)
                     ->whereMonth('occurred_on', $month->month)
@@ -63,8 +70,7 @@ class DashboardController extends Controller
         return view('cp.dashboard', [
             'snapshot' => $snapshot,
             'receivables' => tenantBusinessEnabled() ? $receivables : [],
-            'iOwe' => $iOwe,
-            'theyOwe' => $theyOwe,
+            'personNet' => $personNet,
             'recent' => $recent,
             'months' => $months->map(fn ($m) => $m->format('Y-m'))->values(),
             'monthKeys' => $months->map(fn ($m) => $m->format('Y-m'))->values(),
@@ -75,11 +81,10 @@ class DashboardController extends Controller
             'topPaying' => tenantBusinessEnabled() ? $balances->topPayingClients(5) : collect(),
             'counts' => [
                 'clients' => tenantBusinessEnabled() ? Client::query()->count() : 0,
-                'family' => FamilyMember::query()->count(),
+                'persons' => Person::query()->count(),
                 'open_services' => tenantBusinessEnabled()
                     ? ClientService::query()->billable()->count()
                     : 0,
-                'open_loans' => FamilyLoan::query()->active()->whereIn('status', ['open', 'partial'])->count(),
             ],
         ]);
     }

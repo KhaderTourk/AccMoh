@@ -11,7 +11,7 @@
                 <div class="kpi-value {{ \App\Support\Money::isNegative($row['net_profit']) ? 'neg' : '' }}">{{ $row['currency']->format($row['net_profit']) }}</div>
                 <div class="sub" style="margin-top:6px;">
                     دفعات: {{ $row['currency']->format($row['payments']) }}<br>
-                    مصروفات العمل: {{ $row['currency']->format($row['work_expenses']) }}<br>
+                    صادر العمل: {{ $row['currency']->format($row['work_expenses']) }}<br>
                     الموظفين {{ $row['currency']->format($row['worker_expenses']) }} · موردون {{ $row['currency']->format($row['supplier_expenses']) }}<br>
                     المستحقات: {{ $row['currency']->format($row['outstanding']) }}<br>
                     إجمالي الأرباح: {{ $row['currency']->format($row['gross_profit']) }}
@@ -26,8 +26,8 @@
 <table class="data">
     <thead>
         <tr>
-            <th>الصندوق</th>
-            @foreach($snapshot['currencies'] as $c)<th>{{ $c->code }}</th>@endforeach
+            <th>الدرج</th>
+            @foreach($snapshot['currencies'] as $c)<th>{{ $c->name }}</th>@endforeach
         </tr>
     </thead>
     <tbody>
@@ -52,37 +52,32 @@
     <tr>
         @if(tenantBusinessEnabled())
         <td>
-            <div class="kpi-label">مستحقات العملاء</div>
+            <div class="kpi-label">مستحقات الزبائن</div>
             @foreach($snapshot['currencies'] as $c)
                 <div class="kpi-value">{{ $c->format($receivables[$c->id] ?? 0) }}</div>
             @endforeach
         </td>
         @endif
         <td>
-            <div class="kpi-label">دائن (عليّ)</div>
+            <div class="kpi-label">صافي دفعات الأشخاص</div>
             @foreach($snapshot['currencies'] as $c)
-                <div class="kpi-value neg">{{ $c->format($iOwe[$c->id] ?? 0) }}</div>
-            @endforeach
-        </td>
-        <td>
-            <div class="kpi-label">مدين (لي)</div>
-            @foreach($snapshot['currencies'] as $c)
-                <div class="kpi-value">{{ $c->format($theyOwe[$c->id] ?? 0) }}</div>
+                @php $net = $personNet[$c->id] ?? '0'; @endphp
+                <div class="kpi-value {{ \App\Support\Money::isNegative($net) ? 'neg' : '' }}">{{ $c->format($net) }}</div>
             @endforeach
         </td>
     </tr>
 </table>
 
 @if(tenantBusinessEnabled())
-<h2>تقرير العملاء</h2>
+<h2>تقرير الزبائن</h2>
 <table class="data">
-    <thead><tr><th>العميل</th><th>العملة</th><th>الخدمات</th><th>المدفوع</th><th>المتبقي</th></tr></thead>
+    <thead><tr><th>الزبون</th><th>العملة</th><th>الخدمات</th><th>المدفوع</th><th>المتبقي</th></tr></thead>
     <tbody>
     @forelse($clientSummary as $row)
         @foreach($row['rows'] as $r)
         <tr>
             <td>{{ $row['client']->name }}</td>
-            <td>{{ $r['currency']->code }}</td>
+            <td>{{ $r['currency']->name }}</td>
             <td>{{ $r['currency']->format($r['billed']) }}</td>
             <td>{{ $r['currency']->format($r['paid']) }}</td>
             <td>
@@ -101,68 +96,63 @@
 </table>
 @endif
 
-<h2>تقرير دائن ومدين — المفتوح</h2>
+<h2>تقرير الأشخاص</h2>
 <table class="data">
-    <thead><tr><th>الشخص</th><th>النوع</th><th>المتبقي</th><th>التاريخ</th></tr></thead>
+    <thead><tr><th>الشخص</th><th>العملة</th><th>وارد</th><th>صادر</th></tr></thead>
     <tbody>
-    @forelse($openLoans as $loan)
+    @forelse($personSummary as $row)
+        @foreach($row['rows'] as $r)
         <tr>
-            <td>
-                {{ $loan->familyMember->name }}
-                @if(filled($loan->notes))
-                    <div class="sub" style="white-space: pre-line;">{{ $loan->notes }}</div>
-                @endif
-            </td>
-            <td>{{ $loan->direction->label() }}</td>
-            <td>{{ $loan->currency->format($loan->remainingAmount()) }}</td>
-            <td>{{ $loan->loan_date->format('Y-m-d') }}</td>
+            <td>{{ $row['member']->name }}</td>
+            <td>{{ $r['currency']->name }}</td>
+            <td>{{ $r['currency']->format($r['in']) }}</td>
+            <td>{{ $r['currency']->format($r['out']) }}</td>
         </tr>
+        @endforeach
     @empty
-        <tr><td colspan="4" class="empty">لا حركات مفتوحة.</td></tr>
+        <tr><td colspan="4" class="empty">لا بيانات.</td></tr>
     @endforelse
     </tbody>
 </table>
 
-@if(tenantBusinessEnabled())
-<h2>إيرادات الفترة</h2>
+<h2>دفعات واردة</h2>
 <table class="data">
-    <thead><tr><th>العميل</th><th>التاريخ</th><th>المبلغ</th></tr></thead>
+    <thead><tr><th>الاسم</th><th>التاريخ</th><th>المبلغ</th></tr></thead>
     <tbody>
-    @forelse($revenue as $p)
+    @forelse($incoming as $p)
         <tr>
             <td>
-                {{ $p->client->name }}
+                {{ $p->name }}
                 @if(filled($p->notes))
                     <div class="sub" style="white-space: pre-line;">{{ $p->notes }}</div>
                 @endif
             </td>
-            <td>{{ $p->payment_date->format('Y-m-d') }}</td>
+            <td>{{ $p->occurred_on->format('Y-m-d') }}</td>
             <td class="amount">{{ $p->currency->format($p->amount) }}</td>
         </tr>
     @empty
-        <tr><td colspan="3" class="empty">لا إيرادات في الفترة.</td></tr>
+        <tr><td colspan="3" class="empty">لا دفعات واردة في الفترة.</td></tr>
     @endforelse
     </tbody>
 </table>
-@endif
 
-<h2>مصروفات الفترة</h2>
+<h2>دفعات صادرة</h2>
 <table class="data">
-    <thead><tr><th>الجهة</th><th>التاريخ</th><th>المبلغ</th></tr></thead>
+    <thead><tr><th>الاسم</th><th>التاريخ</th><th>المبلغ</th></tr></thead>
     <tbody>
-    @forelse($expenses as $e)
+    @forelse($outgoing as $p)
         <tr>
             <td>
-                {{ $e->description }}
-                @if(filled($e->notes))
-                    <div class="sub" style="white-space: pre-line;">{{ $e->notes }}</div>
+                {{ $p->name }}
+                @if(filled($p->notes))
+                    <div class="sub" style="white-space: pre-line;">{{ $p->notes }}</div>
                 @endif
             </td>
-            <td>{{ $e->expense_date->format('Y-m-d') }}</td>
-            <td class="amount">{{ $e->currency->format($e->amount) }}</td>
+            <td>{{ $p->occurred_on->format('Y-m-d') }}</td>
+            <td class="amount">{{ $p->currency->format($p->amount) }}</td>
         </tr>
     @empty
-        <tr><td colspan="3" class="empty">لا مصروفات في الفترة.</td></tr>
+        <tr><td colspan="3" class="empty">لا دفعات صادرة في الفترة.</td></tr>
     @endforelse
     </tbody>
 </table>

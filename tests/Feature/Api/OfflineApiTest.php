@@ -2,15 +2,15 @@
 
 namespace Tests\Feature\Api;
 
-use App\Enums\LoanDirection;
+use App\Enums\PaymentDirection;
 use App\Models\Client;
 use App\Models\Currency;
 use App\Models\FamilyMember;
 use App\Models\Fund;
 use App\Models\PaymentMethod;
 use App\Models\User;
+use App\Services\Finance\CashPaymentService;
 use App\Services\Finance\ClientWorkService;
-use App\Services\Finance\FamilyLoanService;
 use Database\Seeders\FinanceCatalogSeeder;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -66,18 +66,18 @@ class OfflineApiTest extends TestCase
             ->assertJsonStructure([
                 'catalog' => ['currencies', 'payment_methods', 'funds'],
                 'clients',
+                'persons',
                 'unpaid_services',
-                'family_members',
                 'balances',
             ]);
     }
 
-    public function test_client_payment_is_idempotent(): void
+    public function test_incoming_payment_is_idempotent(): void
     {
         Sanctum::actingAs($this->user);
 
         $client = Client::query()->create(['name' => 'محمد', 'is_active' => true]);
-        $service = app(ClientWorkService::class)->create([
+        app(ClientWorkService::class)->create([
             'client_id' => $client->id,
             'title' => 'إعلان',
             'amount' => 500,
@@ -88,36 +88,40 @@ class OfflineApiTest extends TestCase
         $operationId = (string) Str::uuid();
         $payload = [
             'operation_id' => $operationId,
+            'direction' => 'incoming',
+            'name' => 'محمد',
             'client_id' => $client->id,
             'amount' => 200,
             'currency_id' => $this->usd->id,
             'payment_method_id' => $this->cash->id,
-            'payment_date' => '2026-08-21',
-            'payer_name' => 'محمد',
+            'fund_id' => $this->business->id,
+            'occurred_on' => '2026-08-21',
         ];
 
-        $first = $this->postJson('/api/v1/payments', $payload);
+        $first = $this->postJson('/api/v1/cash-payments', $payload);
         $first->assertCreated()->assertJsonPath('replayed', false);
 
-        $second = $this->postJson('/api/v1/payments', $payload);
+        $second = $this->postJson('/api/v1/cash-payments', $payload);
         $second->assertOk()->assertJsonPath('replayed', true);
 
-        $this->assertDatabaseCount('client_payments', 1);
+        $this->assertDatabaseCount('cash_payments', 1);
     }
 
-    public function test_sync_push_expense_and_returns_snapshot(): void
+    public function test_sync_push_outgoing_and_returns_snapshot(): void
     {
         Sanctum::actingAs($this->user);
 
-        // Seed cash via family borrow so expense has balance
         $member = FamilyMember::query()->create(['name' => 'أحمد', 'is_active' => true]);
-        app(FamilyLoanService::class)->create([
-            'family_member_id' => $member->id,
-            'direction' => LoanDirection::Borrowed,
+        app(CashPaymentService::class)->record([
+            'direction' => PaymentDirection::Incoming,
+            'party_type' => 'person',
+            'party_id' => $member->id,
+            'name' => 'أحمد',
             'amount' => 1000,
             'currency_id' => $this->ils->id,
             'payment_method_id' => $this->cash->id,
-            'loan_date' => '2026-08-20',
+            'fund_id' => $this->family->id,
+            'occurred_on' => '2026-08-20',
         ]);
 
         $opId = (string) Str::uuid();
@@ -125,14 +129,14 @@ class OfflineApiTest extends TestCase
             'device_id' => 'phone-1',
             'operations' => [[
                 'operation_id' => $opId,
-                'type' => 'expense',
+                'type' => 'outgoing_payment',
                 'payload' => [
+                    'name' => 'مصروف يومي',
                     'fund_id' => $this->family->id,
-                    'description' => 'مصروف يومي',
                     'amount' => 50,
                     'currency_id' => $this->ils->id,
                     'payment_method_id' => $this->cash->id,
-                    'expense_date' => '2026-08-21',
+                    'occurred_on' => '2026-08-21',
                     'notes' => 'ملاحظة أوفلاين',
                 ],
             ]],
@@ -142,26 +146,28 @@ class OfflineApiTest extends TestCase
             ->assertJsonPath('results.0.status', 'completed')
             ->assertJsonStructure(['snapshot' => ['balances', 'catalog']]);
 
-        $this->assertDatabaseCount('expenses', 1);
-        $this->assertDatabaseHas('expenses', ['notes' => 'ملاحظة أوفلاين']);
+        $this->assertDatabaseCount('cash_payments', 2);
+        $this->assertDatabaseHas('cash_payments', ['notes' => 'ملاحظة أوفلاين']);
     }
 
-    public function test_family_loan_via_api(): void
+    public function test_person_incoming_via_api(): void
     {
         Sanctum::actingAs($this->user);
         $member = FamilyMember::query()->create(['name' => 'أحمد', 'is_active' => true]);
 
-        $this->postJson('/api/v1/family-loans', [
+        $this->postJson('/api/v1/cash-payments', [
             'operation_id' => (string) Str::uuid(),
-            'family_member_id' => $member->id,
-            'direction' => 'borrowed',
+            'direction' => 'incoming',
+            'name' => 'أحمد',
+            'person_id' => $member->id,
             'amount' => 300,
             'currency_id' => $this->ils->id,
             'payment_method_id' => $this->bank->id,
-            'loan_date' => '2026-08-21',
+            'fund_id' => $this->family->id,
+            'occurred_on' => '2026-08-21',
         ])->assertCreated();
 
-        $this->assertDatabaseCount('family_loans', 1);
+        $this->assertDatabaseCount('cash_payments', 1);
         $this->getJson('/api/v1/balances')->assertOk()->assertJsonPath('balances.grand.ILS', '300.00');
     }
 }

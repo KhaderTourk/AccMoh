@@ -1,15 +1,16 @@
 @extends('cp.layout')
-@section('title', 'الصناديق والأرصدة')
+@section('title', 'الأدراج والأرصدة')
 @section('content')
 <div class="space-y-6">
     <div class="overflow-x-auto rounded-2xl bg-white dark:bg-slate-800 border shadow-sm">
         <table class="w-full text-sm text-right">
             <thead class="bg-slate-50 dark:bg-slate-700/50">
                 <tr>
-                    <th class="px-4 py-3">الصندوق / الطريقة</th>
+                    <th class="px-4 py-3">الدرج / الطريقة</th>
                     @foreach($snapshot['currencies'] as $currency)
                         <th class="px-4 py-3">{{ $currency->name }} ({{ $currency->code }})</th>
                     @endforeach
+                    <th class="px-4 py-3"></th>
                 </tr>
             </thead>
             <tbody class="divide-y dark:divide-slate-700">
@@ -19,6 +20,10 @@
                         @foreach($snapshot['currencies'] as $currency)
                             <td class="px-4 py-3">{{ $currency->format($snapshot['fundTotals'][$fund->id][$currency->id] ?? 0) }}</td>
                         @endforeach
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <a href="{{ route('cp.payments.create', ['incoming', 'fund_id' => $fund->id]) }}" class="text-xs px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700">دفعة واردة</a>
+                            <a href="{{ route('cp.payments.create', ['outgoing', 'fund_id' => $fund->id]) }}" class="text-xs px-2 py-1 rounded-lg bg-rose-50 text-rose-700">دفعة صادرة</a>
+                        </td>
                     </tr>
                     @foreach($snapshot['methods'] as $method)
                     <tr>
@@ -26,6 +31,7 @@
                         @foreach($snapshot['currencies'] as $currency)
                             <td class="px-4 py-2">{{ $currency->format($snapshot['cells'][$fund->id][$method->id][$currency->id] ?? 0) }}</td>
                         @endforeach
+                        <td></td>
                     </tr>
                     @endforeach
                 @endforeach
@@ -34,6 +40,7 @@
                     @foreach($snapshot['currencies'] as $currency)
                         <td class="px-4 py-3">{{ $currency->format($snapshot['grand'][$currency->id] ?? 0) }}</td>
                     @endforeach
+                    <td></td>
                 </tr>
             </tbody>
         </table>
@@ -44,7 +51,7 @@
         <form method="post" action="{{ route('cp.balances.opening') }}" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3 items-end">
             @csrf
             <div>
-                <label class="text-xs text-slate-500">الصندوق</label>
+                <label class="text-xs text-slate-500">الدرج</label>
                 <select name="fund_id" required class="cp-input w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
                     @foreach($funds as $fund)<option value="{{ $fund->id }}">{{ $fund->name }}</option>@endforeach
                 </select>
@@ -58,7 +65,7 @@
             <div>
                 <label class="text-xs text-slate-500">العملة</label>
                 <select name="currency_id" required class="cp-input w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-                    @foreach($currencies as $c)<option value="{{ $c->id }}">{{ $c->code }}</option>@endforeach
+                    @foreach($currencies as $c)<option value="{{ $c->id }}">{{ $c->name }}</option>@endforeach
                 </select>
             </div>
             <div>

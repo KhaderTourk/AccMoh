@@ -17,9 +17,8 @@ class Permission extends Model
     public static function slugs(): array
     {
         return [
-            'settings', 'home', 'about', 'kanani', 'tamkeen', 'parasols',
-            'scholarships', 'partners', 'content', 'applications', 'newsletter',
-            'financial', 'financial_add', 'financial_review', 'financial_approve', 'users',
+            'finance',
+            'users',
         ];
     }
 }

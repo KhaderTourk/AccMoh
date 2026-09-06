@@ -6,11 +6,15 @@
         <div>
             <p class="text-xs text-slate-500">{{ $type->label() }}</p>
             <h2 class="text-2xl font-bold">{{ $vendor->name }}</h2>
-            <p class="text-slate-500 text-sm">{{ $vendor->phone }}</p>
+            <p class="text-slate-500 text-sm">
+                {{ $vendor->job_title ?: $vendor->work_description }}
+                @if($vendor->phone) · {{ $vendor->phone }} @endif
+            </p>
         </div>
         <div class="flex flex-wrap gap-2">
             <a href="{{ route('cp.vendor-charges.create', ['vendor_id' => $vendor->id]) }}" class="px-3 py-2 rounded-xl bg-primary text-white text-sm">{{ $type->chargeAction() }}</a>
-            <a href="{{ route('cp.expenses.create', ['vendor_id' => $vendor->id, 'fund_id' => $businessFundId]) }}" class="px-3 py-2 rounded-xl border text-sm">سداد</a>
+            <a href="{{ route('cp.payments.create', ['outgoing', 'vendor_id' => $vendor->id]) }}" class="px-3 py-2 rounded-xl bg-rose-600 text-white text-sm">دفعة صادرة</a>
+            <a href="{{ route('cp.'.$type->routePrefix().'.export-pdf', $vendor) }}" class="px-3 py-2 rounded-xl border text-sm">تصدير PDF</a>
             <a href="{{ route('cp.'.$type->routePrefix().'.edit', $vendor) }}" class="px-3 py-2 rounded-xl border text-sm">تعديل</a>
             <form method="post" action="{{ route('cp.'.$type->routePrefix().'.destroy', $vendor) }}" onsubmit="return confirm('حذف/أرشفة {{ $type->label() }}؟')">
                 @csrf @method('DELETE')
@@ -89,26 +93,41 @@
     <section class="space-y-3">
         <div class="flex items-center justify-between gap-3">
             <h3 class="font-bold text-lg">الدفعات</h3>
-            <a href="{{ route('cp.expenses.create', ['vendor_id' => $vendor->id, 'fund_id' => $businessFundId]) }}" class="text-sm text-primary">إضافة سداد</a>
+            <a href="{{ route('cp.payments.create', ['outgoing', 'vendor_id' => $vendor->id]) }}" class="text-sm text-primary">إضافة دفعة</a>
         </div>
         <div class="rounded-2xl border bg-white dark:bg-slate-800 overflow-hidden">
             <table class="w-full text-sm text-right">
                 <thead class="bg-slate-50 dark:bg-slate-700/40"><tr>
-                    <th class="px-3 py-2">الجهة</th><th class="px-3 py-2">المستلم</th><th class="px-3 py-2">التصنيف</th>
-                    <th class="px-3 py-2">المبلغ</th><th class="px-3 py-2">الطريقة</th><th class="px-3 py-2">التاريخ</th>
+                    <th class="px-3 py-2">الاسم</th><th class="px-3 py-2">المبلغ</th><th class="px-3 py-2">الدرج</th>
+                    <th class="px-3 py-2">الطريقة</th><th class="px-3 py-2">التاريخ</th><th class="px-3 py-2"></th>
                 </tr></thead>
                 <tbody class="divide-y dark:divide-slate-700">
-                @forelse($vendor->expenses as $e)
-                    <tr class="{{ $e->is_reversed ? 'opacity-40' : '' }}">
+                @forelse($vendor->cashPayments as $p)
+                    <tr class="{{ $p->is_reversed ? 'opacity-40' : $p->direction->rowClass() }}">
                         <td class="px-3 py-2">
-                            {{ $e->description }}
-                            @include('cp.partials.note-line', ['notes' => $e->notes])
+                            {{ $p->name }}
+                            @include('cp.partials.note-line', ['notes' => $p->notes])
                         </td>
-                        <td class="px-3 py-2">{{ $e->payee ?: '—' }}</td>
-                        <td class="px-3 py-2">{{ $e->category?->name ?: '—' }}</td>
-                        <td class="px-3 py-2">{{ $e->currency->format($e->amount) }}</td>
-                        <td class="px-3 py-2">{{ $e->paymentMethod->name }}</td>
-                        <td class="px-3 py-2">{{ $e->expense_date->format('Y-m-d') }}</td>
+                        <td class="px-3 py-2 font-bold {{ $p->direction->colorClass() }}">
+                            {{ $p->currency->format($p->amount) }}
+                            @if($p->isFx())
+                                <div class="text-xs font-normal text-slate-500">{{ $p->fxCurrency?->format($p->source_amount) }} × {{ $p->formattedExchangeRate() }}</div>
+                            @endif
+                        </td>
+                        <td class="px-3 py-2">{{ $p->fund->name }}</td>
+                        <td class="px-3 py-2">{{ $p->paymentMethod->name }}</td>
+                        <td class="px-3 py-2">{{ $p->occurred_on->format('Y-m-d') }}</td>
+                        <td class="px-3 py-2">
+                            @unless($p->is_reversed)
+                            <div class="flex items-center gap-1 justify-end">
+                                <a href="{{ route('cp.payments.edit', $p) }}" class="p-1" title="تعديل"><span class="material-symbols-outlined text-base">edit</span></a>
+                                <form method="post" action="{{ route('cp.payments.destroy', $p) }}" onsubmit="return confirm('حذف هذه الدفعة؟')">
+                                    @csrf @method('DELETE')
+                                    <button type="submit" class="p-1 text-rose-600" title="حذف"><span class="material-symbols-outlined text-base">delete</span></button>
+                                </form>
+                            </div>
+                            @endunless
+                        </td>
                     </tr>
                 @empty
                     <tr><td colspan="6" class="p-6 text-center text-slate-500">لا توجد دفعات.</td></tr>

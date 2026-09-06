@@ -2,15 +2,11 @@
 
 namespace App\Services\Finance;
 
-use App\Enums\ClientServiceStatus;
-use App\Enums\LoanDirection;
 use App\Exceptions\FinanceException;
+use App\Models\CashPayment;
 use App\Models\Client;
-use App\Models\ClientPayment;
 use App\Models\ClientService;
 use App\Models\Currency;
-use App\Models\FamilyLoan;
-use App\Models\FamilyMember;
 use App\Models\Fund;
 use App\Models\LedgerEntry;
 use App\Models\PaymentMethod;
@@ -125,9 +121,11 @@ class BalanceService
             ->groupBy('currency_id')
             ->pluck('total', 'currency_id');
 
-        $paid = ClientPayment::query()
+        $paid = CashPayment::query()
+            ->incoming()
             ->active()
-            ->when($clientId, fn ($q) => $q->where('client_id', $clientId))
+            ->when($clientId, fn ($q) => $q->where('party_type', 'client')->where('party_id', $clientId))
+            ->when(! $clientId, fn ($q) => $q->where('party_type', 'client'))
             ->selectRaw('currency_id, SUM(amount) as total')
             ->groupBy('currency_id')
             ->pluck('total', 'currency_id');
@@ -143,22 +141,29 @@ class BalanceService
     /**
      * @return array<int, string>
      */
-    public function familyBalance(LoanDirection $direction, ?int $memberId = null): array
+    public function personNet(?int $personId = null): array
     {
-        $loans = FamilyLoan::query()
+        $incoming = CashPayment::query()
+            ->incoming()
             ->active()
-            ->where('direction', $direction)
-            ->when($memberId, fn ($q) => $q->where('family_member_id', $memberId))
-            ->with('repaymentItems.repayment')
-            ->get();
+            ->where('party_type', 'person')
+            ->when($personId, fn ($q) => $q->where('party_id', $personId))
+            ->selectRaw('currency_id, SUM(amount) as total')
+            ->groupBy('currency_id')
+            ->pluck('total', 'currency_id');
+
+        $outgoing = CashPayment::query()
+            ->outgoing()
+            ->active()
+            ->where('party_type', 'person')
+            ->when($personId, fn ($q) => $q->where('party_id', $personId))
+            ->selectRaw('currency_id, SUM(amount) as total')
+            ->groupBy('currency_id')
+            ->pluck('total', 'currency_id');
 
         $out = [];
         foreach (Currency::query()->active()->pluck('id') as $currencyId) {
-            $out[$currencyId] = '0.00';
-        }
-
-        foreach ($loans as $loan) {
-            $out[$loan->currency_id] = Money::add($out[$loan->currency_id] ?? '0', $loan->remainingAmount());
+            $out[$currencyId] = Money::sub($incoming[$currencyId] ?? '0', $outgoing[$currencyId] ?? '0');
         }
 
         return $out;
@@ -190,10 +195,12 @@ class BalanceService
 
     public function topPayingClients(int $limit = 5): Collection
     {
-        $rows = ClientPayment::query()
+        $rows = CashPayment::query()
+            ->incoming()
             ->active()
-            ->selectRaw('client_id, currency_id, SUM(amount) as total')
-            ->groupBy('client_id', 'currency_id')
+            ->where('party_type', 'client')
+            ->selectRaw('party_id as client_id, currency_id, SUM(amount) as total')
+            ->groupBy('party_id', 'currency_id')
             ->get()
             ->groupBy('client_id');
 

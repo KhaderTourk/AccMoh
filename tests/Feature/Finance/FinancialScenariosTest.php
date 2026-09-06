@@ -2,23 +2,22 @@
 
 namespace Tests\Feature\Finance;
 
-use App\Enums\LoanDirection;
+use App\Enums\PaymentDirection;
 use App\Enums\VendorType;
+use App\Models\CashPayment;
 use App\Models\Client;
 use App\Models\Currency;
 use App\Models\FamilyMember;
 use App\Models\Fund;
 use App\Models\PaymentMethod;
+use App\Models\Person;
 use App\Models\ServiceType;
 use App\Models\Vendor;
 use App\Services\Finance\AdjustmentService;
 use App\Services\Finance\BalanceService;
-use App\Services\Finance\ClientPaymentService;
+use App\Services\Finance\CashPaymentService;
 use App\Services\Finance\ClientWorkService;
-use App\Services\Finance\ExpenseService;
-use App\Services\Finance\FamilyLoanService;
 use App\Services\Finance\FundTransferService;
-use App\Services\Finance\LoanRepaymentService;
 use App\Services\Finance\ProfitService;
 use App\Services\Finance\VendorChargeService;
 use App\Support\Money;
@@ -52,39 +51,62 @@ class FinancialScenariosTest extends TestCase
         $this->business = Fund::business();
     }
 
-    public function test_scenario_1_borrow_1000_ils_cash_from_ahmed(): void
+    protected function pay(array $data): CashPayment
+    {
+        if (isset($data['client_id'])) {
+            $data['party_type'] = 'client';
+            $data['party_id'] = $data['client_id'];
+            $data['name'] = $data['name'] ?? Client::query()->find($data['client_id'])?->name;
+        }
+        if (isset($data['person_id']) || isset($data['family_member_id'])) {
+            $id = $data['person_id'] ?? $data['family_member_id'];
+            $data['party_type'] = 'person';
+            $data['party_id'] = $id;
+            $data['name'] = $data['name'] ?? Person::query()->find($id)?->name;
+        }
+        if (isset($data['vendor_id'])) {
+            $data['party_type'] = 'vendor';
+            $data['party_id'] = $data['vendor_id'];
+            $data['name'] = $data['name'] ?? Vendor::query()->find($data['vendor_id'])?->name;
+        }
+
+        return app(CashPaymentService::class)->record($data);
+    }
+
+    public function test_scenario_1_incoming_1000_ils_cash_from_ahmed(): void
     {
         $ahmed = FamilyMember::query()->create(['name' => 'أحمد', 'is_active' => true]);
 
-        app(FamilyLoanService::class)->create([
+        $this->pay([
+            'direction' => PaymentDirection::Incoming,
             'family_member_id' => $ahmed->id,
-            'direction' => LoanDirection::Borrowed,
             'amount' => 1000,
             'currency_id' => $this->ils->id,
             'payment_method_id' => $this->cash->id,
-            'loan_date' => '2026-08-20',
+            'fund_id' => $this->family->id,
+            'occurred_on' => '2026-08-20',
             'notes' => 'قرض شخصي',
         ]);
 
         $balances = app(BalanceService::class);
         $this->assertSame('1000.00', $balances->cash($this->family->id, $this->cash->id, $this->ils->id));
-        $this->assertSame('1000.00', $ahmed->fresh()->iOweAmount($this->ils->id));
-        $this->assertSame('قرض شخصي', $ahmed->loans()->first()->notes);
+        $this->assertSame('1000.00', $ahmed->fresh()->incomingAmount($this->ils->id));
+        $this->assertSame('قرض شخصي', $ahmed->cashPayments()->first()->notes);
     }
 
-    public function test_scenario_2_repay_ahmed_400_from_bank_after_transfer(): void
+    public function test_scenario_2_outgoing_400_from_bank_after_transfer(): void
     {
         $ahmed = FamilyMember::query()->create(['name' => 'أحمد', 'is_active' => true]);
-        $loanService = app(FamilyLoanService::class);
         $balances = app(BalanceService::class);
 
-        $loan = $loanService->create([
+        $this->pay([
+            'direction' => PaymentDirection::Incoming,
             'family_member_id' => $ahmed->id,
-            'direction' => LoanDirection::Borrowed,
             'amount' => 1000,
             'currency_id' => $this->ils->id,
             'payment_method_id' => $this->cash->id,
-            'loan_date' => '2026-08-20',
+            'fund_id' => $this->family->id,
+            'occurred_on' => '2026-08-20',
         ]);
 
         app(FundTransferService::class)->transfer([
@@ -97,21 +119,19 @@ class FinancialScenariosTest extends TestCase
             'transfer_date' => '2026-08-21',
         ]);
 
-        app(LoanRepaymentService::class)->repay([
+        $this->pay([
+            'direction' => PaymentDirection::Outgoing,
             'family_member_id' => $ahmed->id,
-            'direction' => LoanDirection::Borrowed,
             'amount' => 400,
             'currency_id' => $this->ils->id,
             'payment_method_id' => $this->bank->id,
-            'repayment_date' => '2026-08-22',
-        ], [
-            ['family_loan_id' => $loan->id, 'amount' => 400],
+            'fund_id' => $this->family->id,
+            'occurred_on' => '2026-08-22',
         ]);
 
         $this->assertSame('600.00', $balances->cash($this->family->id, $this->cash->id, $this->ils->id));
         $this->assertSame('0.00', $balances->cash($this->family->id, $this->bank->id, $this->ils->id));
-        $this->assertSame('600.00', $loan->fresh()->remainingAmount());
-        $this->assertSame('600.00', $ahmed->fresh()->iOweAmount($this->ils->id));
+        $this->assertSame('600.00', $ahmed->fresh()->netAmount($this->ils->id));
     }
 
     public function test_scenario_3_client_service_creates_receivable_not_cash(): void
@@ -137,7 +157,7 @@ class FinancialScenariosTest extends TestCase
     public function test_scenario_4_client_pays_200_via_palpay(): void
     {
         $client = Client::query()->create(['name' => 'محمد', 'is_active' => true]);
-        $service = app(ClientWorkService::class)->create([
+        app(ClientWorkService::class)->create([
             'client_id' => $client->id,
             'title' => 'إعلان ممول',
             'amount' => 500,
@@ -145,13 +165,14 @@ class FinancialScenariosTest extends TestCase
             'service_date' => '2026-08-20',
         ]);
 
-        app(ClientPaymentService::class)->receive([
+        $this->pay([
+            'direction' => PaymentDirection::Incoming,
             'client_id' => $client->id,
             'amount' => 200,
             'currency_id' => $this->usd->id,
             'payment_method_id' => $this->palpay->id,
-            'payer_name' => 'محمد',
-            'payment_date' => '2026-08-21',
+            'fund_id' => $this->business->id,
+            'occurred_on' => '2026-08-21',
         ]);
 
         $balances = app(BalanceService::class);
@@ -171,7 +192,7 @@ class FinancialScenariosTest extends TestCase
             'currency_id' => $this->usd->id,
             'service_date' => '2026-08-20',
         ]);
-        $design = $work->create([
+        $work->create([
             'client_id' => $client->id,
             'title' => 'تصميم',
             'amount' => 100,
@@ -179,13 +200,14 @@ class FinancialScenariosTest extends TestCase
             'service_date' => '2026-08-20',
         ]);
 
-        $payment = app(ClientPaymentService::class)->receive([
+        $payment = $this->pay([
+            'direction' => PaymentDirection::Incoming,
             'client_id' => $client->id,
             'amount' => 300,
             'currency_id' => $this->usd->id,
             'payment_method_id' => $this->bank->id,
-            'payer_name' => 'محمد',
-            'payment_date' => '2026-08-22',
+            'fund_id' => $this->business->id,
+            'occurred_on' => '2026-08-22',
         ]);
 
         $this->assertSame('300.00', Money::of($payment->amount));
@@ -193,13 +215,14 @@ class FinancialScenariosTest extends TestCase
         $this->assertSame('300.00', $client->fresh()->paidAmount($this->usd->id));
         $this->assertSame('100.00', $client->fresh()->outstandingAmount($this->usd->id));
 
-        app(ClientPaymentService::class)->receive([
+        $this->pay([
+            'direction' => PaymentDirection::Incoming,
             'client_id' => $client->id,
             'amount' => 150,
             'currency_id' => $this->usd->id,
             'payment_method_id' => $this->bank->id,
-            'payer_name' => 'محمد',
-            'payment_date' => '2026-08-23',
+            'fund_id' => $this->business->id,
+            'occurred_on' => '2026-08-23',
         ]);
 
         $this->assertSame('450.00', $client->fresh()->paidAmount($this->usd->id));
@@ -218,13 +241,14 @@ class FinancialScenariosTest extends TestCase
             'service_date' => '2026-08-20',
         ]);
 
-        app(ClientPaymentService::class)->receive([
+        $this->pay([
+            'direction' => PaymentDirection::Incoming,
             'client_id' => $client->id,
             'amount' => 200,
             'currency_id' => $this->usd->id,
             'payment_method_id' => $this->cash->id,
-            'payer_name' => 'محمد',
-            'payment_date' => '2026-08-21',
+            'fund_id' => $this->business->id,
+            'occurred_on' => '2026-08-21',
         ]);
 
         $updated = $work->update($service, [
@@ -244,13 +268,14 @@ class FinancialScenariosTest extends TestCase
     {
         $client = Client::query()->create(['name' => 'محمد', 'is_active' => true]);
 
-        $payment = app(ClientPaymentService::class)->receive([
+        $payment = $this->pay([
+            'direction' => PaymentDirection::Incoming,
             'client_id' => $client->id,
             'amount' => 150,
             'currency_id' => $this->ils->id,
             'payment_method_id' => $this->cash->id,
-            'payer_name' => 'محمد',
-            'payment_date' => '2026-08-21',
+            'fund_id' => $this->business->id,
+            'occurred_on' => '2026-08-21',
         ]);
 
         $this->assertSame('150.00', Money::of($payment->amount));
@@ -281,15 +306,16 @@ class FinancialScenariosTest extends TestCase
     public function test_usd_payment_posts_ils_cash(): void
     {
         $client = Client::query()->create(['name' => 'محمد', 'is_active' => true]);
-        $payment = app(ClientPaymentService::class)->receive([
+        $payment = $this->pay([
+            'direction' => PaymentDirection::Incoming,
             'client_id' => $client->id,
             'source_amount' => 50,
             'exchange_rate' => '3.65',
             'fx_currency_id' => $this->usd->id,
-            'currency_id' => $this->ils->id,
+            'currency_id' => $this->usd->id,
             'payment_method_id' => $this->cash->id,
-            'payer_name' => 'محمد',
-            'payment_date' => '2026-08-21',
+            'fund_id' => $this->business->id,
+            'occurred_on' => '2026-08-21',
         ]);
 
         $this->assertSame('182.50', Money::of($payment->amount));
@@ -301,13 +327,14 @@ class FinancialScenariosTest extends TestCase
     public function test_scenario_6_transfer_cash_to_bank_preserves_fund_total(): void
     {
         $ahmed = FamilyMember::query()->create(['name' => 'أحمد', 'is_active' => true]);
-        app(FamilyLoanService::class)->create([
+        $this->pay([
+            'direction' => PaymentDirection::Incoming,
             'family_member_id' => $ahmed->id,
-            'direction' => LoanDirection::Borrowed,
             'amount' => 1000,
             'currency_id' => $this->ils->id,
             'payment_method_id' => $this->cash->id,
-            'loan_date' => '2026-08-20',
+            'fund_id' => $this->family->id,
+            'occurred_on' => '2026-08-20',
         ]);
 
         $balances = app(BalanceService::class);
@@ -328,28 +355,28 @@ class FinancialScenariosTest extends TestCase
         $this->assertSame($before, $balances->fundCash($this->family->id, $this->ils->id));
     }
 
-    public function test_loan_fx_converts_usd_to_ils(): void
+    public function test_person_fx_converts_usd_to_ils(): void
     {
         $member = FamilyMember::query()->create(['name' => 'أحمد', 'is_active' => true]);
 
-        $loan = app(FamilyLoanService::class)->create([
+        $payment = $this->pay([
+            'direction' => PaymentDirection::Incoming,
             'family_member_id' => $member->id,
-            'direction' => LoanDirection::Borrowed,
             'source_amount' => 100,
             'exchange_rate' => '3.65',
-            'fx_currency_id' => $this->usd->id,
-            'currency_id' => $this->ils->id,
+            'currency_id' => $this->usd->id,
             'payment_method_id' => $this->cash->id,
-            'loan_date' => '2026-08-20',
+            'fund_id' => $this->family->id,
+            'occurred_on' => '2026-08-20',
         ]);
 
-        $this->assertSame('365.00', Money::of($loan->amount));
-        $this->assertTrue($loan->isFx());
+        $this->assertSame('365.00', Money::of($payment->amount));
+        $this->assertTrue($payment->isFx());
         $this->assertSame('365.00', app(BalanceService::class)->cash($this->family->id, $this->cash->id, $this->ils->id));
-        $this->assertSame('365.00', $member->fresh()->iOweAmount($this->ils->id));
+        $this->assertSame('365.00', $member->fresh()->incomingAmount($this->ils->id));
     }
 
-    public function test_worker_expense_and_period_profit(): void
+    public function test_worker_outgoing_and_period_profit(): void
     {
         $client = Client::query()->create(['name' => 'عميل', 'is_active' => true]);
         app(ClientWorkService::class)->create([
@@ -359,13 +386,14 @@ class FinancialScenariosTest extends TestCase
             'currency_id' => $this->ils->id,
             'service_date' => '2026-08-10',
         ]);
-        app(ClientPaymentService::class)->receive([
+        $this->pay([
+            'direction' => PaymentDirection::Incoming,
             'client_id' => $client->id,
             'amount' => 500,
             'currency_id' => $this->ils->id,
             'payment_method_id' => $this->cash->id,
-            'payer_name' => 'عميل',
-            'payment_date' => '2026-08-15',
+            'fund_id' => $this->business->id,
+            'occurred_on' => '2026-08-15',
         ]);
 
         $worker = Vendor::query()->create([
@@ -374,15 +402,14 @@ class FinancialScenariosTest extends TestCase
             'is_active' => true,
         ]);
 
-        app(ExpenseService::class)->record([
-            'fund_id' => $this->business->id,
+        $this->pay([
+            'direction' => PaymentDirection::Outgoing,
             'vendor_id' => $worker->id,
-            'description' => 'عامل 1',
             'amount' => 100,
             'currency_id' => $this->ils->id,
             'payment_method_id' => $this->cash->id,
-            'expense_date' => '2026-08-16',
-            'payee' => 'عامل 1',
+            'fund_id' => $this->business->id,
+            'occurred_on' => '2026-08-16',
         ]);
 
         $rows = collect(app(ProfitService::class)->forPeriod('2026-08-01', '2026-08-31'));
@@ -426,15 +453,14 @@ class FinancialScenariosTest extends TestCase
             'occurred_on' => '2026-08-01',
         ]);
 
-        app(ExpenseService::class)->record([
-            'fund_id' => $this->business->id,
+        $this->pay([
+            'direction' => PaymentDirection::Outgoing,
             'vendor_id' => $supplier->id,
-            'description' => 'سداد مطبعة',
             'amount' => 150,
             'currency_id' => $this->ils->id,
             'payment_method_id' => $this->cash->id,
-            'expense_date' => '2026-08-12',
-            'payee' => 'مطبعة',
+            'fund_id' => $this->business->id,
+            'occurred_on' => '2026-08-12',
         ]);
 
         $supplier = $supplier->fresh();
@@ -462,32 +488,63 @@ class FinancialScenariosTest extends TestCase
         $this->assertSame('2000.00', $employee->fresh()->outstandingAmount($this->ils->id));
     }
 
-    public function test_expense_notes_are_saved_on_expense_and_ledger(): void
+    public function test_outgoing_notes_are_saved_on_payment_and_ledger(): void
     {
         $ahmed = FamilyMember::query()->create(['name' => 'أحمد', 'is_active' => true]);
-        app(FamilyLoanService::class)->create([
+        $this->pay([
+            'direction' => PaymentDirection::Incoming,
             'family_member_id' => $ahmed->id,
-            'direction' => LoanDirection::Borrowed,
             'amount' => 1000,
             'currency_id' => $this->ils->id,
             'payment_method_id' => $this->cash->id,
-            'loan_date' => '2026-08-20',
+            'fund_id' => $this->family->id,
+            'occurred_on' => '2026-08-20',
         ]);
 
-        $expense = app(ExpenseService::class)->record([
-            'fund_id' => $this->family->id,
-            'description' => 'خضار',
+        $payment = $this->pay([
+            'direction' => PaymentDirection::Outgoing,
+            'name' => 'خضار',
             'amount' => 50,
             'currency_id' => $this->ils->id,
             'payment_method_id' => $this->cash->id,
-            'expense_date' => '2026-08-21',
+            'fund_id' => $this->family->id,
+            'occurred_on' => '2026-08-21',
             'notes' => 'من السوق المركزي',
         ]);
 
-        $this->assertSame('من السوق المركزي', $expense->fresh()->notes);
+        $this->assertSame('من السوق المركزي', $payment->fresh()->notes);
         $this->assertDatabaseHas('ledger_entries', [
-            'description' => 'خضار',
             'notes' => 'من السوق المركزي',
         ]);
+    }
+
+    public function test_updating_cash_payment_reverses_then_reposts(): void
+    {
+        $ahmed = FamilyMember::query()->create(['name' => 'أحمد', 'is_active' => true]);
+        $payment = $this->pay([
+            'direction' => PaymentDirection::Incoming,
+            'family_member_id' => $ahmed->id,
+            'amount' => 1000,
+            'currency_id' => $this->ils->id,
+            'payment_method_id' => $this->cash->id,
+            'fund_id' => $this->family->id,
+            'occurred_on' => '2026-08-20',
+        ]);
+
+        $updated = app(CashPaymentService::class)->update($payment, [
+            'direction' => PaymentDirection::Incoming,
+            'name' => 'أحمد',
+            'party_type' => 'person',
+            'party_id' => $ahmed->id,
+            'amount' => 800,
+            'currency_id' => $this->ils->id,
+            'payment_method_id' => $this->cash->id,
+            'fund_id' => $this->family->id,
+            'occurred_on' => '2026-08-20',
+        ]);
+
+        $this->assertTrue($payment->fresh()->is_reversed);
+        $this->assertSame('800.00', Money::of($updated->amount));
+        $this->assertSame('800.00', app(BalanceService::class)->cash($this->family->id, $this->cash->id, $this->ils->id));
     }
 }

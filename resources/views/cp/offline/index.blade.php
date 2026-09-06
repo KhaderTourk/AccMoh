@@ -8,7 +8,6 @@
     x-init="init()"
     class="space-y-6"
 >
-    {{-- Status bar --}}
     <div class="rounded-2xl border bg-white dark:bg-slate-800 p-4 flex flex-col lg:flex-row lg:items-center gap-3 justify-between">
         <div class="flex items-center gap-3 flex-wrap">
             <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium"
@@ -32,7 +31,6 @@
     <p class="text-sm text-slate-500" x-show="message" x-text="message"
        :class="messageError ? 'text-rose-600' : 'text-emerald-600'"></p>
 
-    {{-- Balances --}}
     <section class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div class="rounded-2xl bg-slate-900 text-white p-5">
             <p class="text-sm text-slate-300 mb-2">الرصيد المحلي (تقريبي)</p>
@@ -52,7 +50,6 @@
         </template>
     </section>
 
-    {{-- Tabs --}}
     <div class="flex flex-wrap gap-2">
         <template x-for="t in tabs" :key="t.id">
             <button type="button" @click="tab = t.id"
@@ -62,241 +59,72 @@
         </template>
     </div>
 
-    {{-- Payment --}}
-    <form x-show="tab === 'payment'" @submit.prevent="submitPayment()" class="rounded-2xl border bg-white dark:bg-slate-800 p-6 space-y-4 max-w-3xl">
-        <h3 class="font-bold">استلام دفعة عميل</h3>
+    <form @submit.prevent="submitPayment()" class="rounded-2xl border bg-white dark:bg-slate-800 p-6 space-y-4 max-w-3xl">
+        <h3 class="font-bold" x-text="tab === 'outgoing' ? 'دفعة صادرة' : 'دفعة واردة'"></h3>
         <div class="grid md:grid-cols-2 gap-3">
             <div>
-                <label class="text-xs">العميل</label>
-                <select x-model="payment.client_id" @change="onClientChange()" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-                    <option value="">اختر</option>
-                    <template x-for="c in (snapshot?.clients || [])" :key="c.id">
-                        <option :value="c.id" x-text="c.name"></option>
-                    </template>
-                </select>
+                <label class="text-xs">التاريخ *</label>
+                <input type="date" x-model="form.occurred_on" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
             </div>
             <div>
-                <label class="text-xs">العملة</label>
-                <select x-model="payment.currency_id" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-                    <template x-for="c in (snapshot?.catalog?.currencies || [])" :key="c.id">
-                        <option :value="c.id" x-text="c.code + ' — ' + c.name"></option>
-                    </template>
-                </select>
+                <label class="text-xs">الاسم *</label>
+                <input type="text" x-model="form.name" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
             </div>
             <div>
-                <label class="text-xs">المبلغ</label>
-                <input type="number" step="0.01" min="0.01" x-model="payment.amount" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-            </div>
-            <div>
-                <label class="text-xs">طريقة الدفع</label>
-                <select x-model="payment.payment_method_id" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-                    <template x-for="m in (snapshot?.catalog?.payment_methods || [])" :key="m.id">
-                        <option :value="m.id" x-text="m.name"></option>
-                    </template>
-                </select>
-            </div>
-            <div>
-                <label class="text-xs">التاريخ</label>
-                <input type="date" x-model="payment.payment_date" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-            </div>
-            <div>
-                <label class="text-xs">المرسل</label>
-                <input type="text" x-model="payment.payer_name" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-            </div>
-            <div class="md:col-span-2">
-                <label class="text-xs">ملاحظة</label>
-                <textarea x-model="payment.notes" rows="2" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700"></textarea>
-            </div>
-        </div>
-        <div class="rounded-xl border border-dashed p-4 space-y-2">
-            <p class="font-medium text-sm">المستحق على العميل</p>
-            <p class="text-lg font-extrabold text-amber-600 dark:text-amber-300" x-text="clientDueFormatted()"></p>
-            <p class="text-sm text-slate-500" x-show="payment.client_id && clientDue() <= 0 && clientDue() >= 0">لا يوجد مستحق حالياً — يمكن تسجيل عربون قبل تقديم الخدمة.</p>
-        <p class="text-sm text-emerald-600" x-show="payment.client_id && clientDue() < 0" x-text="'عربون / رصيد مدفوع مقدماً: ' + Math.abs(clientDue()).toFixed(2)"></p>
-            <p class="text-xs text-slate-500">تُخصم الدفعة من إجمالي المستحق على العميل، وليس من خدمة بعينها.</p>
-        </div>
-        <button class="px-5 py-2 rounded-xl bg-primary text-white" :disabled="busy">حفظ (محلي / مزامنة)</button>
-    </form>
-
-    {{-- Expense --}}
-    <form x-show="tab === 'expense'" @submit.prevent="submitExpense()" class="rounded-2xl border bg-white dark:bg-slate-800 p-6 space-y-4 max-w-3xl">
-        <h3 class="font-bold">إضافة مصروف</h3>
-        <div class="grid md:grid-cols-2 gap-3">
-            <div>
-                <label class="text-xs">الصندوق</label>
-                <select x-model="expense.fund_id" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
+                <label class="text-xs">الدرج *</label>
+                <select x-model="form.fund_id" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
                     <template x-for="f in (snapshot?.catalog?.funds || [])" :key="f.id">
                         <option :value="f.id" x-text="f.name"></option>
                     </template>
                 </select>
             </div>
             <div>
-                <label class="text-xs">التصنيف</label>
-                <select x-model="expense.expense_category_id" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-                    <option value="">—</option>
-                    <template x-for="c in (snapshot?.catalog?.expense_categories || [])" :key="c.id">
+                <label class="text-xs">طريقة الدفع *</label>
+                <select x-model="form.payment_method_id" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
+                    <template x-for="m in (snapshot?.catalog?.payment_methods || [])" :key="m.id">
+                        <option :value="m.id" x-text="m.name"></option>
+                    </template>
+                </select>
+            </div>
+            <div>
+                <label class="text-xs">العملة *</label>
+                <select x-model="form.currency_id" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
+                    <template x-for="c in (snapshot?.catalog?.currencies || [])" :key="c.id">
                         <option :value="c.id" x-text="c.name"></option>
                     </template>
                 </select>
             </div>
-            <div class="md:col-span-2">
-                <label class="text-xs">الوصف</label>
-                <input type="text" x-model="expense.description" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
+            <div>
+                <label class="text-xs">المبلغ *</label>
+                <input type="number" step="0.01" min="0.01" x-model="form.amount" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
             </div>
             <div>
-                <label class="text-xs">المبلغ</label>
-                <input type="number" step="0.01" min="0.01" x-model="expense.amount" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
+                <label class="text-xs">اسم صاحب الحساب</label>
+                <input type="text" x-model="form.account_holder_name" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
             </div>
             <div>
-                <label class="text-xs">العملة</label>
-                <select x-model="expense.currency_id" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-                    <template x-for="c in (snapshot?.catalog?.currencies || [])" :key="c.id">
-                        <option :value="c.id" x-text="c.code"></option>
+                <label class="text-xs">ربط بطرف</label>
+                <select x-model="form.party_key" @change="onPartyChange()" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
+                    <option value="">اسم حر</option>
+                    <template x-for="c in (snapshot?.clients || [])" :key="'c'+c.id">
+                        <option :value="'client:'+c.id" x-text="'زبون: ' + c.name"></option>
+                    </template>
+                    <template x-for="p in (snapshot?.persons || [])" :key="'p'+p.id">
+                        <option :value="'person:'+p.id" x-text="'شخص: ' + p.name"></option>
+                    </template>
+                    <template x-for="v in (snapshot?.vendors || [])" :key="'v'+v.id">
+                        <option :value="'vendor:'+v.id" x-text="v.name"></option>
                     </template>
                 </select>
-            </div>
-            <div>
-                <label class="text-xs">طريقة الدفع</label>
-                <select x-model="expense.payment_method_id" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-                    <template x-for="m in (snapshot?.catalog?.payment_methods || [])" :key="m.id">
-                        <option :value="m.id" x-text="m.name"></option>
-                    </template>
-                </select>
-            </div>
-            <div>
-                <label class="text-xs">التاريخ</label>
-                <input type="date" x-model="expense.expense_date" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
             </div>
             <div class="md:col-span-2">
                 <label class="text-xs">ملاحظة</label>
-                <textarea x-model="expense.notes" rows="2" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700"></textarea>
+                <textarea x-model="form.notes" rows="2" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700"></textarea>
             </div>
         </div>
-        <button class="px-5 py-2 rounded-xl bg-primary text-white" :disabled="busy">حفظ</button>
+        <button class="px-5 py-2 rounded-xl bg-primary text-white" :disabled="busy">حفظ (محلي / مزامنة)</button>
     </form>
 
-    {{-- Loan --}}
-    <form x-show="tab === 'loan'" @submit.prevent="submitLoan()" class="rounded-2xl border bg-white dark:bg-slate-800 p-6 space-y-4 max-w-3xl">
-        <h3 class="font-bold">تسجيل مدين أو دائن</h3>
-        <div class="grid md:grid-cols-2 gap-3">
-            <div>
-                <label class="text-xs">الفرد</label>
-                <select x-model="loan.family_member_id" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-                    <option value="">اختر</option>
-                    <template x-for="m in (snapshot?.family_members || [])" :key="m.id">
-                        <option :value="m.id" x-text="m.name"></option>
-                    </template>
-                </select>
-            </div>
-            <div>
-                <label class="text-xs">النوع</label>
-                <select x-model="loan.direction" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-                    <option value="borrowed">دائن (أخذت منه)</option>
-                    <option value="lent">مدين (أعطيته)</option>
-                </select>
-            </div>
-            <div>
-                <label class="text-xs">المبلغ</label>
-                <input type="number" step="0.01" min="0.01" x-model="loan.amount" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-            </div>
-            <div>
-                <label class="text-xs">العملة</label>
-                <select x-model="loan.currency_id" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-                    <template x-for="c in (snapshot?.catalog?.currencies || [])" :key="c.id">
-                        <option :value="c.id" x-text="c.code"></option>
-                    </template>
-                </select>
-            </div>
-            <div>
-                <label class="text-xs">طريقة الدفع</label>
-                <select x-model="loan.payment_method_id" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-                    <template x-for="m in (snapshot?.catalog?.payment_methods || [])" :key="m.id">
-                        <option :value="m.id" x-text="m.name"></option>
-                    </template>
-                </select>
-            </div>
-            <div>
-                <label class="text-xs">التاريخ</label>
-                <input type="date" x-model="loan.loan_date" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-            </div>
-            <div class="md:col-span-2">
-                <label class="text-xs">ملاحظة</label>
-                <textarea x-model="loan.notes" rows="2" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700"></textarea>
-            </div>
-        </div>
-        <button class="px-5 py-2 rounded-xl bg-primary text-white" :disabled="busy">حفظ</button>
-    </form>
-
-    {{-- Repay --}}
-    <form x-show="tab === 'repay'" @submit.prevent="submitRepay()" class="rounded-2xl border bg-white dark:bg-slate-800 p-6 space-y-4 max-w-3xl">
-        <h3 class="font-bold">تسوية دائن أو مدين</h3>
-        <div class="grid md:grid-cols-2 gap-3">
-            <div>
-                <label class="text-xs">الفرد</label>
-                <select x-model="repay.family_member_id" @change="filterLoans()" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-                    <option value="">اختر</option>
-                    <template x-for="m in (snapshot?.family_members || [])" :key="m.id">
-                        <option :value="m.id" x-text="m.name"></option>
-                    </template>
-                </select>
-            </div>
-            <div>
-                <label class="text-xs">النوع</label>
-                <select x-model="repay.direction" @change="filterLoans()" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-                    <option value="borrowed">تسوية دائن (أرجّع له)</option>
-                    <option value="lent">تسوية مدين (يسترجع لي)</option>
-                </select>
-            </div>
-            <div>
-                <label class="text-xs">المبلغ</label>
-                <input type="number" step="0.01" min="0.01" x-model="repay.amount" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-            </div>
-            <div>
-                <label class="text-xs">العملة</label>
-                <select x-model="repay.currency_id" @change="filterLoans()" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-                    <template x-for="c in (snapshot?.catalog?.currencies || [])" :key="c.id">
-                        <option :value="c.id" x-text="c.code"></option>
-                    </template>
-                </select>
-            </div>
-            <div>
-                <label class="text-xs">طريقة الدفع</label>
-                <select x-model="repay.payment_method_id" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-                    <template x-for="m in (snapshot?.catalog?.payment_methods || [])" :key="m.id">
-                        <option :value="m.id" x-text="m.name"></option>
-                    </template>
-                </select>
-            </div>
-            <div>
-                <label class="text-xs">التاريخ</label>
-                <input type="date" x-model="repay.repayment_date" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-            </div>
-            <div class="md:col-span-2">
-                <label class="text-xs">ملاحظة</label>
-                <textarea x-model="repay.notes" rows="2" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700"></textarea>
-            </div>
-        </div>
-        <div class="rounded-xl border border-dashed p-4 space-y-2">
-            <div class="flex justify-between">
-                <p class="text-sm font-medium">توزيع على الحركات</p>
-                <button type="button" class="text-sm text-primary" @click="autoAllocateLoans()">توزيع تلقائي</button>
-            </div>
-            <template x-for="l in repayLoans" :key="l.id">
-                <div class="grid grid-cols-12 gap-2 text-sm items-center">
-                    <div class="col-span-7">
-                        <div x-text="l.loan_date + ' — متبقي ' + l.remaining"></div>
-                        <p class="text-xs text-slate-500 whitespace-pre-line" x-show="l.notes" x-text="l.notes"></p>
-                    </div>
-                    <div class="col-span-5">
-                        <input type="number" step="0.01" min="0" x-model="l.allocate" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-                    </div>
-                </div>
-            </template>
-        </div>
-        <button class="px-5 py-2 rounded-xl bg-primary text-white" :disabled="busy">حفظ</button>
-    </form>
-
-    {{-- Outbox --}}
     <section class="rounded-2xl border bg-white dark:bg-slate-800 overflow-hidden">
         <div class="px-4 py-3 border-b font-bold flex justify-between">
             <span>طابور المزامنة (Outbox)</span>
@@ -310,8 +138,7 @@
                 <div class="px-4 py-3 text-sm flex justify-between gap-3 items-start">
                     <div>
                         <p class="font-medium" x-text="typeLabel(item.type)"></p>
-                        <p class="text-xs text-slate-500" x-text="item.operation_id"></p>
-                        <p class="text-xs text-slate-500 whitespace-pre-line" x-show="item.payload?.notes" x-text="item.payload.notes"></p>
+                        <p class="text-xs text-slate-500" x-text="item.payload?.name || item.operation_id"></p>
                         <p class="text-xs text-rose-600" x-show="item.last_error" x-text="item.last_error"></p>
                     </div>
                     <div class="flex flex-col items-end gap-2">
@@ -342,19 +169,12 @@ function offlineWorkspace() {
         pending: 0,
         lastSync: '',
         outbox: [],
-        tab: 'payment',
+        tab: 'incoming',
         tabs: [
-            { id: 'payment', label: 'دفعة عميل' },
-            { id: 'expense', label: 'مصروف' },
-            { id: 'loan', label: 'مدين' },
-            { id: 'repay', label: 'دائن' },
+            { id: 'incoming', label: 'دفعة واردة' },
+            { id: 'outgoing', label: 'دفعة صادرة' },
         ],
-        businessEnabled: true,
-        payment: { client_id: '', currency_id: '', amount: '', payment_method_id: '', payment_date: today, payer_name: '', notes: '' },
-        expense: { fund_id: '', expense_category_id: '', description: '', amount: '', currency_id: '', payment_method_id: '', expense_date: today, notes: '' },
-        loan: { family_member_id: '', direction: 'borrowed', amount: '', currency_id: '', payment_method_id: '', loan_date: today, notes: '' },
-        repay: { family_member_id: '', direction: 'borrowed', amount: '', currency_id: '', payment_method_id: '', repayment_date: today, notes: '' },
-        repayLoans: [],
+        form: { occurred_on: today, name: '', fund_id: '', payment_method_id: '', currency_id: '', amount: '', account_holder_name: '', notes: '', party_key: '' },
 
         async init() {
             window.addEventListener('online', () => { this.online = true; this.flash('عادت الشبكة — يمكنك المزامنة'); this.autoSync(); });
@@ -370,29 +190,16 @@ function offlineWorkspace() {
         },
 
         seedDefaults() {
-            this.businessEnabled = this.snapshot?.features?.business_enabled !== false;
-            if (!this.businessEnabled) {
-                this.tabs = this.tabs.filter(t => t.id !== 'payment');
-                if (this.tab === 'payment') this.tab = 'expense';
-            }
             const currencies = this.snapshot?.catalog?.currencies || [];
             const ils = currencies.find(c => c.code === 'ILS');
             const cur = ils || currencies[0];
             const method = this.snapshot?.catalog?.payment_methods?.[0];
-            const fund = this.snapshot?.catalog?.funds?.[0];
-            if (cur) {
-                this.payment.currency_id = String(cur.id);
-                this.expense.currency_id = String(cur.id);
-                this.loan.currency_id = String(cur.id);
-                this.repay.currency_id = String(cur.id);
-            }
-            if (method) {
-                this.payment.payment_method_id = String(method.id);
-                this.expense.payment_method_id = String(method.id);
-                this.loan.payment_method_id = String(method.id);
-                this.repay.payment_method_id = String(method.id);
-            }
-            if (fund) this.expense.fund_id = String(fund.id);
+            const family = (this.snapshot?.catalog?.funds || []).find(f => f.slug === 'family');
+            const business = (this.snapshot?.catalog?.funds || []).find(f => f.slug === 'business');
+            const fund = this.tab === 'outgoing' ? (family || business) : (business || family);
+            if (cur) this.form.currency_id = String(cur.id);
+            if (method) this.form.payment_method_id = String(method.id);
+            if (fund) this.form.fund_id = String(fund.id);
         },
 
         flash(msg, isError = false) {
@@ -401,12 +208,7 @@ function offlineWorkspace() {
         },
 
         typeLabel(type) {
-            return ({
-                client_payment: 'دفعة عميل',
-                expense: 'مصروف',
-                family_loan: 'مدين/دائن',
-                family_loan_repayment: 'تسوية',
-            })[type] || type;
+            return ({ incoming_payment: 'دفعة واردة', outgoing_payment: 'دفعة صادرة' })[type] || type;
         },
 
         async reloadOutbox() {
@@ -471,132 +273,45 @@ function offlineWorkspace() {
             if (n > 0) await this.runSync();
         },
 
-        onClientChange() {
-            const c = (this.snapshot?.clients || []).find(x => String(x.id) === String(this.payment.client_id));
-            if (c) this.payment.payer_name = c.contact_name || c.name;
-        },
-
-        clientDue() {
-            const c = (this.snapshot?.clients || []).find(x => String(x.id) === String(this.payment.client_id));
-            const cur = (this.snapshot?.catalog?.currencies || []).find(x => String(x.id) === String(this.payment.currency_id));
-            if (!c || !cur) return 0;
-            return parseFloat(c.outstanding?.[cur.code] || 0);
-        },
-
-        clientDueFormatted() {
-            const cur = (this.snapshot?.catalog?.currencies || []).find(x => String(x.id) === String(this.payment.currency_id));
-            const due = this.clientDue().toFixed(2);
-            if (!cur) return due;
-            return cur.code === 'USD' ? (cur.symbol + due) : (due + ' ' + (cur.symbol || cur.code));
-        },
-
-        filterLoans() {
-            this.repayLoans = (this.snapshot?.open_loans || [])
-                .filter(l =>
-                    String(l.family_member_id) === String(this.repay.family_member_id) &&
-                    String(l.currency_id) === String(this.repay.currency_id) &&
-                    l.direction === this.repay.direction
-                )
-                .map(l => ({ ...l, allocate: 0 }));
-        },
-
-        autoAllocateLoans() {
-            let left = parseFloat(this.repay.amount) || 0;
-            this.repayLoans.forEach(l => {
-                const rem = parseFloat(l.remaining) || 0;
-                const take = Math.min(left, rem);
-                l.allocate = take.toFixed(2);
-                left = Math.round((left - take) * 100) / 100;
-            });
+        onPartyChange() {
+            if (!this.form.party_key) return;
+            const [type, id] = this.form.party_key.split(':');
+            const list = type === 'client' ? this.snapshot?.clients : (type === 'person' ? this.snapshot?.persons : this.snapshot?.vendors);
+            const row = (list || []).find(x => String(x.id) === String(id));
+            if (row) this.form.name = row.name;
+            const family = (this.snapshot?.catalog?.funds || []).find(f => f.slug === 'family');
+            const business = (this.snapshot?.catalog?.funds || []).find(f => f.slug === 'business');
+            if (type === 'person' && family) this.form.fund_id = String(family.id);
+            if (type !== 'person' && business) this.form.fund_id = String(business.id);
         },
 
         async submitPayment() {
-            const pay = parseFloat(this.payment.amount) || 0;
-            if (pay <= 0) {
-                return this.flash('أدخل مبلغاً أكبر من صفر', true);
+            const pay = parseFloat(this.form.amount) || 0;
+            if (pay <= 0) return this.flash('أدخل مبلغاً أكبر من صفر', true);
+            const payload = {
+                name: this.form.name,
+                fund_id: Number(this.form.fund_id),
+                payment_method_id: Number(this.form.payment_method_id),
+                currency_id: Number(this.form.currency_id),
+                amount: Number(this.form.amount),
+                account_holder_name: this.form.account_holder_name || null,
+                occurred_on: this.form.occurred_on,
+                notes: this.form.notes || null,
+            };
+            if (this.form.party_key) {
+                const [type, id] = this.form.party_key.split(':');
+                payload.party_type = type;
+                payload.party_id = Number(id);
             }
-            const payload = {
-                client_id: Number(this.payment.client_id),
-                amount: Number(this.payment.amount),
-                currency_id: Number(this.payment.currency_id),
-                payment_method_id: Number(this.payment.payment_method_id),
-                payment_date: this.payment.payment_date,
-                payer_name: this.payment.payer_name || null,
-                notes: this.payment.notes || null,
-            };
-            await this.saveOp('client_payment', payload);
-            this.payment.amount = '';
-            this.payment.notes = '';
-        },
-
-        async submitExpense() {
-            const payload = {
-                fund_id: Number(this.expense.fund_id),
-                expense_category_id: this.expense.expense_category_id ? Number(this.expense.expense_category_id) : null,
-                description: this.expense.description,
-                amount: Number(this.expense.amount),
-                currency_id: Number(this.expense.currency_id),
-                payment_method_id: Number(this.expense.payment_method_id),
-                expense_date: this.expense.expense_date,
-                notes: this.expense.notes || null,
-            };
-            await this.saveOp('expense', payload);
-            this.expense.description = '';
-            this.expense.amount = '';
-            this.expense.notes = '';
-        },
-
-        async submitLoan() {
-            const payload = {
-                family_member_id: Number(this.loan.family_member_id),
-                direction: this.loan.direction,
-                amount: Number(this.loan.amount),
-                currency_id: Number(this.loan.currency_id),
-                payment_method_id: Number(this.loan.payment_method_id),
-                loan_date: this.loan.loan_date,
-                notes: this.loan.notes || null,
-            };
-            await this.saveOp('family_loan', payload);
-            this.loan.amount = '';
-            this.loan.notes = '';
-        },
-
-        async submitRepay() {
-            let allocations = this.repayLoans
-                .filter(l => parseFloat(l.allocate) > 0)
-                .map(l => ({ family_loan_id: Number(l.id), amount: Number(l.allocate) }));
-            let sum = allocations.reduce((t, a) => t + a.amount, 0);
-            if (sum < 0.001 && (parseFloat(this.repay.amount) || 0) > 0) {
-                this.autoAllocateLoans();
-                allocations = this.repayLoans
-                    .filter(l => parseFloat(l.allocate) > 0)
-                    .map(l => ({ family_loan_id: Number(l.id), amount: Number(l.allocate) }));
-                sum = allocations.reduce((t, a) => t + a.amount, 0);
-            }
-            if (Math.abs(sum - (parseFloat(this.repay.amount) || 0)) > 0.001) {
-                return this.flash('مجموع التوزيع يجب أن يساوي المبلغ', true);
-            }
-            const payload = {
-                family_member_id: Number(this.repay.family_member_id),
-                direction: this.repay.direction,
-                amount: Number(this.repay.amount),
-                currency_id: Number(this.repay.currency_id),
-                payment_method_id: Number(this.repay.payment_method_id),
-                repayment_date: this.repay.repayment_date,
-                notes: this.repay.notes || null,
-                allocations,
-            };
-            await this.saveOp('family_loan_repayment', payload);
-            this.repay.amount = '';
-            this.repay.notes = '';
-            this.filterLoans();
+            await this.saveOp(this.tab === 'outgoing' ? 'outgoing_payment' : 'incoming_payment', payload);
+            this.form.amount = '';
+            this.form.notes = '';
         },
 
         async saveOp(type, payload) {
             this.busy = true;
             try {
                 if (this.online) {
-                    // Try direct sync first for better UX when online
                     await AccmaOffline.queueAndOptimistic(type, payload);
                     await this.runSync();
                 } else {

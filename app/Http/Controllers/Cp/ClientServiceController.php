@@ -99,32 +99,34 @@ class ClientServiceController extends Controller
 
     protected function validated(Request $request): array
     {
-        $isFx = $request->boolean('requires_fx');
-        $ils = Currency::byCode('ILS');
-        $usd = Currency::byCode('USD');
+        $currency = Currency::query()->find($request->input('currency_id'));
+        $isFx = $currency && $currency->code !== 'ILS';
 
         $data = $request->validate([
             'client_id' => ['required', 'exists:clients,id'],
-            'service_type_id' => ['nullable', 'exists:service_types,id'],
-            'title' => ['required', 'string', 'max:255'],
+            'service_type_id' => ['required', 'exists:service_types,id'],
+            'description' => ['nullable', 'string'],
             'amount' => [$isFx ? 'nullable' : 'required', 'numeric', 'gt:0'],
             'source_amount' => [$isFx ? 'required' : 'nullable', 'numeric', 'gt:0'],
             'exchange_rate' => [$isFx ? 'required' : 'nullable', 'numeric', 'gt:0'],
+            'currency_id' => ['required', 'exists:currencies,id'],
             'service_date' => ['required', 'date'],
             'notes' => ['nullable', 'string'],
         ]);
 
-        $data['currency_id'] = $ils->id;
+        $type = \App\Models\ServiceType::query()->find($data['service_type_id']);
+        $data['title'] = $type?->name ?: 'خدمة';
         $data['status'] = ClientServiceStatus::Completed->value;
-        $data['description'] = null;
 
-        if ($isFx) {
-            $data['fx_currency_id'] = $usd->id;
-        } else {
-            $data['source_amount'] = null;
-            $data['exchange_rate'] = null;
-            $data['fx_currency_id'] = null;
+        if ($isFx && empty($data['source_amount']) && filled($data['amount'] ?? null)) {
+            $data['source_amount'] = $data['amount'];
         }
+
+        $hydrated = \App\Support\PaymentFx::hydrate($data);
+        $data['currency_id'] = $hydrated['currency_id'];
+        $data['fx_currency_id'] = $hydrated['fx_currency_id'] ?? null;
+        $data['source_amount'] = $hydrated['source_amount'] ?? null;
+        $data['exchange_rate'] = $hydrated['exchange_rate'] ?? null;
 
         return $data;
     }

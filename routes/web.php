@@ -5,11 +5,8 @@ use App\Http\Controllers\Cp\DashboardController;
 use App\Http\Controllers\Cp\BalanceController;
 use App\Http\Controllers\Cp\ClientController;
 use App\Http\Controllers\Cp\ClientServiceController;
-use App\Http\Controllers\Cp\ClientPaymentController;
-use App\Http\Controllers\Cp\FamilyMemberController;
-use App\Http\Controllers\Cp\FamilyLoanController;
-use App\Http\Controllers\Cp\ExpenseController;
-use App\Http\Controllers\Cp\ExpenseCategoryController;
+use App\Http\Controllers\Cp\CashPaymentController;
+use App\Http\Controllers\Cp\PersonController;
 use App\Http\Controllers\Cp\VendorController;
 use App\Http\Controllers\Cp\VendorChargeController;
 use App\Http\Controllers\Cp\TransferController;
@@ -19,10 +16,8 @@ use App\Http\Controllers\Cp\ServiceTypeController;
 use App\Http\Controllers\Cp\OfflineController;
 use App\Http\Controllers\Api\BootstrapController as ApiBootstrapController;
 use App\Http\Controllers\Api\BalanceController as ApiBalanceController;
-use App\Http\Controllers\Api\ClientPaymentController as ApiClientPaymentController;
-use App\Http\Controllers\Api\ExpenseController as ApiExpenseController;
-use App\Http\Controllers\Api\FamilyLoanController as ApiFamilyLoanController;
 use App\Http\Controllers\Api\SyncController as ApiSyncController;
+use App\Http\Controllers\Api\CashPaymentController as ApiCashPaymentController;
 use App\Http\Controllers\Super\AuthController as SuperAuthController;
 use App\Http\Controllers\Super\TenantController as SuperTenantController;
 
@@ -50,28 +45,38 @@ Route::prefix('cp')->name('cp.')->middleware(['cp.auth', 'cp.check'])->group(fun
     Route::prefix('api/v1')->group(function () {
         Route::get('/bootstrap', ApiBootstrapController::class);
         Route::get('/balances', ApiBalanceController::class);
-        Route::get('/family-members/{familyMember}/open-loans', [ApiFamilyLoanController::class, 'openLoans']);
-        Route::post('/expenses', [ApiExpenseController::class, 'store']);
-        Route::post('/family-loans', [ApiFamilyLoanController::class, 'storeLoan']);
-        Route::post('/family-loan-repayments', [ApiFamilyLoanController::class, 'storeRepayment']);
+        Route::post('/cash-payments', [ApiCashPaymentController::class, 'store']);
         Route::post('/sync/push', [ApiSyncController::class, 'push']);
 
         Route::middleware('cp.business')->group(function () {
-            Route::get('/clients/{client}/unpaid-services', [ApiClientPaymentController::class, 'unpaidServices']);
-            Route::post('/payments', [ApiClientPaymentController::class, 'store']);
+            Route::get('/clients/{client}/unpaid-services', [ClientController::class, 'unpaidServices']);
         });
     });
 
     Route::get('/balances', [BalanceController::class, 'index'])->name('balances.index');
     Route::post('/balances/opening', [BalanceController::class, 'storeOpening'])->name('balances.opening');
 
+    Route::get('/persons/{person}/export-pdf', [PersonController::class, 'exportPdf'])->name('persons.export-pdf');
+    Route::resource('persons', PersonController::class);
+
+    Route::get('/payments/incoming', [CashPaymentController::class, 'incoming'])->name('payments.incoming');
+    Route::get('/payments/outgoing', [CashPaymentController::class, 'outgoing'])->name('payments.outgoing');
+    Route::get('/payments/{direction}/create', [CashPaymentController::class, 'create'])
+        ->whereIn('direction', ['incoming', 'outgoing'])
+        ->name('payments.create');
+    Route::post('/payments/{direction}', [CashPaymentController::class, 'store'])
+        ->whereIn('direction', ['incoming', 'outgoing'])
+        ->name('payments.store');
+    Route::get('/payments/{payment}', [CashPaymentController::class, 'show'])->name('payments.show');
+    Route::get('/payments/{payment}/edit', [CashPaymentController::class, 'edit'])->name('payments.edit');
+    Route::put('/payments/{payment}', [CashPaymentController::class, 'update'])->name('payments.update');
+    Route::delete('/payments/{payment}', [CashPaymentController::class, 'destroy'])->name('payments.destroy');
+
     Route::middleware('cp.business')->group(function () {
         Route::resource('clients', ClientController::class);
         Route::get('/clients/{client}/export-pdf', [ClientController::class, 'exportPdf'])->name('clients.export-pdf');
+        Route::get('/clients/{client}/unpaid-services', [ClientController::class, 'unpaidServices'])->name('clients.unpaid-services');
         Route::resource('client-services', ClientServiceController::class)->except(['show']);
-        Route::resource('payments', ClientPaymentController::class)->only(['index', 'create', 'store', 'show']);
-        Route::post('/payments/{payment}/reverse', [ClientPaymentController::class, 'reverse'])->name('payments.reverse');
-        Route::get('/clients/{client}/unpaid-services', [ClientPaymentController::class, 'unpaidServices'])->name('clients.unpaid-services');
         Route::resource('service-types', ServiceTypeController::class)->except(['show']);
 
         Route::resource('vendor-charges', VendorChargeController::class)->except(['index', 'show']);
@@ -80,43 +85,13 @@ Route::prefix('cp')->name('cp.')->middleware(['cp.auth', 'cp.check'])->group(fun
             Route::get("/{$prefix}", [VendorController::class, 'index'])->name("{$prefix}.index");
             Route::get("/{$prefix}/create", [VendorController::class, 'create'])->name("{$prefix}.create");
             Route::post("/{$prefix}", [VendorController::class, 'store'])->name("{$prefix}.store");
+            Route::get("/{$prefix}/{vendor}/export-pdf", [VendorController::class, 'exportPdf'])->name("{$prefix}.export-pdf");
             Route::get("/{$prefix}/{vendor}", [VendorController::class, 'show'])->name("{$prefix}.show");
             Route::get("/{$prefix}/{vendor}/edit", [VendorController::class, 'edit'])->name("{$prefix}.edit");
             Route::put("/{$prefix}/{vendor}", [VendorController::class, 'update'])->name("{$prefix}.update");
             Route::delete("/{$prefix}/{vendor}", [VendorController::class, 'destroy'])->name("{$prefix}.destroy");
         }
     });
-
-    Route::get('/family-members/{family_member}/open-loans', [FamilyLoanController::class, 'openLoans'])->name('family-members.open-loans');
-    Route::get('/family-members/{family_member}/export-pdf', [FamilyMemberController::class, 'exportPdf'])->name('family-members.export-pdf');
-    Route::resource('family-members', FamilyMemberController::class);
-    Route::get('/family-loans/debtors', [FamilyLoanController::class, 'debtors'])->name('family-loans.debtors');
-    Route::get('/family-loans/creditors', [FamilyLoanController::class, 'creditors'])->name('family-loans.creditors');
-    Route::get('/family-loans', [FamilyLoanController::class, 'index'])->name('family-loans.index');
-    Route::get('/family-loans/create', [FamilyLoanController::class, 'create'])->name('family-loans.create');
-    Route::post('/family-loans', [FamilyLoanController::class, 'store'])->name('family-loans.store');
-    Route::get('/family-loans/repay', [FamilyLoanController::class, 'createRepayment'])->name('family-loans.repay');
-    Route::post('/family-loans/repay', [FamilyLoanController::class, 'storeRepayment'])->name('family-loans.repay.store');
-    Route::get('/family-loans/{loan}/edit', [FamilyLoanController::class, 'edit'])->name('family-loans.edit');
-    Route::put('/family-loans/{loan}', [FamilyLoanController::class, 'update'])->name('family-loans.update');
-    Route::delete('/family-loans/{loan}', [FamilyLoanController::class, 'destroy'])->name('family-loans.destroy');
-    Route::post('/family-loans/{loan}/reverse', [FamilyLoanController::class, 'reverse'])->name('family-loans.reverse');
-    Route::post('/family-loan-repayments/{repayment}/reverse', [FamilyLoanController::class, 'reverseRepayment'])->name('family-loan-repayments.reverse');
-
-    Route::prefix('expense-categories/{scope}')
-        ->whereIn('scope', ['personal', 'work'])
-        ->name('expense-categories.')
-        ->group(function () {
-            Route::get('/', [ExpenseCategoryController::class, 'index'])->name('index');
-            Route::get('/create', [ExpenseCategoryController::class, 'create'])->name('create');
-            Route::post('/', [ExpenseCategoryController::class, 'store'])->name('store');
-            Route::get('/{expense_category}/edit', [ExpenseCategoryController::class, 'edit'])->name('edit');
-            Route::put('/{expense_category}', [ExpenseCategoryController::class, 'update'])->name('update');
-            Route::delete('/{expense_category}', [ExpenseCategoryController::class, 'destroy'])->name('destroy');
-        });
-
-    Route::resource('expenses', ExpenseController::class)->only(['index', 'create', 'store']);
-    Route::post('/expenses/{expense}/reverse', [ExpenseController::class, 'reverse'])->name('expenses.reverse');
 
     Route::resource('transfers', TransferController::class)->only(['index', 'create', 'store']);
     Route::post('/transfers/{transfer}/reverse', [TransferController::class, 'reverse'])->name('transfers.reverse');

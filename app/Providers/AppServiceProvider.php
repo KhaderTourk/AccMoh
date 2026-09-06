@@ -2,7 +2,11 @@
 
 namespace App\Providers;
 
+use App\Models\Client;
+use App\Models\Person;
+use App\Models\Vendor;
 use App\Translation\DatabaseMergingLoader;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Schema;
 
@@ -23,5 +27,11 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Schema::defaultStringLength(191);
+
+        Relation::morphMap([
+            'client' => Client::class,
+            'person' => Person::class,
+            'vendor' => Vendor::class,
+        ]);
     }
 }

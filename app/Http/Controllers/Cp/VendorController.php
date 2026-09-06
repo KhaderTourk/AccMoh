@@ -7,6 +7,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Currency;
 use App\Models\Fund;
 use App\Models\Vendor;
+use App\Services\Export\PdfExporter;
+use App\Support\Phone;
 use Illuminate\Http\Request;
 
 class VendorController extends Controller
@@ -19,6 +21,8 @@ class VendorController extends Controller
             ->when($request->q, fn ($q, $term) => $q->where(function ($qq) use ($term) {
                 $qq->where('name', 'like', "%{$term}%")
                     ->orWhere('phone', 'like', "%{$term}%")
+                    ->orWhere('job_title', 'like', "%{$term}%")
+                    ->orWhere('work_description', 'like', "%{$term}%")
                     ->orWhere('notes', 'like', "%{$term}%");
             }))
             ->when($request->filled('status'), fn ($q) => $q->where('is_active', $request->status === 'active'))
@@ -61,18 +65,35 @@ class VendorController extends Controller
             'charges' => fn ($q) => $q->with(['currency', 'fxCurrency'])
                 ->orderBy('charge_date')
                 ->orderBy('id'),
-            'expenses' => fn ($q) => $q->with(['currency', 'paymentMethod', 'category', 'fund'])
-                ->orderByDesc('expense_date')
+            'cashPayments' => fn ($q) => $q->with(['currency', 'fxCurrency', 'paymentMethod', 'fund'])
+                ->orderByDesc('occurred_on')
                 ->orderByDesc('id'),
         ]);
         $currencies = Currency::query()->active()->get();
 
-        return view('cp.finance.vendors.show', [
-            'vendor' => $vendor,
-            'currencies' => $currencies,
-            'type' => $this->type(),
-            'businessFundId' => Fund::business()->id,
+        return view('cp.finance.vendors.show', $this->showPayload($vendor, $currencies));
+    }
+
+    public function exportPdf(Vendor $vendor, PdfExporter $pdf)
+    {
+        $this->assertType($vendor);
+        $vendor->load([
+            'charges' => fn ($q) => $q->with(['currency', 'fxCurrency'])
+                ->orderBy('charge_date')
+                ->orderBy('id'),
+            'cashPayments' => fn ($q) => $q->with(['currency', 'fxCurrency', 'paymentMethod', 'fund'])
+                ->orderByDesc('occurred_on')
+                ->orderByDesc('id'),
         ]);
+
+        $data = $this->showPayload($vendor, Currency::query()->active()->get());
+        $data['exporting'] = true;
+
+        return $pdf->download(
+            'cp.finance.vendors.print',
+            $data,
+            $this->type()->routePrefix().'-'.$vendor->id.'.pdf'
+        );
     }
 
     public function edit(Vendor $vendor)
@@ -128,11 +149,39 @@ class VendorController extends Controller
      */
     protected function validated(Request $request): array
     {
-        return $request->validate([
+        $rules = [
             'name' => ['required', 'string', 'max:255'],
-            'phone' => ['nullable', 'string', 'max:50'],
+            'phone' => Phone::rules(),
             'notes' => ['nullable', 'string'],
-            'is_active' => ['nullable', 'boolean'],
-        ]) + ['is_active' => $request->boolean('is_active', true)];
+        ];
+        if ($this->type() === VendorType::Worker) {
+            $rules['job_title'] = ['nullable', 'string', 'max:255'];
+        } else {
+            $rules['work_description'] = ['nullable', 'string', 'max:255'];
+        }
+
+        return $request->validate($rules, ['phone.regex' => Phone::message()]) + ['is_active' => true];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function showPayload(Vendor $vendor, $currencies): array
+    {
+        $type = $this->type();
+
+        return [
+            'vendor' => $vendor,
+            'currencies' => $currencies,
+            'type' => $type,
+            'businessFundId' => Fund::business()->id,
+            'exportedAt' => now()->format('Y-m-d H:i'),
+            'title' => $vendor->name,
+            'subtitle' => trim(implode(' · ', array_filter([
+                $type->label(),
+                $vendor->job_title ?: $vendor->work_description,
+                $vendor->phone,
+            ]))),
+        ];
     }
 }

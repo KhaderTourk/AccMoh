@@ -258,40 +258,18 @@
       obj[key] = (cur + delta).toFixed(2);
     };
 
-    if (type === 'client_payment') {
-      bump(clone.balances.grand, code, amount);
-      const business = clone.balances.funds?.find((f) => f.slug === 'business');
-      if (business) bump(business.totals, code, amount);
-      const m = clone.balances.methods?.find((x) => String(x.id) === String(payload.payment_method_id));
-      if (m) bump(m.totals, code, amount);
-      const client = clone.clients?.find((x) => String(x.id) === String(payload.client_id));
-      if (client?.outstanding) bump(client.outstanding, code, -amount);
-    }
-
-    if (type === 'expense') {
-      bump(clone.balances.grand, code, -amount);
+    if (type === 'incoming_payment' || type === 'outgoing_payment') {
+      const delta = type === 'incoming_payment' ? amount : -amount;
+      bump(clone.balances.grand, code, delta);
       const fund = clone.balances.funds?.find((f) => String(f.id) === String(payload.fund_id));
-      if (fund) bump(fund.totals, code, -amount);
-      const m = clone.balances.methods?.find((x) => String(x.id) === String(payload.payment_method_id));
-      if (m) bump(m.totals, code, -amount);
-    }
-
-    if (type === 'family_loan') {
-      const delta = payload.direction === 'borrowed' ? amount : -amount;
-      bump(clone.balances.grand, code, delta);
-      const family = clone.balances.funds?.find((f) => f.slug === 'family');
-      if (family) bump(family.totals, code, delta);
+      if (fund) bump(fund.totals, code, delta);
       const m = clone.balances.methods?.find((x) => String(x.id) === String(payload.payment_method_id));
       if (m) bump(m.totals, code, delta);
-    }
-
-    if (type === 'family_loan_repayment') {
-      const delta = payload.direction === 'borrowed' ? -amount : amount;
-      bump(clone.balances.grand, code, delta);
-      const family = clone.balances.funds?.find((f) => f.slug === 'family');
-      if (family) bump(family.totals, code, delta);
-      const m = clone.balances.methods?.find((x) => String(x.id) === String(payload.payment_method_id));
-      if (m) bump(m.totals, code, delta);
+      const clientId = payload.client_id || (payload.party_type === 'client' ? payload.party_id : null);
+      if (clientId && type === 'incoming_payment') {
+        const client = clone.clients?.find((x) => String(x.id) === String(clientId));
+        if (client?.outstanding) bump(client.outstanding, code, -amount);
+      }
     }
 
     clone._optimistic = true;

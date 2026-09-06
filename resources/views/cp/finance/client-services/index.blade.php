@@ -5,7 +5,7 @@
     <div class="flex justify-between flex-wrap gap-3">
         <form class="flex flex-wrap gap-2 items-end">
             <input type="text" name="q" value="{{ request('q') }}" placeholder="بحث" class="rounded-xl border px-3 py-2 dark:bg-slate-700">
-            <select name="client_id" class="rounded-xl border px-3 py-2 dark:bg-slate-700"><option value="">العميل</option>@foreach($clients as $c)<option value="{{ $c->id }}" @selected(request('client_id')==$c->id)>{{ $c->name }}</option>@endforeach</select>
+            <select name="client_id" class="rounded-xl border px-3 py-2 dark:bg-slate-700"><option value="">الزبون</option>@foreach($clients as $c)<option value="{{ $c->id }}" @selected(request('client_id')==$c->id)>{{ $c->name }}</option>@endforeach</select>
             @include('cp.partials.date-range-fields')
             <button class="px-3 py-2 rounded-xl bg-slate-200 dark:bg-slate-700">تصفية</button>
             @include('cp.partials.date-range-shortcuts')

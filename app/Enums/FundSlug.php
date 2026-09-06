@@ -11,7 +11,7 @@ enum FundSlug: string
     {
         return match ($this) {
             self::Family => 'شخصي',
-            self::Business => 'العمل',
+            self::Business => 'عمل',
         };
     }
 }

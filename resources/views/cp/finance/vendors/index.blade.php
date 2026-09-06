@@ -12,7 +12,9 @@
     <div class="rounded-2xl border bg-white dark:bg-slate-800 overflow-hidden">
         <table class="w-full text-sm text-right">
             <thead class="bg-slate-50 dark:bg-slate-700/50"><tr>
-                <th class="px-3 py-2">الاسم</th><th class="px-3 py-2">الهاتف</th>
+                <th class="px-3 py-2">الاسم</th>
+                <th class="px-3 py-2">{{ $type === \App\Enums\VendorType::Worker ? 'المسمى' : 'وصف العمل' }}</th>
+                <th class="px-3 py-2">الهاتف</th>
                 @foreach($currencies as $c)<th class="px-3 py-2">المتبقي {{ $c->code }}</th>@endforeach
                 <th class="px-3 py-2">الحالة</th><th class="px-3 py-2"></th>
             </tr></thead>
@@ -23,6 +25,7 @@
                         <a class="text-primary" href="{{ route('cp.'.$type->routePrefix().'.show', $v) }}">{{ $v->name }}</a>
                         @include('cp.partials.note-line', ['notes' => $v->notes])
                     </td>
+                    <td class="px-3 py-2">{{ ($type === \App\Enums\VendorType::Worker ? $v->job_title : $v->work_description) ?: '—' }}</td>
                     <td class="px-3 py-2">{{ $v->phone ?: '—' }}</td>
                     @foreach($currencies as $c)
                         @php $due = $v->outstandingAmount($c->id); @endphp
@@ -48,7 +51,7 @@
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="{{ 4 + $currencies->count() }}" class="p-8 text-center text-slate-500">لا توجد سجلات.</td></tr>
+                <tr><td colspan="{{ 5 + $currencies->count() }}" class="p-8 text-center text-slate-500">لا توجد سجلات.</td></tr>
             @endforelse
             </tbody>
         </table>

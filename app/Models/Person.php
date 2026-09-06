@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Enums\PaymentDirection;
 use App\Models\Concerns\BelongsToTenant;
 use App\Support\Money;
 use Illuminate\Database\Eloquent\Builder;
@@ -11,12 +10,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Client extends Model
+class Person extends Model
 {
     use BelongsToTenant;
     use SoftDeletes;
 
-    protected $fillable = ['name', 'contact_name', 'phone', 'email', 'company_name', 'notes', 'is_active'];
+    protected $table = 'family_members';
+
+    protected $fillable = ['name', 'relationship', 'phone', 'notes', 'is_active'];
 
     protected function casts(): array
     {
@@ -25,12 +26,7 @@ class Client extends Model
 
     public function getMorphClass()
     {
-        return 'client';
-    }
-
-    public function services(): HasMany
-    {
-        return $this->hasMany(ClientService::class);
+        return 'person';
     }
 
     public function cashPayments(): MorphMany
@@ -38,14 +34,14 @@ class Client extends Model
         return $this->morphMany(CashPayment::class, 'party');
     }
 
-    public function payments(): MorphMany
+    public function loans(): HasMany
     {
-        return $this->cashPayments()->incoming();
+        return $this->hasMany(FamilyLoan::class, 'family_member_id');
     }
 
-    public function legacyPayments(): HasMany
+    public function repayments(): HasMany
     {
-        return $this->hasMany(ClientPayment::class);
+        return $this->hasMany(FamilyLoanRepayment::class, 'family_member_id');
     }
 
     public function scopeActive(Builder $query): Builder
@@ -55,20 +51,12 @@ class Client extends Model
 
     public function hasFinancialHistory(): bool
     {
-        return $this->services()->exists() || $this->cashPayments()->exists() || $this->legacyPayments()->exists();
+        return $this->cashPayments()->exists()
+            || $this->loans()->exists()
+            || $this->repayments()->exists();
     }
 
-    public function billedAmount(int $currencyId): string
-    {
-        return Money::of(
-            $this->services()
-                ->billable()
-                ->where('currency_id', $currencyId)
-                ->sum('amount')
-        );
-    }
-
-    public function paidAmount(int $currencyId): string
+    public function incomingAmount(int $currencyId): string
     {
         return Money::of(
             $this->cashPayments()
@@ -79,13 +67,19 @@ class Client extends Model
         );
     }
 
-    public function outstandingAmount(int $currencyId): string
+    public function outgoingAmount(int $currencyId): string
     {
-        return Money::sub($this->billedAmount($currencyId), $this->paidAmount($currencyId));
+        return Money::of(
+            $this->cashPayments()
+                ->outgoing()
+                ->active()
+                ->where('currency_id', $currencyId)
+                ->sum('amount')
+        );
     }
 
-    public function organization(): ?string
+    public function netAmount(int $currencyId): string
     {
-        return $this->company_name;
+        return Money::sub($this->incomingAmount($currencyId), $this->outgoingAmount($currencyId));
     }
 }

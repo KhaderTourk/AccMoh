@@ -27,13 +27,13 @@ Response: `{ "token": "...", "user": {...} }`
 `GET /bootstrap`
 
 Returns:
-- `catalog` (currencies, payment_methods, funds, expense_categories, service_types)
+- `catalog` (currencies, payment_methods, funds, service_types)
 - `clients` (+ outstanding by currency)
-- `unpaid_services` (for payment allocation)
-- `family_members` (+ i_owe / they_owe)
-- `open_loans`
+- `persons` (+ net by currency)
+- `vendors`
+- `unpaid_services`
 - `balances` (grand / funds / methods / cells)
-- `receivables`, `family_i_owe`, `family_they_owe`
+- `receivables`, `person_net`
 
 Call this when online (app start / after sync) and store in SQLite/IndexedDB.
 
@@ -42,71 +42,28 @@ Call this when online (app start / after sync) and store in SQLite/IndexedDB.
 
 ## 4) Lookups
 - `GET /clients/{id}/unpaid-services?currency_id=`
-- `GET /family-members/{id}/open-loans?currency_id=&direction=borrowed|lent`
 
 ## 5) Write operations (idempotent)
 Every write **requires** `operation_id` (UUID v4 generated on device **before** saving locally).
 
-### Payment
-`POST /payments`
+### Cash payment
+`POST /cash-payments`
 ```json
 {
   "operation_id": "uuid",
-  "client_id": 1,
-  "amount": 200,
-  "currency_id": 2,
+  "direction": "incoming",
+  "name": "محمد",
+  "fund_id": 2,
   "payment_method_id": 1,
-  "payment_date": "2026-08-21",
-  "payer_name": "محمد",
-  "allocations": [{ "client_service_id": 10, "amount": 200 }],
+  "currency_id": 1,
+  "amount": 200,
+  "occurred_on": "2026-08-21",
+  "client_id": 1,
   "client_timestamp": "2026-08-21T12:00:00+03:00",
   "device_id": "phone-1"
 }
 ```
-
-### Expense
-`POST /expenses`
-```json
-{
-  "operation_id": "uuid",
-  "fund_id": 1,
-  "description": "مصروف",
-  "amount": 50,
-  "currency_id": 1,
-  "payment_method_id": 1,
-  "expense_date": "2026-08-21"
-}
-```
-
-### Family loan
-`POST /family-loans`
-```json
-{
-  "operation_id": "uuid",
-  "family_member_id": 1,
-  "direction": "borrowed",
-  "amount": 1000,
-  "currency_id": 1,
-  "payment_method_id": 1,
-  "loan_date": "2026-08-21"
-}
-```
-`direction`: `borrowed` = أنا مدين | `lent` = مدين لي
-
-### Family repayment
-`POST /family-loan-repayments`
-```json
-{
-  "operation_id": "uuid",
-  "family_member_id": 1,
-  "direction": "borrowed",
-  "amount": 400,
-  "currency_id": 1,
-  "payment_method_id": 2,
-  "repayment_date": "2026-08-21",
-  "allocations": [{ "family_loan_id": 5, "amount": 400 }]
-}
-```
+`direction`: `incoming` | `outgoing`. Optional party: `client_id` / `person_id` / `vendor_id` or `party_type` + `party_id`.
 
 Replaying the same `operation_id` returns `replayed: true` and **does not** create a duplicate.
 
@@ -116,12 +73,12 @@ Replaying the same `operation_id` returns `replayed: true` and **does not** crea
 {
   "device_id": "phone-1",
   "operations": [
-    { "operation_id": "uuid-1", "type": "client_payment", "payload": { ... }, "client_timestamp": "..." },
-    { "operation_id": "uuid-2", "type": "expense", "payload": { ... } }
+    { "operation_id": "uuid-1", "type": "incoming_payment", "payload": { ... }, "client_timestamp": "..." },
+    { "operation_id": "uuid-2", "type": "outgoing_payment", "payload": { ... } }
   ]
 }
 ```
-`type` values: `client_payment` | `expense` | `family_loan` | `family_loan_repayment`
+`type` values: `incoming_payment` | `outgoing_payment`
 
 Response includes per-operation `results[]` + fresh `snapshot` to refresh local cache.
 

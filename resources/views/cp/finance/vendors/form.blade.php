@@ -5,9 +5,16 @@
     @csrf
     @if($vendor->exists) @method('PUT') @endif
     <div><label class="text-sm">الاسم *</label><input name="name" value="{{ old('name', $vendor->name) }}" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700"></div>
-    <div><label class="text-sm">الهاتف</label><input name="phone" value="{{ old('phone', $vendor->phone) }}" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700"></div>
+    <div>
+        <label class="text-sm">الهاتف</label>
+        <input name="phone" value="{{ old('phone', $vendor->phone) }}" placeholder="05xxxxxxxx" inputmode="numeric" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
+    </div>
+    @if($type === \App\Enums\VendorType::Worker)
+        <div><label class="text-sm">المسمى الوظيفي</label><input name="job_title" value="{{ old('job_title', $vendor->job_title) }}" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700"></div>
+    @else
+        <div><label class="text-sm">وصف العمل</label><input name="work_description" value="{{ old('work_description', $vendor->work_description) }}" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700"></div>
+    @endif
     <div><label class="text-sm">ملاحظات</label><textarea name="notes" rows="2" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">{{ old('notes', $vendor->notes) }}</textarea></div>
-    <label class="inline-flex gap-2 text-sm"><input type="checkbox" name="is_active" value="1" @checked(old('is_active', $vendor->is_active ?? true))> نشط</label>
     <div class="flex flex-wrap gap-2">
         <button class="px-5 py-2 rounded-xl bg-primary text-white">حفظ</button>
         <a href="{{ route('cp.'.$type->routePrefix().'.index') }}" class="px-5 py-2 rounded-xl border">إلغاء</a>

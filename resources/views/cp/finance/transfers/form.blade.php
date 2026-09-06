@@ -11,7 +11,7 @@
     </p>
     <div class="grid md:grid-cols-2 gap-3">
         <div>
-            <label class="text-sm">الصندوق *</label>
+            <label class="text-sm">الدرج *</label>
             <select name="fund_id" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
                 @foreach($funds as $f)<option value="{{ $f->id }}">{{ $f->name }}</option>@endforeach
             </select>
@@ -37,13 +37,13 @@
         <div>
             <label class="text-sm">العملة المصدر *</label>
             <select name="currency_id" x-model="fromCurrencyId" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-                @foreach($currencies as $c)<option value="{{ $c->id }}">{{ $c->code }} — {{ $c->name }}</option>@endforeach
+                @foreach($currencies as $c)<option value="{{ $c->id }}">{{ $c->name }}</option>@endforeach
             </select>
         </div>
         <div>
             <label class="text-sm">العملة الوجهة *</label>
             <select name="to_currency_id" x-model="toCurrencyId" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-                @foreach($currencies as $c)<option value="{{ $c->id }}">{{ $c->code }} — {{ $c->name }}</option>@endforeach
+                @foreach($currencies as $c)<option value="{{ $c->id }}">{{ $c->name }}</option>@endforeach
             </select>
         </div>
         <div>

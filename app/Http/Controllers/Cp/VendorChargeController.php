@@ -99,9 +99,8 @@ class VendorChargeController extends Controller
      */
     protected function validated(Request $request, ?VendorCharge $charge = null): array
     {
-        $isFx = $request->boolean('requires_fx');
-        $ils = Currency::byCode('ILS');
-        $usd = Currency::byCode('USD');
+        $currency = Currency::query()->find($request->input('currency_id'));
+        $isFx = $currency && $currency->code !== 'ILS';
 
         $data = $request->validate([
             'vendor_id' => ['required', 'exists:vendors,id'],
@@ -109,6 +108,7 @@ class VendorChargeController extends Controller
             'amount' => [$isFx ? 'nullable' : 'required', 'numeric', 'gt:0'],
             'source_amount' => [$isFx ? 'required' : 'nullable', 'numeric', 'gt:0'],
             'exchange_rate' => [$isFx ? 'required' : 'nullable', 'numeric', 'gt:0'],
+            'currency_id' => ['required', 'exists:currencies,id'],
             'charge_date' => ['required', 'date'],
             'notes' => ['nullable', 'string'],
         ]);
@@ -117,16 +117,15 @@ class VendorChargeController extends Controller
             $data['vendor_id'] = $charge->vendor_id;
         }
 
-        $data['currency_id'] = $ils->id;
         $data['description'] = null;
-
-        if ($isFx) {
-            $data['fx_currency_id'] = $usd->id;
-        } else {
-            $data['source_amount'] = null;
-            $data['exchange_rate'] = null;
-            $data['fx_currency_id'] = null;
+        if ($isFx && empty($data['source_amount']) && filled($data['amount'] ?? null)) {
+            $data['source_amount'] = $data['amount'];
         }
+        $hydrated = \App\Support\PaymentFx::hydrate($data);
+        $data['currency_id'] = $hydrated['currency_id'];
+        $data['fx_currency_id'] = $hydrated['fx_currency_id'] ?? null;
+        $data['source_amount'] = $hydrated['source_amount'] ?? null;
+        $data['exchange_rate'] = $hydrated['exchange_rate'] ?? null;
 
         return $data;
     }

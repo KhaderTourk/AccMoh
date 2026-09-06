@@ -93,7 +93,7 @@
         @if($group['totals']->isEmpty())0@endif
     </h3>
     <table class="data">
-        <thead><tr><th>المبلغ</th><th>المرسل</th><th>التاريخ</th></tr></thead>
+        <thead><tr><th>المبلغ</th><th>الاسم</th><th>التاريخ</th></tr></thead>
         <tbody>
         @foreach($group['payments'] as $payment)
             <tr>
@@ -105,12 +105,12 @@
                     @endif
                 </td>
                 <td>
-                    {{ $payment->payer_name }}
+                    {{ $payment->name }}
                     @if(filled($payment->notes))
                         <div class="sub" style="white-space: pre-line;">{{ $payment->notes }}</div>
                     @endif
                 </td>
-                <td>{{ $payment->payment_date->format('Y-m-d') }}</td>
+                <td>{{ $payment->occurred_on->format('Y-m-d') }}</td>
             </tr>
         @endforeach
         </tbody>
