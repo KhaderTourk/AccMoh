@@ -17,7 +17,7 @@
                     مستحق على الزبائن: {{ $row['currency']->format($row['client_outstanding']) }}<br>
                     مستحقات الموظفين: {{ $row['currency']->format($row['worker_outstanding']) }}<br>
                     مستحقات الموردين: {{ $row['currency']->format($row['supplier_outstanding']) }}<br>
-                    إجمالي الأرباح = إجمالي سعر الخدمات المقدمة للزبائن − صادر العمل − مستحقات الموظفين والموردين − دفعات الزبائن: {{ $row['currency']->format($row['gross_profit']) }}
+                    إجمالي الأرباح = إجمالي سعر الخدمات المقدمة للزبائن − صادر العمل − مستحقات الموظفين والموردين: {{ $row['currency']->format($row['gross_profit']) }}
                 </div>
             </td>
         @endforeach
