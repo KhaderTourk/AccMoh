@@ -87,10 +87,11 @@
 @forelse($paymentGroups as $group)
     <h3 style="font-size:12px;margin:12px 0 6px;color:#047857;">{{ $group['name'] }}
         — الإجمالي:
-        @foreach($group['totals'] as $total)
+        @forelse($group['totals'] as $total)
             {{ $total['formatted'] }}@if(! $loop->last) · @endif
-        @endforeach
-        @if($group['totals']->isEmpty())0@endif
+        @empty
+            0
+        @endforelse
     </h3>
     <table class="data">
         <thead><tr><th>المبلغ</th><th>الاسم</th><th>التاريخ</th></tr></thead>
