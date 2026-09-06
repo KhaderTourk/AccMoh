@@ -2,9 +2,12 @@
 @section('title', 'الأشخاص')
 @section('content')
 <div class="space-y-4">
-    <div class="flex justify-between gap-3 flex-wrap">
-        <form class="flex gap-2"><input name="q" value="{{ request('q') }}" placeholder="بحث" class="rounded-xl border px-3 py-2 dark:bg-slate-700"><button class="px-3 py-2 rounded-xl bg-slate-200 dark:bg-slate-700">بحث</button></form>
-        <a href="{{ route('cp.persons.create') }}" class="px-4 py-2 rounded-xl bg-primary text-white">إضافة شخص</a>
+    <div class="cp-toolbar">
+        <form class="flex gap-2 flex-wrap">
+            <input name="q" value="{{ request('q') }}" placeholder="بحث بالاسم أو الهاتف..." class="rounded-xl border px-3 py-2 dark:bg-slate-700 min-w-[14rem]">
+            <button class="cp-btn cp-btn-muted">بحث</button>
+        </form>
+        <a href="{{ route('cp.persons.create') }}" class="cp-btn cp-btn-primary"><span class="material-symbols-outlined">add</span> إضافة شخص</a>
     </div>
     <div class="rounded-2xl border bg-white dark:bg-slate-800 overflow-hidden">
         <table class="w-full text-sm text-right">

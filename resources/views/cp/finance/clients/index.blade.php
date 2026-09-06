@@ -2,17 +2,17 @@
 @section('title', 'الزبائن')
 @section('content')
 <div class="space-y-4">
-    <div class="flex flex-col sm:flex-row justify-between gap-3">
+    <div class="cp-toolbar">
         <form class="flex flex-wrap gap-2">
-            <input type="text" name="q" value="{{ request('q') }}" placeholder="بحث..." class="rounded-xl border px-3 py-2 dark:bg-slate-700">
+            <input type="text" name="q" value="{{ request('q') }}" placeholder="بحث بالاسم أو الهاتف..." class="rounded-xl border px-3 py-2 dark:bg-slate-700 min-w-[14rem]">
             <select name="status" class="rounded-xl border px-3 py-2 dark:bg-slate-700">
                 <option value="">الكل</option>
                 <option value="active" @selected(request('status')==='active')>نشط</option>
                 <option value="inactive" @selected(request('status')==='inactive')>غير نشط</option>
             </select>
-            <button class="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-700">تصفية</button>
+            <button class="cp-btn cp-btn-muted">بحث</button>
         </form>
-        <a href="{{ route('cp.clients.create') }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-white"><span class="material-symbols-outlined">add</span> زبون جديد</a>
+        <a href="{{ route('cp.clients.create') }}" class="cp-btn cp-btn-primary"><span class="material-symbols-outlined">add</span> زبون جديد</a>
     </div>
     <div class="rounded-2xl bg-white dark:bg-slate-800 border overflow-hidden">
         @if($clients->isEmpty())

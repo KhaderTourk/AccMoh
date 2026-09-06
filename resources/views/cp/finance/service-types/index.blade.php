@@ -2,7 +2,10 @@
 @section('title', 'الخدمات')
 @section('content')
 <div class="space-y-4">
-    <div class="flex justify-end"><a href="{{ route('cp.service-types.create') }}" class="px-4 py-2 rounded-xl bg-primary text-white">خدمة جديدة</a></div>
+    <div class="cp-toolbar">
+        <p class="text-sm text-slate-500">كتالوج الخدمات التي تقدّمها للزبائن.</p>
+        <a href="{{ route('cp.service-types.create') }}" class="cp-btn cp-btn-primary"><span class="material-symbols-outlined">add</span> خدمة جديدة</a>
+    </div>
     <div class="rounded-2xl border bg-white dark:bg-slate-800 overflow-hidden">
         <table class="w-full text-sm text-right">
             <thead class="bg-slate-50 dark:bg-slate-700/50"><tr><th class="px-3 py-2">الاسم</th><th class="px-3 py-2">الوصف</th><th class="px-3 py-2">الحالة</th><th class="px-3 py-2"></th></tr></thead>

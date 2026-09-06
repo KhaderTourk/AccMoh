@@ -2,12 +2,12 @@
 @section('title', 'التحويلات')
 @section('content')
 <div class="space-y-4">
-    <div class="flex justify-between flex-wrap gap-3">
+    <div class="cp-toolbar">
         <form class="flex flex-wrap gap-2">
-            <input type="text" name="q" value="{{ request('q') }}" placeholder="بحث في الملاحظات" class="rounded-xl border px-3 py-2 dark:bg-slate-700">
-            <button class="px-3 py-2 rounded-xl bg-slate-200 dark:bg-slate-700">تصفية</button>
+            <input type="text" name="q" value="{{ request('q') }}" placeholder="بحث في الملاحظات" class="rounded-xl border px-3 py-2 dark:bg-slate-700 min-w-[14rem]">
+            <button class="cp-btn cp-btn-muted">بحث</button>
         </form>
-        <a href="{{ route('cp.transfers.create') }}" class="px-4 py-2 rounded-xl bg-primary text-white">تحويل / صرف جديد</a>
+        <a href="{{ route('cp.transfers.create') }}" class="cp-btn cp-btn-primary"><span class="material-symbols-outlined">swap_horiz</span> تحويل / صرف جديد</a>
     </div>
     <div class="rounded-2xl border bg-white dark:bg-slate-800 overflow-hidden">
         <table class="w-full text-sm text-right">

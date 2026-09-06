@@ -11,10 +11,10 @@
             </p>
         </div>
         <div class="flex flex-wrap gap-2">
-            <a href="{{ route('cp.client-services.create', ['client_id' => $client->id]) }}" class="px-3 py-2 rounded-xl bg-primary text-white text-sm">خدمة</a>
-            <a href="{{ route('cp.payments.create', ['incoming', 'client_id' => $client->id]) }}" class="px-3 py-2 rounded-xl bg-emerald-600 text-white text-sm">دفعة واردة</a>
-            <a href="{{ route('cp.clients.export-pdf', $client) }}" class="px-3 py-2 rounded-xl border text-sm">تصدير PDF</a>
-            <a href="{{ route('cp.clients.edit', $client) }}" class="px-3 py-2 rounded-xl border text-sm">تعديل</a>
+            <a href="{{ route('cp.client-services.create', ['client_id' => $client->id]) }}" class="cp-btn cp-btn-primary"><span class="material-symbols-outlined">work</span> خدمة</a>
+            <a href="{{ route('cp.payments.create', ['incoming', 'client_id' => $client->id]) }}" class="cp-btn cp-btn-in"><span class="material-symbols-outlined">south_west</span> دفعة واردة</a>
+            <a href="{{ route('cp.clients.export-pdf', $client) }}" class="cp-btn cp-btn-ghost"><span class="material-symbols-outlined">picture_as_pdf</span> تصدير PDF</a>
+            <a href="{{ route('cp.clients.edit', $client) }}" class="cp-btn cp-btn-ghost"><span class="material-symbols-outlined">edit</span> تعديل</a>
         </div>
     </div>
 

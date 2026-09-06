@@ -12,13 +12,13 @@
             </p>
         </div>
         <div class="flex flex-wrap gap-2">
-            <a href="{{ route('cp.vendor-charges.create', ['vendor_id' => $vendor->id]) }}" class="px-3 py-2 rounded-xl bg-primary text-white text-sm">{{ $type->chargeAction() }}</a>
-            <a href="{{ route('cp.payments.create', ['outgoing', 'vendor_id' => $vendor->id]) }}" class="px-3 py-2 rounded-xl bg-rose-600 text-white text-sm">دفعة صادرة</a>
-            <a href="{{ route('cp.'.$type->routePrefix().'.export-pdf', $vendor) }}" class="px-3 py-2 rounded-xl border text-sm">تصدير PDF</a>
-            <a href="{{ route('cp.'.$type->routePrefix().'.edit', $vendor) }}" class="px-3 py-2 rounded-xl border text-sm">تعديل</a>
+            <a href="{{ route('cp.vendor-charges.create', ['vendor_id' => $vendor->id]) }}" class="cp-btn cp-btn-primary"><span class="material-symbols-outlined">add</span> {{ $type->chargeAction() }}</a>
+            <a href="{{ route('cp.payments.create', ['outgoing', 'vendor_id' => $vendor->id]) }}" class="cp-btn cp-btn-out"><span class="material-symbols-outlined">north_east</span> دفعة صادرة</a>
+            <a href="{{ route('cp.'.$type->routePrefix().'.export-pdf', $vendor) }}" class="cp-btn cp-btn-ghost"><span class="material-symbols-outlined">picture_as_pdf</span> تصدير PDF</a>
+            <a href="{{ route('cp.'.$type->routePrefix().'.edit', $vendor) }}" class="cp-btn cp-btn-ghost"><span class="material-symbols-outlined">edit</span> تعديل</a>
             <form method="post" action="{{ route('cp.'.$type->routePrefix().'.destroy', $vendor) }}" onsubmit="return confirm('حذف/أرشفة {{ $type->label() }}؟')">
                 @csrf @method('DELETE')
-                <button type="submit" class="px-3 py-2 rounded-xl border border-rose-200 text-rose-600 text-sm">حذف</button>
+                <button type="submit" class="cp-btn cp-btn-danger">حذف</button>
             </form>
         </div>
     </div>

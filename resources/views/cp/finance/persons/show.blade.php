@@ -8,10 +8,10 @@
             <p class="text-slate-500 text-sm">{{ $member->relationship }} {{ $member->phone }}</p>
         </div>
         <div class="flex gap-2 flex-wrap">
-            <a href="{{ route('cp.payments.create', ['incoming', 'person_id' => $member->id]) }}" class="px-3 py-2 rounded-xl bg-emerald-600 text-white text-sm">دفعة واردة</a>
-            <a href="{{ route('cp.payments.create', ['outgoing', 'person_id' => $member->id]) }}" class="px-3 py-2 rounded-xl bg-rose-600 text-white text-sm">دفعة صادرة</a>
-            <a href="{{ route('cp.persons.export-pdf', $member) }}" class="px-3 py-2 rounded-xl border text-sm">تصدير PDF</a>
-            <a href="{{ route('cp.persons.edit', $member) }}" class="px-3 py-2 rounded-xl border text-sm">تعديل</a>
+            <a href="{{ route('cp.payments.create', ['incoming', 'person_id' => $member->id]) }}" class="cp-btn cp-btn-in"><span class="material-symbols-outlined">south_west</span> دفعة واردة</a>
+            <a href="{{ route('cp.payments.create', ['outgoing', 'person_id' => $member->id]) }}" class="cp-btn cp-btn-out"><span class="material-symbols-outlined">north_east</span> دفعة صادرة</a>
+            <a href="{{ route('cp.persons.export-pdf', $member) }}" class="cp-btn cp-btn-ghost"><span class="material-symbols-outlined">picture_as_pdf</span> تصدير PDF</a>
+            <a href="{{ route('cp.persons.edit', $member) }}" class="cp-btn cp-btn-ghost"><span class="material-symbols-outlined">edit</span> تعديل</a>
         </div>
     </div>
     @include('cp.partials.note-card', ['notes' => $member->notes])

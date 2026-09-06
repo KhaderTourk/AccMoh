@@ -2,14 +2,21 @@
 @section('title', 'التقارير')
 @section('content')
 <div class="space-y-8">
-    <div class="flex flex-wrap justify-between gap-3 items-start">
-        <form class="flex flex-wrap gap-2 items-end">
-            @include('cp.partials.date-range-fields')
-            <button class="px-4 py-2 rounded-xl bg-primary text-white">تطبيق الفترة</button>
+    @php
+        $filterCount = collect(['from', 'to', '_preset'])->filter(fn ($key) => filled(request($key)))->count();
+    @endphp
+    @component('cp.partials.filter-panel', ['count' => $filterCount])
+        @slot('actions')
+            <a href="{{ route('cp.reports.export-pdf', array_filter(['from' => $from, 'to' => $to])) }}" class="cp-btn cp-btn-ghost">
+                <span class="material-symbols-outlined">picture_as_pdf</span>
+                تصدير PDF
+            </a>
+        @endslot
+        @include('cp.partials.date-range-fields')
+        @slot('footer')
             @include('cp.partials.date-range-shortcuts')
-        </form>
-        <a href="{{ route('cp.reports.export-pdf', array_filter(['from' => $from, 'to' => $to])) }}" class="px-4 py-2 rounded-xl border text-sm">تصدير PDF</a>
-    </div>
+        @endslot
+    @endcomponent
 
     @if(tenantBusinessEnabled() && count($profitRows))
     <section>

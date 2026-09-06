@@ -35,7 +35,7 @@
             }
         }
     </script>
-    <link rel="stylesheet" href="{{ asset('assets/css/cp.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/css/cp.css') }}?v={{ @filemtime(public_path('assets/css/cp.css')) ?: time() }}">
     @stack('styles')
 </head>
 <body class="font-sans bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 min-h-screen transition-colors duration-300">
@@ -43,9 +43,12 @@
         <aside id="cp-sidebar" class="cp-sidebar fixed top-0 right-0 z-40 h-full w-64 bg-white dark:bg-slate-800 border-l border-slate-200 dark:border-slate-700 shadow-lg transform transition-transform duration-300 ease-out translate-x-full lg:translate-x-0 lg:static lg:shadow-none" aria-label="القائمة الجانبية">
             <div class="flex flex-col h-full">
                 <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
-                    <a href="{{ route('cp.dashboard') }}" class="flex items-center gap-2 font-bold text-slate-800 dark:text-white">
-                        <span class="material-symbols-outlined text-primary">dashboard</span>
-                        <span>لوحة التحكم</span>
+                    <a href="{{ route('cp.dashboard') }}" class="cp-brand">
+                        <span class="cp-brand-mark"><span class="material-symbols-outlined">account_balance_wallet</span></span>
+                        <span class="cp-brand-text">
+                            <strong>AccMa</strong>
+                            <span>إدارة مالية</span>
+                        </span>
                     </a>
                     <button type="button" id="cp-sidebar-close" class="lg:hidden p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700" aria-label="إغلاق القائمة">
                         <span class="material-symbols-outlined">close</span>
@@ -151,7 +154,12 @@
                         <span class="material-symbols-outlined text-sm">wifi</span>
                         <span>متصل</span>
                     </span>
-                    <span class="text-sm text-slate-500 dark:text-slate-400 hidden sm:inline">{{ auth()->user()->name ?? '' }}</span>
+                    @if(auth()->user())
+                    <span class="cp-user-chip hidden sm:inline-flex">
+                        <span class="cp-user-avatar">{{ mb_substr(auth()->user()->name, 0, 1) }}</span>
+                        {{ auth()->user()->name }}
+                    </span>
+                    @endif
                     <form action="{{ route('cp.logout') }}" method="post" class="inline">
                         @csrf
                         <button type="submit" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" title="تسجيل الخروج" aria-label="تسجيل الخروج">
@@ -165,19 +173,25 @@
                 </div>
             </header>
 
-            <main class="flex-1 p-4 lg:p-6">
+            <main class="flex-1 p-4 lg:p-8">
                 @if(session('success'))
-                    <div class="mb-4 px-4 py-3 rounded-xl bg-primary/10 dark:bg-primary/20 text-primary border border-primary/20" role="alert">
-                        {{ session('success') }}
+                    <div class="cp-flash cp-flash-success" role="alert" x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 5000)" x-transition>
+                        <span>{{ session('success') }}</span>
+                        <button type="button" class="p-0.5 rounded-lg hover:bg-black/5" @click="show = false" aria-label="إغلاق">
+                            <span class="material-symbols-outlined text-base">close</span>
+                        </button>
                     </div>
                 @endif
                 @if(session('error'))
-                    <div class="mb-4 px-4 py-3 rounded-xl bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20" role="alert">
-                        {{ session('error') }}
+                    <div class="cp-flash cp-flash-error" role="alert" x-data="{ show: true }" x-show="show" x-transition>
+                        <span>{{ session('error') }}</span>
+                        <button type="button" class="p-0.5 rounded-lg hover:bg-black/5" @click="show = false" aria-label="إغلاق">
+                            <span class="material-symbols-outlined text-base">close</span>
+                        </button>
                     </div>
                 @endif
                 @if($errors->any())
-                    <div class="mb-4 px-4 py-3 rounded-xl bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20" role="alert">
+                    <div class="cp-flash cp-flash-error" role="alert">
                         <ul class="list-disc list-inside text-sm space-y-1">
                             @foreach($errors->all() as $error)
                                 <li>{{ $error }}</li>
