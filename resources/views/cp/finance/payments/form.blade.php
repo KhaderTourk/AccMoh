@@ -8,6 +8,8 @@
         : route('cp.payments.store', $direction->value);
     $workers = ($parties['vendors'] ?? collect())->filter(fn ($v) => $v->type === \App\Enums\VendorType::Worker);
     $suppliers = ($parties['vendors'] ?? collect())->filter(fn ($v) => $v->type === \App\Enums\VendorType::Supplier);
+    $familyFundId = (string) ($funds->firstWhere('slug', \App\Enums\FundSlug::Family->value)?->id ?? '');
+    $initialFundId = (string) old('fund_id', $payment->fund_id);
     $initialPartyKey = old('party_key', ($selectedPartyType && $selectedPartyId) ? $selectedPartyType.':'.$selectedPartyId : '');
     $initialPartyName = old('name', $payment->name);
 @endphp
@@ -36,7 +38,7 @@
                     </optgroup>
                 @endif
                 @if(($parties['persons'] ?? collect())->isNotEmpty())
-                    <optgroup label="الأشخاص">
+                    <optgroup label="الأشخاص" x-show="isFamilyFund" x-cloak>
                         @foreach($parties['persons'] as $p)
                             <option value="person:{{ $p->id }}" data-name="{{ $p->name }}" @selected($initialPartyKey === 'person:'.$p->id)>{{ $p->name }}</option>
                         @endforeach
@@ -63,9 +65,9 @@
         </div>
         <div>
             <label class="text-sm">الدرج *</label>
-            <select name="fund_id" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
+            <select name="fund_id" x-model="fundId" @change="onFundChange()" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
                 @foreach($funds as $fund)
-                    <option value="{{ $fund->id }}" @selected(old('fund_id', $payment->fund_id)==$fund->id)>{{ $fund->name }}</option>
+                    <option value="{{ $fund->id }}" @selected($initialFundId==$fund->id)>{{ $fund->name }}</option>
                 @endforeach
             </select>
         </div>
@@ -135,7 +137,21 @@ function cashPaymentForm() {
         partyType: @json($selectedPartyType ?: ''),
         partyId: @json($selectedPartyId ? (string) $selectedPartyId : ''),
         partyName: @json($initialPartyName ?: ''),
-        init() { this.syncParty(); },
+        partyLocked: @json((bool) $partyLocked),
+        fundId: @json($initialFundId),
+        familyFundId: @json($familyFundId),
+        get isFamilyFund() { return String(this.fundId) === String(this.familyFundId); },
+        init() { this.syncParty(); this.onFundChange(); },
+        onFundChange() {
+            if (this.partyLocked && String(this.partyKey).startsWith('person:') && !this.isFamilyFund) {
+                this.fundId = String(this.familyFundId);
+                return;
+            }
+            if (!this.isFamilyFund && String(this.partyKey).startsWith('person:')) {
+                this.partyKey = '';
+                this.syncParty();
+            }
+        },
         syncParty() {
             const key = String(this.partyKey || '');
             const [type, id] = key.includes(':') ? key.split(':') : ['', ''];

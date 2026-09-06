@@ -427,11 +427,12 @@ class FinancialScenariosTest extends TestCase
         $this->assertSame('100.00', $ilsRow['work_expenses']);
         $this->assertSame('100.00', $ilsRow['worker_expenses']);
         $this->assertSame('400.00', $ilsRow['net_profit']);
+        $this->assertSame('800.00', $ilsRow['client_billed']);
         $this->assertSame('300.00', $ilsRow['client_outstanding']);
         $this->assertSame('150.00', $ilsRow['worker_outstanding']);
         $this->assertSame('0.00', $ilsRow['supplier_outstanding']);
         $this->assertSame('150.00', $ilsRow['outstanding']);
-        $this->assertSame('-450.00', $ilsRow['gross_profit']);
+        $this->assertSame('50.00', $ilsRow['gross_profit']);
         $this->assertSame('100.00', $worker->fresh()->paidAmount($this->ils->id));
         $this->assertSame('150.00', $worker->fresh()->outstandingAmount($this->ils->id));
     }

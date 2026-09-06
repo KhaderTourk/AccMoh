@@ -13,10 +13,11 @@
                     دفعات الزبائن: {{ $row['currency']->format($row['payments']) }}<br>
                     صادر العمل: {{ $row['currency']->format($row['work_expenses']) }}<br>
                     الموظفون {{ $row['currency']->format($row['worker_expenses']) }} · موردون {{ $row['currency']->format($row['supplier_expenses']) }}<br>
-                    مستحقات على الزبائن: {{ $row['currency']->format($row['client_outstanding']) }}<br>
+                    إجمالي سعر الخدمات المقدمة للزبائن: {{ $row['currency']->format($row['client_billed']) }}<br>
+                    مستحق على الزبائن: {{ $row['currency']->format($row['client_outstanding']) }}<br>
                     مستحقات الموظفين: {{ $row['currency']->format($row['worker_outstanding']) }}<br>
                     مستحقات الموردين: {{ $row['currency']->format($row['supplier_outstanding']) }}<br>
-                    إجمالي الأرباح = مستحقات على الزبائن − صادر العمل − مستحقات الموظفين والموردين − دفعات الزبائن: {{ $row['currency']->format($row['gross_profit']) }}
+                    إجمالي الأرباح = إجمالي سعر الخدمات المقدمة للزبائن − صادر العمل − مستحقات الموظفين والموردين − دفعات الزبائن: {{ $row['currency']->format($row['gross_profit']) }}
                 </div>
             </td>
         @endforeach
@@ -54,7 +55,7 @@
     <tr>
         @if(tenantBusinessEnabled())
         <td>
-            <div class="kpi-label">مستحقات الزبائن</div>
+            <div class="kpi-label">مستحق على الزبائن</div>
             @foreach($snapshot['currencies'] as $c)
                 <div class="kpi-value">{{ $c->format($receivables[$c->id] ?? 0) }}</div>
             @endforeach
@@ -113,7 +114,7 @@
 @if(tenantBusinessEnabled())
 <h2>تقرير الموظفين</h2>
 <table class="data">
-    <thead><tr><th>الموظف</th><th>العملة</th><th>المستحقات</th><th>المدفوع</th><th>المتبقي</th></tr></thead>
+    <thead><tr><th>الموظف</th><th>العملة</th><th>مستحق له</th><th>المدفوع</th><th>المتبقي</th></tr></thead>
     <tbody>
     @forelse($workerSummary as $row)
         @foreach($row['rows'] as $r)
@@ -139,7 +140,7 @@
 
 <h2>تقرير الموردين</h2>
 <table class="data">
-    <thead><tr><th>المورد</th><th>العملة</th><th>ما تم تلقيه</th><th>المدفوع</th><th>المتبقي</th></tr></thead>
+    <thead><tr><th>المورد</th><th>العملة</th><th>مستحق له</th><th>المدفوع</th><th>المتبقي</th></tr></thead>
     <tbody>
     @forelse($supplierSummary as $row)
         @foreach($row['rows'] as $r)

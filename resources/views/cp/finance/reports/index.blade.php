@@ -25,16 +25,17 @@
             @foreach($profitRows as $row)
             <div class="rounded-2xl border bg-white dark:bg-slate-800 p-5 space-y-2 text-sm">
                 <h3 class="font-bold text-base">{{ $row['currency']->name }}</h3>
+                <p>إجمالي سعر الخدمات المقدمة للزبائن: <strong>{{ $row['currency']->format($row['client_billed']) }}</strong></p>
                 <p>دفعات واردة من الزبائن: <strong class="text-emerald-600">{{ $row['currency']->format($row['payments']) }}</strong></p>
                 <p>صادر العمل: <strong class="text-rose-600">{{ $row['currency']->format($row['work_expenses']) }}</strong></p>
                 <p class="text-xs text-slate-500">منها الموظفون {{ $row['currency']->format($row['worker_expenses']) }} · الموردون {{ $row['currency']->format($row['supplier_expenses']) }}</p>
-                <p>مستحقات على الزبائن: <strong>{{ $row['currency']->format($row['client_outstanding']) }}</strong></p>
+                <p>مستحق على الزبائن: <strong>{{ $row['currency']->format($row['client_outstanding']) }}</strong></p>
                 <p>مستحقات الموظفين: <strong class="text-amber-700 dark:text-amber-300">{{ $row['currency']->format($row['worker_outstanding']) }}</strong></p>
                 <p>مستحقات الموردين: <strong class="text-amber-700 dark:text-amber-300">{{ $row['currency']->format($row['supplier_outstanding']) }}</strong></p>
                 <p class="pt-2 border-t">صافي الأرباح = دفعات الزبائن − صادر العمل:
                     <strong class="{{ \App\Support\Money::isNegative($row['net_profit']) ? 'text-rose-600' : 'text-emerald-600' }}">{{ $row['currency']->format($row['net_profit']) }}</strong>
                 </p>
-                <p>إجمالي الأرباح = مستحقات على الزبائن − صادر العمل − مستحقات الموظفين والموردين − دفعات الزبائن:
+                <p>إجمالي الأرباح = إجمالي سعر الخدمات المقدمة للزبائن − صادر العمل − مستحقات الموظفين والموردين − دفعات الزبائن:
                     <strong class="{{ \App\Support\Money::isNegative($row['gross_profit']) ? 'text-rose-600' : 'text-emerald-600' }}">{{ $row['currency']->format($row['gross_profit']) }}</strong>
                 </p>
             </div>
@@ -61,7 +62,7 @@
     <section class="grid md:grid-cols-{{ tenantBusinessEnabled() ? '2' : '1' }} lg:grid-cols-{{ tenantBusinessEnabled() ? '4' : '1' }} gap-4">
         @if(tenantBusinessEnabled())
         <div class="rounded-2xl border p-4 bg-white dark:bg-slate-800">
-            <h3 class="font-bold mb-2">مستحقات الزبائن</h3>
+            <h3 class="font-bold mb-2">مستحق على الزبائن</h3>
             @foreach($snapshot['currencies'] as $c)<p>{{ $c->format($receivables[$c->id] ?? 0) }}</p>@endforeach
         </div>
         <div class="rounded-2xl border p-4 bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/40">
@@ -119,7 +120,7 @@
             'summary' => $workerSummary,
             'heading' => 'تقرير الموظفين',
             'nameLabel' => 'الموظف',
-            'billedLabel' => 'قيمة المستحقات',
+            'billedLabel' => 'مستحق له',
             'empty' => 'لا بيانات للموظفين.',
             'routePrefix' => 'workers',
         ])
@@ -127,7 +128,7 @@
             'summary' => $supplierSummary,
             'heading' => 'تقرير الموردين',
             'nameLabel' => 'المورد',
-            'billedLabel' => 'قيمة ما تم تلقيه',
+            'billedLabel' => 'مستحق له',
             'empty' => 'لا بيانات للموردين.',
             'routePrefix' => 'suppliers',
         ])

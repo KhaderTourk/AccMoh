@@ -70,7 +70,7 @@
     <section class="grid grid-cols-1 md:grid-cols-{{ tenantBusinessEnabled() ? '2' : '1' }} {{ tenantBusinessEnabled() ? 'lg:grid-cols-4' : '' }} gap-4">
         @if(tenantBusinessEnabled())
         <div class="rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 p-5">
-            <p class="font-bold text-amber-800 dark:text-amber-300 mb-2">مستحقات الزبائن</p>
+            <p class="font-bold text-amber-800 dark:text-amber-300 mb-2">مستحق على الزبائن</p>
             @foreach($snapshot['currencies'] as $currency)
                 <p class="text-lg font-extrabold">{{ $currency->format($receivables[$currency->id] ?? 0) }}</p>
             @endforeach

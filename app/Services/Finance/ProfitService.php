@@ -6,6 +6,7 @@ use App\Enums\PaymentDirection;
 use App\Enums\VendorType;
 use App\Models\CashPayment;
 use App\Models\Client;
+use App\Models\ClientService;
 use App\Models\Currency;
 use App\Models\Fund;
 use App\Models\Vendor;
@@ -22,6 +23,7 @@ class ProfitService
      *     work_expenses: string,
      *     worker_expenses: string,
      *     supplier_expenses: string,
+     *     client_billed: string,
      *     client_outstanding: string,
      *     worker_outstanding: string,
      *     supplier_outstanding: string,
@@ -76,6 +78,14 @@ class ProfitService
                 (clone $workQuery)->where('party_type', 'vendor')->whereIn('party_id', $supplierIds)->sum('amount')
             );
 
+            $clientBilled = Money::of(
+                ClientService::query()
+                    ->billable()
+                    ->where('currency_id', $currency->id)
+                    ->tap(fn ($q) => DateRange::constrain($q, 'service_date', $from, $to))
+                    ->sum('amount')
+            );
+
             $clientOutstanding = '0.00';
             foreach (Client::query()->get() as $client) {
                 $due = $client->outstandingAmount($currency->id);
@@ -91,6 +101,7 @@ class ProfitService
             if (
                 Money::isZero($payments)
                 && Money::isZero($workExpenses)
+                && Money::isZero($clientBilled)
                 && Money::isZero($clientOutstanding)
                 && Money::isZero($vendorOutstanding)
             ) {
@@ -103,6 +114,7 @@ class ProfitService
                 'work_expenses' => $workExpenses,
                 'worker_expenses' => $workerExpenses,
                 'supplier_expenses' => $supplierExpenses,
+                'client_billed' => $clientBilled,
                 'client_outstanding' => $clientOutstanding,
                 'worker_outstanding' => $workerOutstanding,
                 'supplier_outstanding' => $supplierOutstanding,
@@ -110,7 +122,7 @@ class ProfitService
                 'net_profit' => Money::sub($payments, $workExpenses),
                 'gross_profit' => Money::sub(
                     Money::sub(
-                        Money::sub($clientOutstanding, $workExpenses),
+                        Money::sub($clientBilled, $workExpenses),
                         $vendorOutstanding
                     ),
                     $payments

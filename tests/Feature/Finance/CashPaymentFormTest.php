@@ -114,4 +114,30 @@ class CashPaymentFormTest extends TestCase
         $this->assertSame('person', $payment->party_type);
         $this->assertSame($person->id, $payment->party_id);
     }
+
+    public function test_person_cannot_be_saved_on_business_fund(): void
+    {
+        TenantContext::set((int) $this->user->tenant_id);
+        $person = Person::query()->create(['name' => 'أحمد', 'is_active' => true]);
+        TenantContext::clear();
+
+        $business = Fund::withoutGlobalScopes()
+            ->where('tenant_id', $this->user->tenant_id)
+            ->where('slug', 'business')
+            ->firstOrFail();
+        $ils = Currency::query()->where('code', 'ILS')->firstOrFail();
+        $cash = PaymentMethod::query()->where('slug', 'cash')->firstOrFail();
+
+        $this->actingAs($this->user)
+            ->from('/cp/payments/incoming/create?fund_id='.$business->id)
+            ->post(route('cp.payments.store', 'incoming'), [
+                'occurred_on' => now()->toDateString(),
+                'fund_id' => $business->id,
+                'payment_method_id' => $cash->id,
+                'currency_id' => $ils->id,
+                'amount' => 100,
+                'party_key' => 'person:'.$person->id,
+            ])
+            ->assertSessionHasErrors('party_key');
+    }
 }

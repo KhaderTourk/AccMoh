@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Cp;
 
+use App\Enums\FundSlug;
 use App\Enums\PaymentDirection;
 use App\Exceptions\FinanceException;
 use App\Http\Controllers\Controller;
@@ -191,6 +192,15 @@ class CashPaymentController extends Controller
         }
         $data['name'] = $party->name;
         unset($data['party_key']);
+
+        if ($data['party_type'] === 'person') {
+            $fund = Fund::query()->find($data['fund_id']);
+            if (! $fund || $fund->slug !== FundSlug::Family->value) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'party_key' => 'الأشخاص يظهرون فقط عند اختيار الدرج الشخصي.',
+                ]);
+            }
+        }
 
         $data['direction'] = $direction;
         if ($isFx && empty($data['source_amount']) && filled($data['amount'] ?? null)) {
