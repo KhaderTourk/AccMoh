@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Cp;
 use App\Enums\TransactionType;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Cp\Concerns\LoadsFinanceLookups;
+use App\Models\CashPayment;
 use App\Models\Currency;
+use App\Models\FundTransfer;
 use App\Models\LedgerEntry;
 use App\Support\DateRange;
 use Illuminate\Http\Request;
@@ -40,11 +42,23 @@ class LedgerController extends Controller
         };
 
         $entries = LedgerEntry::query()
-            ->with(['fund', 'paymentMethod', 'currency'])
+            ->with([
+                'fund',
+                'paymentMethod',
+                'currency',
+                'creator',
+                'related' => function ($morphTo) {
+                    $morphTo->morphWith([
+                        CashPayment::class => ['party'],
+                        FundTransfer::class => ['fund'],
+                    ]);
+                },
+            ])
             ->tap($apply)
             ->orderByDesc('occurred_on')
+            ->orderByDesc('created_at')
             ->orderByDesc('id')
-            ->paginate(30)
+            ->paginate(40)
             ->withQueryString();
 
         $totals = LedgerEntry::query()

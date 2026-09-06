@@ -25,11 +25,19 @@
         </div>
     </section>
 
-    <section class="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+    <section class="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
         @if($tenant->business_enabled)
         <div class="rounded-2xl border p-4 bg-white">
             <h3 class="font-bold mb-2">مستحقات الزبائن</h3>
             @foreach($snapshot['currencies'] as $c)<p>{{ $c->format($receivables[$c->id] ?? 0) }}</p>@endforeach
+        </div>
+        <div class="rounded-2xl border p-4 bg-white">
+            <h3 class="font-bold mb-2">مستحقات الموظفين</h3>
+            @foreach($snapshot['currencies'] as $c)<p>{{ $c->format($workerPayables[$c->id] ?? 0) }}</p>@endforeach
+        </div>
+        <div class="rounded-2xl border p-4 bg-white">
+            <h3 class="font-bold mb-2">مستحقات الموردين</h3>
+            @foreach($snapshot['currencies'] as $c)<p>{{ $c->format($supplierPayables[$c->id] ?? 0) }}</p>@endforeach
         </div>
         @endif
         <div class="rounded-2xl border p-4 bg-white">
@@ -71,6 +79,23 @@
             </table>
         </div>
     </section>
+    @endif
+
+    @if($tenant->business_enabled)
+        @include('cp.finance.reports.vendor-table', [
+            'summary' => $workerSummary,
+            'heading' => 'تقرير الموظفين',
+            'nameLabel' => 'الموظف',
+            'billedLabel' => 'قيمة المستحقات',
+            'empty' => 'لا بيانات للموظفين.',
+        ])
+        @include('cp.finance.reports.vendor-table', [
+            'summary' => $supplierSummary,
+            'heading' => 'تقرير الموردين',
+            'nameLabel' => 'المورد',
+            'billedLabel' => 'قيمة ما تم تلقيه',
+            'empty' => 'لا بيانات للموردين.',
+        ])
     @endif
 
     <section>

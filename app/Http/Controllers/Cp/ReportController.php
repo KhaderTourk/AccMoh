@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Cp;
 
+use App\Enums\VendorType;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Cp\Concerns\LoadsFinanceLookups;
 use App\Models\CashPayment;
@@ -73,6 +74,11 @@ class ReportController extends Controller
             return ['member' => $person, 'rows' => $rows];
         })->filter(fn ($r) => $r['rows'] !== []);
 
+        $workerSummary = tenantBusinessEnabled() ? $balances->vendorAccountSummary(VendorType::Worker) : collect();
+        $supplierSummary = tenantBusinessEnabled() ? $balances->vendorAccountSummary(VendorType::Supplier) : collect();
+        $workerPayables = tenantBusinessEnabled() ? $balances->vendorPayables(VendorType::Worker) : [];
+        $supplierPayables = tenantBusinessEnabled() ? $balances->vendorPayables(VendorType::Supplier) : [];
+
         $incoming = CashPayment::query()
             ->incoming()
             ->active()
@@ -97,6 +103,10 @@ class ReportController extends Controller
             'personNet' => $personNet,
             'clientSummary' => $clientSummary,
             'personSummary' => $personSummary,
+            'workerSummary' => $workerSummary,
+            'supplierSummary' => $supplierSummary,
+            'workerPayables' => $workerPayables,
+            'supplierPayables' => $supplierPayables,
             'incoming' => $incoming,
             'outgoing' => $outgoing,
             'profitRows' => $profit->forPeriod($from, $to),

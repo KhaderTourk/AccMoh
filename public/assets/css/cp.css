@@ -431,3 +431,23 @@ html.cp-admin .cp-main {
     text-align: center;
     color: #64748b;
 }
+
+.cp-type-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.cp-type-in { background: #d1fae5; color: #047857; }
+.cp-type-out { background: #ffe4e6; color: #be123c; }
+.cp-type-transfer { background: #e0f2fe; color: #0369a1; }
+.cp-type-adjust { background: #fef3c7; color: #b45309; }
+.cp-type-reverse { background: #e2e8f0; color: #475569; }
+.dark .cp-type-in { background: rgba(16, 185, 129, 0.18); color: #6ee7b7; }
+.dark .cp-type-out { background: rgba(244, 63, 94, 0.18); color: #fda4af; }
+.dark .cp-type-transfer { background: rgba(14, 165, 233, 0.18); color: #7dd3fc; }
+.dark .cp-type-adjust { background: rgba(245, 158, 11, 0.18); color: #fcd34d; }
+.dark .cp-type-reverse { background: rgba(148, 163, 184, 0.18); color: #cbd5e1; }

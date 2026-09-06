@@ -67,12 +67,24 @@
         </div>
     </section>
 
-    <section class="grid grid-cols-1 md:grid-cols-{{ tenantBusinessEnabled() ? '2' : '1' }} gap-4">
+    <section class="grid grid-cols-1 md:grid-cols-{{ tenantBusinessEnabled() ? '2' : '1' }} {{ tenantBusinessEnabled() ? 'lg:grid-cols-4' : '' }} gap-4">
         @if(tenantBusinessEnabled())
         <div class="rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 p-5">
             <p class="font-bold text-amber-800 dark:text-amber-300 mb-2">مستحقات الزبائن</p>
             @foreach($snapshot['currencies'] as $currency)
                 <p class="text-lg font-extrabold">{{ $currency->format($receivables[$currency->id] ?? 0) }}</p>
+            @endforeach
+        </div>
+        <div class="rounded-2xl bg-white dark:bg-slate-800 border p-5">
+            <p class="font-bold mb-2">مستحقات الموظفين</p>
+            @foreach($snapshot['currencies'] as $currency)
+                <p class="text-lg font-extrabold text-amber-700 dark:text-amber-300">{{ $currency->format($workerPayables[$currency->id] ?? 0) }}</p>
+            @endforeach
+        </div>
+        <div class="rounded-2xl bg-white dark:bg-slate-800 border p-5">
+            <p class="font-bold mb-2">مستحقات الموردين</p>
+            @foreach($snapshot['currencies'] as $currency)
+                <p class="text-lg font-extrabold text-sky-700 dark:text-sky-300">{{ $currency->format($supplierPayables[$currency->id] ?? 0) }}</p>
             @endforeach
         </div>
         @endif
@@ -134,7 +146,7 @@
                     <div>
                         <p class="font-medium">{{ $entry->description }}</p>
                         @include('cp.partials.note-line', ['notes' => $entry->notes])
-                        <p class="text-xs text-slate-500">{{ $entry->transaction_type->label() }} · {{ $entry->paymentMethod->name }} · {{ $entry->occurred_on->format('Y-m-d') }}</p>
+                        <p class="text-xs text-slate-500">{{ $entry->transaction_type->label() }} · {{ $entry->occurred_on->format('Y-m-d') }} · {{ $entry->created_at?->format('H:i') }}</p>
                     </div>
                     <span class="font-bold {{ \App\Support\Money::isNegative($entry->amount) ? 'text-rose-600' : 'text-emerald-600' }}">
                         {{ $entry->currency->format($entry->amount) }}

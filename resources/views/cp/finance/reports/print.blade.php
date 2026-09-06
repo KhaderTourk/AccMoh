@@ -10,11 +10,13 @@
                 <div class="kpi-label">{{ $row['currency']->name }} — صافي الأرباح</div>
                 <div class="kpi-value {{ \App\Support\Money::isNegative($row['net_profit']) ? 'neg' : '' }}">{{ $row['currency']->format($row['net_profit']) }}</div>
                 <div class="sub" style="margin-top:6px;">
-                    دفعات: {{ $row['currency']->format($row['payments']) }}<br>
+                    دفعات الزبائن: {{ $row['currency']->format($row['payments']) }}<br>
                     صادر العمل: {{ $row['currency']->format($row['work_expenses']) }}<br>
-                    الموظفين {{ $row['currency']->format($row['worker_expenses']) }} · موردون {{ $row['currency']->format($row['supplier_expenses']) }}<br>
-                    المستحقات: {{ $row['currency']->format($row['outstanding']) }}<br>
-                    إجمالي الأرباح: {{ $row['currency']->format($row['gross_profit']) }}
+                    الموظفون {{ $row['currency']->format($row['worker_expenses']) }} · موردون {{ $row['currency']->format($row['supplier_expenses']) }}<br>
+                    مستحقات الزبائن: {{ $row['currency']->format($row['client_outstanding']) }}<br>
+                    مستحقات الموظفين: {{ $row['currency']->format($row['worker_outstanding']) }}<br>
+                    مستحقات الموردين: {{ $row['currency']->format($row['supplier_outstanding']) }}<br>
+                    إجمالي الأرباح = مستحقات الموظفين والموردين + دفعات الزبائن − صادر العمل: {{ $row['currency']->format($row['gross_profit']) }}
                 </div>
             </td>
         @endforeach
@@ -57,6 +59,18 @@
                 <div class="kpi-value">{{ $c->format($receivables[$c->id] ?? 0) }}</div>
             @endforeach
         </td>
+        <td>
+            <div class="kpi-label">مستحقات الموظفين</div>
+            @foreach($snapshot['currencies'] as $c)
+                <div class="kpi-value">{{ $c->format($workerPayables[$c->id] ?? 0) }}</div>
+            @endforeach
+        </td>
+        <td>
+            <div class="kpi-label">مستحقات الموردين</div>
+            @foreach($snapshot['currencies'] as $c)
+                <div class="kpi-value">{{ $c->format($supplierPayables[$c->id] ?? 0) }}</div>
+            @endforeach
+        </td>
         @endif
         <td>
             <div class="kpi-label">صافي دفعات الأشخاص</div>
@@ -91,6 +105,60 @@
         @endforeach
     @empty
         <tr><td colspan="5" class="empty">لا بيانات.</td></tr>
+    @endforelse
+    </tbody>
+</table>
+@endif
+
+@if(tenantBusinessEnabled())
+<h2>تقرير الموظفين</h2>
+<table class="data">
+    <thead><tr><th>الموظف</th><th>العملة</th><th>المستحقات</th><th>المدفوع</th><th>المتبقي</th></tr></thead>
+    <tbody>
+    @forelse($workerSummary as $row)
+        @foreach($row['rows'] as $r)
+        <tr>
+            <td>{{ $row['vendor']->name }}</td>
+            <td>{{ $r['currency']->name }}</td>
+            <td>{{ $r['currency']->format($r['billed']) }}</td>
+            <td>{{ $r['currency']->format($r['paid']) }}</td>
+            <td>
+                @if(\App\Support\Money::isNegative($r['due']))
+                    مقدماً {{ $r['currency']->format(\App\Support\Money::abs($r['due'])) }}
+                @else
+                    {{ $r['currency']->format($r['due']) }}
+                @endif
+            </td>
+        </tr>
+        @endforeach
+    @empty
+        <tr><td colspan="5" class="empty">لا بيانات للموظفين.</td></tr>
+    @endforelse
+    </tbody>
+</table>
+
+<h2>تقرير الموردين</h2>
+<table class="data">
+    <thead><tr><th>المورد</th><th>العملة</th><th>ما تم تلقيه</th><th>المدفوع</th><th>المتبقي</th></tr></thead>
+    <tbody>
+    @forelse($supplierSummary as $row)
+        @foreach($row['rows'] as $r)
+        <tr>
+            <td>{{ $row['vendor']->name }}</td>
+            <td>{{ $r['currency']->name }}</td>
+            <td>{{ $r['currency']->format($r['billed']) }}</td>
+            <td>{{ $r['currency']->format($r['paid']) }}</td>
+            <td>
+                @if(\App\Support\Money::isNegative($r['due']))
+                    مقدماً {{ $r['currency']->format(\App\Support\Money::abs($r['due'])) }}
+                @else
+                    {{ $r['currency']->format($r['due']) }}
+                @endif
+            </td>
+        </tr>
+        @endforeach
+    @empty
+        <tr><td colspan="5" class="empty">لا بيانات للموردين.</td></tr>
     @endforelse
     </tbody>
 </table>

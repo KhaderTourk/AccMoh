@@ -8,6 +8,8 @@ use App\Models\CashPayment;
 use App\Models\Client;
 use App\Models\Currency;
 use App\Models\Fund;
+use App\Models\Vendor;
+use App\Models\VendorCharge;
 use App\Support\DateRange;
 use App\Support\Money;
 
@@ -20,6 +22,9 @@ class ProfitService
      *     work_expenses: string,
      *     worker_expenses: string,
      *     supplier_expenses: string,
+     *     client_outstanding: string,
+     *     worker_outstanding: string,
+     *     supplier_outstanding: string,
      *     outstanding: string,
      *     net_profit: string,
      *     gross_profit: string
@@ -71,18 +76,23 @@ class ProfitService
                 (clone $workQuery)->where('party_type', 'vendor')->whereIn('party_id', $supplierIds)->sum('amount')
             );
 
-            $outstanding = '0.00';
+            $clientOutstanding = '0.00';
             foreach (Client::query()->get() as $client) {
                 $due = $client->outstandingAmount($currency->id);
                 if (Money::isPositive($due)) {
-                    $outstanding = Money::add($outstanding, $due);
+                    $clientOutstanding = Money::add($clientOutstanding, $due);
                 }
             }
+
+            $workerOutstanding = $this->vendorRemaining(VendorType::Worker, $currency->id);
+            $supplierOutstanding = $this->vendorRemaining(VendorType::Supplier, $currency->id);
+            $vendorOutstanding = Money::add($workerOutstanding, $supplierOutstanding);
 
             if (
                 Money::isZero($payments)
                 && Money::isZero($workExpenses)
-                && Money::isZero($outstanding)
+                && Money::isZero($clientOutstanding)
+                && Money::isZero($vendorOutstanding)
             ) {
                 continue;
             }
@@ -93,12 +103,42 @@ class ProfitService
                 'work_expenses' => $workExpenses,
                 'worker_expenses' => $workerExpenses,
                 'supplier_expenses' => $supplierExpenses,
-                'outstanding' => $outstanding,
+                'client_outstanding' => $clientOutstanding,
+                'worker_outstanding' => $workerOutstanding,
+                'supplier_outstanding' => $supplierOutstanding,
+                'outstanding' => $vendorOutstanding,
                 'net_profit' => Money::sub($payments, $workExpenses),
-                'gross_profit' => Money::sub(Money::add($outstanding, $payments), $workExpenses),
+                'gross_profit' => Money::sub(Money::add($vendorOutstanding, $payments), $workExpenses),
             ];
         }
 
         return $rows;
+    }
+
+    protected function vendorRemaining(VendorType $type, int $currencyId): string
+    {
+        $ids = Vendor::query()->ofType($type)->pluck('id');
+        if ($ids->isEmpty()) {
+            return '0.00';
+        }
+
+        $billed = Money::of(
+            VendorCharge::query()
+                ->whereIn('vendor_id', $ids)
+                ->where('currency_id', $currencyId)
+                ->sum('amount')
+        );
+        $paid = Money::of(
+            CashPayment::query()
+                ->outgoing()
+                ->active()
+                ->where('party_type', 'vendor')
+                ->whereIn('party_id', $ids)
+                ->where('currency_id', $currencyId)
+                ->sum('amount')
+        );
+        $due = Money::sub($billed, $paid);
+
+        return Money::isPositive($due) ? $due : '0.00';
     }
 }

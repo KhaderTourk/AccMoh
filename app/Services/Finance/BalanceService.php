@@ -3,6 +3,7 @@
 namespace App\Services\Finance;
 
 use App\Exceptions\FinanceException;
+use App\Enums\VendorType;
 use App\Models\CashPayment;
 use App\Models\Client;
 use App\Models\ClientService;
@@ -10,6 +11,8 @@ use App\Models\Currency;
 use App\Models\Fund;
 use App\Models\LedgerEntry;
 use App\Models\PaymentMethod;
+use App\Models\Vendor;
+use App\Models\VendorCharge;
 use App\Support\Money;
 use Illuminate\Support\Collection;
 
@@ -218,5 +221,61 @@ class BalanceService
                 'by_currency' => $byCurrency,
             ];
         })->filter(fn ($row) => $row['client'])->take($limit)->values();
+    }
+
+    /**
+     * Remaining amounts owed to vendors (positive dues only).
+     *
+     * @return array<int, string>
+     */
+    public function vendorPayables(?VendorType $type = null): array
+    {
+        $ids = Vendor::query()->when($type, fn ($q) => $q->ofType($type))->pluck('id');
+        $out = [];
+        foreach (Currency::query()->active()->pluck('id') as $currencyId) {
+            if ($ids->isEmpty()) {
+                $out[$currencyId] = '0.00';
+                continue;
+            }
+            $billed = Money::of(
+                VendorCharge::query()->whereIn('vendor_id', $ids)->where('currency_id', $currencyId)->sum('amount')
+            );
+            $paid = Money::of(
+                CashPayment::query()
+                    ->outgoing()
+                    ->active()
+                    ->where('party_type', 'vendor')
+                    ->whereIn('party_id', $ids)
+                    ->where('currency_id', $currencyId)
+                    ->sum('amount')
+            );
+            $due = Money::sub($billed, $paid);
+            $out[$currencyId] = Money::isPositive($due) ? $due : '0.00';
+        }
+
+        return $out;
+    }
+
+    /**
+     * @return Collection<int, array{vendor: Vendor, rows: list<array{currency: Currency, billed: string, paid: string, due: string}>}>
+     */
+    public function vendorAccountSummary(VendorType $type): Collection
+    {
+        $currencies = Currency::query()->active()->get();
+
+        return Vendor::query()->ofType($type)->orderBy('name')->get()->map(function (Vendor $vendor) use ($currencies) {
+            $rows = [];
+            foreach ($currencies as $currency) {
+                $billed = $vendor->billedAmount($currency->id);
+                $paid = $vendor->paidAmount($currency->id);
+                $due = $vendor->outstandingAmount($currency->id);
+                if (Money::isZero($billed) && Money::isZero($paid)) {
+                    continue;
+                }
+                $rows[] = compact('currency', 'billed', 'paid', 'due');
+            }
+
+            return ['vendor' => $vendor, 'rows' => $rows];
+        })->filter(fn ($r) => $r['rows'] !== [])->values();
     }
 }

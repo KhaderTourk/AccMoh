@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Super;
 
+use App\Enums\VendorType;
 use App\Http\Controllers\Controller;
 use App\Models\CashPayment;
 use App\Models\Client;
@@ -134,10 +135,15 @@ class TenantController extends Controller
 
             $incoming = CashPayment::query()->incoming()->active()->with(['currency'])->orderByDesc('occurred_on')->limit(50)->get();
             $outgoing = CashPayment::query()->outgoing()->active()->with(['currency'])->orderByDesc('occurred_on')->limit(50)->get();
+            $workerSummary = $tenant->business_enabled ? $balances->vendorAccountSummary(VendorType::Worker) : collect();
+            $supplierSummary = $tenant->business_enabled ? $balances->vendorAccountSummary(VendorType::Supplier) : collect();
+            $workerPayables = $tenant->business_enabled ? $balances->vendorPayables(VendorType::Worker) : [];
+            $supplierPayables = $tenant->business_enabled ? $balances->vendorPayables(VendorType::Supplier) : [];
 
             return view('super.tenants.reports', compact(
                 'tenant', 'snapshot', 'receivables', 'personNet',
-                'clientSummary', 'personSummary', 'incoming', 'outgoing'
+                'clientSummary', 'personSummary', 'incoming', 'outgoing',
+                'workerSummary', 'supplierSummary', 'workerPayables', 'supplierPayables'
             ));
         });
     }

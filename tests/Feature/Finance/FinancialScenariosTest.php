@@ -401,6 +401,13 @@ class FinancialScenariosTest extends TestCase
             'type' => VendorType::Worker,
             'is_active' => true,
         ]);
+        app(VendorChargeService::class)->create([
+            'vendor_id' => $worker->id,
+            'title' => 'أجر',
+            'amount' => 250,
+            'currency_id' => $this->ils->id,
+            'charge_date' => '2026-08-16',
+        ]);
 
         $this->pay([
             'direction' => PaymentDirection::Outgoing,
@@ -420,10 +427,13 @@ class FinancialScenariosTest extends TestCase
         $this->assertSame('100.00', $ilsRow['work_expenses']);
         $this->assertSame('100.00', $ilsRow['worker_expenses']);
         $this->assertSame('400.00', $ilsRow['net_profit']);
-        $this->assertSame('300.00', $ilsRow['outstanding']);
-        $this->assertSame('700.00', $ilsRow['gross_profit']);
+        $this->assertSame('300.00', $ilsRow['client_outstanding']);
+        $this->assertSame('150.00', $ilsRow['worker_outstanding']);
+        $this->assertSame('0.00', $ilsRow['supplier_outstanding']);
+        $this->assertSame('150.00', $ilsRow['outstanding']);
+        $this->assertSame('550.00', $ilsRow['gross_profit']);
         $this->assertSame('100.00', $worker->fresh()->paidAmount($this->ils->id));
-        $this->assertSame('-100.00', $worker->fresh()->outstandingAmount($this->ils->id));
+        $this->assertSame('150.00', $worker->fresh()->outstandingAmount($this->ils->id));
     }
 
     public function test_supplier_charge_is_owed_until_paid(): void

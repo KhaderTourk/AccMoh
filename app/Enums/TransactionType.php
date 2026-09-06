@@ -31,6 +31,23 @@ enum TransactionType: string
         };
     }
 
+    public function badgeClass(): string
+    {
+        if ($this->isIncomingCash()) {
+            return 'cp-type-in';
+        }
+        if ($this->isOutgoingCash()) {
+            return 'cp-type-out';
+        }
+
+        return match ($this) {
+            self::TransferIn, self::TransferOut, self::TransferFee => 'cp-type-transfer',
+            self::Adjustment => 'cp-type-adjust',
+            self::Reversal => 'cp-type-reverse',
+            default => 'cp-type-adjust',
+        };
+    }
+
     public function isIncomingCash(): bool
     {
         return in_array($this, [

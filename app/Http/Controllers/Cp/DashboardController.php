@@ -79,6 +79,8 @@ class DashboardController extends Controller
             'methodDistribution' => $methodDistribution,
             'topIndebted' => tenantBusinessEnabled() ? $balances->topIndebtedClients(5) : collect(),
             'topPaying' => tenantBusinessEnabled() ? $balances->topPayingClients(5) : collect(),
+            'workerPayables' => tenantBusinessEnabled() ? $balances->vendorPayables(\App\Enums\VendorType::Worker) : [],
+            'supplierPayables' => tenantBusinessEnabled() ? $balances->vendorPayables(\App\Enums\VendorType::Supplier) : [],
             'counts' => [
                 'clients' => tenantBusinessEnabled() ? Client::query()->count() : 0,
                 'persons' => Person::query()->count(),
