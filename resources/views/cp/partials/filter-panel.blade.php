@@ -9,7 +9,7 @@
             <button type="button" class="cp-btn cp-btn-ghost" @click="filtersOpen = !filtersOpen" :aria-expanded="filtersOpen.toString()">
                 <span class="material-symbols-outlined">tune</span>
                 <span>تصفية</span>
-                <span class="material-symbols-outlined text-base transition-transform" :class="filtersOpen && 'rotate-180'">expand_more</span>
+                <span class="material-symbols-outlined text-base transition-transform" :class="filtersOpen ? 'rotate-180' : ''">expand_more</span>
                 @if($count > 0)
                     <span class="cp-filter-badge">{{ $count }}</span>
                 @endif
