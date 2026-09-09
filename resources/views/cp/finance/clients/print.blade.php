@@ -59,7 +59,7 @@
                         <div class="sub">{{ $service->fxCurrency?->format($service->source_amount) }} × {{ $service->formattedExchangeRate() }}</div>
                     @endif
                 </td>
-                <td>{{ $service->service_date->format('Y-m-d') }}</td>
+                <td>{{ format_date($service->service_date) }}</td>
             </tr>
         @endforeach
         </tbody>
@@ -98,7 +98,7 @@
                         <div class="sub" style="white-space: pre-line;">{{ $payment->notes }}</div>
                     @endif
                 </td>
-                <td>{{ $payment->occurred_on->format('Y-m-d') }}</td>
+                <td>{{ format_date($payment->occurred_on) }}</td>
             </tr>
         @endforeach
         </tbody>
@@ -115,7 +115,7 @@
     <tbody>
     @forelse($timeline as $item)
         <tr>
-            <td>{{ $item['date']->format('Y-m-d') }}</td>
+            <td>{{ format_date($item['date']) }}</td>
             <td>
                 {{ $item['title'] }}
                 @if(!empty($item['notes']))

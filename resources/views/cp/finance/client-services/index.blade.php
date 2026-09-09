@@ -56,7 +56,7 @@
                             <div class="text-xs text-slate-500">{{ $s->fxCurrency?->format($s->source_amount) }} × {{ $s->formattedExchangeRate() }}</div>
                         @endif
                     </td>
-                    <td class="px-3 py-3 whitespace-nowrap">{{ $s->service_date->format('Y-m-d') }}</td>
+                    <td class="px-3 py-3 whitespace-nowrap">{{ format_date($s->service_date) }}</td>
                     <td class="px-3 py-3">
                         <div class="flex items-center gap-1 justify-end">
                             <a href="{{ route('cp.client-services.edit', $s) }}" class="p-1" title="تعديل"><span class="material-symbols-outlined text-base">edit</span></a>

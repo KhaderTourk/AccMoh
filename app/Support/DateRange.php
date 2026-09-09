@@ -91,18 +91,33 @@ class DateRange
         );
     }
 
+    public static function display(mixed $value, bool $withTime = false): string
+    {
+        if ($value === null || $value === '') {
+            return '';
+        }
+
+        try {
+            $date = $value instanceof Carbon ? $value : Carbon::parse($value);
+
+            return $date->format($withTime ? 'd/m/Y H:i' : 'd/m/Y');
+        } catch (\Throwable) {
+            return '';
+        }
+    }
+
     public static function label(?string $from, ?string $to): string
     {
         if (! $from && ! $to) {
             return 'طوال المدة';
         }
         if ($from && $to) {
-            return 'من '.$from.' إلى '.$to;
+            return 'من '.self::display($from).' إلى '.self::display($to);
         }
         if ($from) {
-            return 'من '.$from;
+            return 'من '.self::display($from);
         }
 
-        return 'حتى '.$to;
+        return 'حتى '.self::display($to);
     }
 }

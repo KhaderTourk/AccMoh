@@ -175,7 +175,7 @@ class VendorController extends Controller
             'currencies' => $currencies,
             'type' => $type,
             'businessFundId' => Fund::business()->id,
-            'exportedAt' => now()->format('Y-m-d H:i'),
+            'exportedAt' => format_date(now(), true),
             'title' => $vendor->name,
             'subtitle' => trim(implode(' · ', array_filter([
                 $type->label(),

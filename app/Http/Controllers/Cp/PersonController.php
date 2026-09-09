@@ -109,7 +109,7 @@ class PersonController extends Controller
         return [
             'member' => $person,
             'currencies' => Currency::query()->active()->get(),
-            'exportedAt' => now()->format('Y-m-d H:i'),
+            'exportedAt' => format_date(now(), true),
             'title' => $person->name,
             'subtitle' => trim(implode(' · ', array_filter([$person->relationship, $person->phone]))),
         ];

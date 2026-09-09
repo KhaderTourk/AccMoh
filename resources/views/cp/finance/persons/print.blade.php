@@ -33,7 +33,7 @@
     <tbody>
     @forelse($member->cashPayments as $p)
         <tr>
-            <td>{{ $p->occurred_on->format('Y-m-d') }}</td>
+            <td>{{ format_date($p->occurred_on) }}</td>
             <td>{{ $p->direction->label() }}{{ $p->is_reversed ? ' (ملغاة)' : '' }}</td>
             <td>{{ $p->fund->name }}</td>
             <td>{{ $p->paymentMethod->name }}</td>

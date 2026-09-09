@@ -74,7 +74,7 @@
             <tbody class="divide-y dark:divide-slate-700">
             @forelse($entries as $e)
                 <tr class="{{ \App\Support\Money::isNegative($e->amount) ? 'bg-rose-50/70 dark:bg-rose-900/20' : 'bg-emerald-50/70 dark:bg-emerald-900/20' }}">
-                    <td class="px-3 py-3 whitespace-nowrap font-medium">{{ $e->occurred_on->format('Y-m-d') }}</td>
+                    <td class="px-3 py-3 whitespace-nowrap font-medium">{{ format_date($e->occurred_on) }}</td>
                     <td class="px-3 py-3 whitespace-nowrap text-slate-500">{{ $e->recordedAt() }}</td>
                     <td class="px-3 py-3 whitespace-nowrap">
                         <span class="cp-type-pill {{ $e->transaction_type->badgeClass() }}">{{ $e->transaction_type->label() }}</span>

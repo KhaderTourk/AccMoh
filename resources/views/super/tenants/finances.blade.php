@@ -76,7 +76,7 @@
                     <div>
                         <p class="font-medium">{{ $entry->description }}</p>
                         @if($entry->notes)<p class="text-xs text-slate-500 whitespace-pre-line">{{ $entry->notes }}</p>@endif
-                        <p class="text-xs text-slate-500">{{ $entry->occurred_on->format('Y-m-d') }} · {{ $entry->paymentMethod->name }}</p>
+                        <p class="text-xs text-slate-500">{{ format_date($entry->occurred_on) }} · {{ $entry->paymentMethod->name }}</p>
                     </div>
                     <strong class="{{ \App\Support\Money::isNegative($entry->amount) ? 'text-rose-600' : 'text-emerald-600' }}">{{ $entry->currency->format($entry->amount) }}</strong>
                 </div>

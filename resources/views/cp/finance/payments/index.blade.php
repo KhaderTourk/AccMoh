@@ -30,7 +30,7 @@
             <tbody class="divide-y dark:divide-slate-700">
             @forelse($payments as $p)
                 <tr class="{{ $p->is_reversed ? 'opacity-40' : $p->direction->rowClass() }}">
-                    <td class="px-3 py-3 whitespace-nowrap">{{ $p->occurred_on->format('Y-m-d') }}</td>
+                    <td class="px-3 py-3 whitespace-nowrap">{{ format_date($p->occurred_on) }}</td>
                     <td class="px-3 py-3">
                         {{ $p->name }}
                         @include('cp.partials.note-line', ['notes' => $p->notes])

@@ -145,6 +145,16 @@ if (!function_exists('money_format_currency')) {
     }
 }
 
+if (! function_exists('format_date')) {
+    /**
+     * Display a date as day/month/year (e.g. 09/09/2026).
+     */
+    function format_date(mixed $value, bool $withTime = false): string
+    {
+        return \App\Support\DateRange::display($value, $withTime);
+    }
+}
+
 if (! function_exists('date_range_presets')) {
     /**
      * @return array<string, array{label: string, from: ?string, to: ?string}>

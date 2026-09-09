@@ -127,7 +127,7 @@
             <div class="rounded-2xl border bg-white max-h-80 overflow-y-auto">
                 @forelse($incoming as $p)
                     <div class="px-3 py-2 border-b text-sm flex justify-between gap-3 bg-emerald-50">
-                        <span>{{ $p->name }} — {{ $p->occurred_on->format('Y-m-d') }}</span>
+                        <span>{{ $p->name }} — {{ format_date($p->occurred_on) }}</span>
                         <strong class="text-emerald-700">{{ $p->currency->format($p->amount) }}</strong>
                     </div>
                 @empty
@@ -140,7 +140,7 @@
             <div class="rounded-2xl border bg-white max-h-80 overflow-y-auto">
                 @forelse($outgoing as $p)
                     <div class="px-3 py-2 border-b text-sm flex justify-between gap-3 bg-rose-50">
-                        <span>{{ $p->name }} — {{ $p->occurred_on->format('Y-m-d') }}</span>
+                        <span>{{ $p->name }} — {{ format_date($p->occurred_on) }}</span>
                         <strong class="text-rose-700">{{ $p->currency->format($p->amount) }}</strong>
                     </div>
                 @empty

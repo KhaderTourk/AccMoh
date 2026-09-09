@@ -34,7 +34,7 @@
                         @endif
                     </td>
                     <td class="px-3 py-2">{{ $t->isFx() ? $t->exchange_rate : '—' }}</td>
-                    <td class="px-3 py-2">{{ $t->transfer_date->format('Y-m-d') }}</td>
+                    <td class="px-3 py-2">{{ format_date($t->transfer_date) }}</td>
                     <td class="px-3 py-2">@unless($t->is_reversed)<form method="post" action="{{ route('cp.transfers.reverse', $t) }}" onsubmit="return confirm('إلغاء التحويل؟')">@csrf<button class="text-rose-600 text-xs">إلغاء</button></form>@endunless</td>
                 </tr>
             @empty

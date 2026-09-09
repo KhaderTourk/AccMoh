@@ -146,7 +146,7 @@
                     <div>
                         <p class="font-medium">{{ $entry->description }}</p>
                         @include('cp.partials.note-line', ['notes' => $entry->notes])
-                        <p class="text-xs text-slate-500">{{ $entry->transaction_type->label() }} · {{ $entry->occurred_on->format('Y-m-d') }} · {{ $entry->created_at?->format('H:i') }}</p>
+                        <p class="text-xs text-slate-500">{{ $entry->transaction_type->label() }} · {{ format_date($entry->occurred_on) }} · {{ $entry->created_at?->format('H:i') }}</p>
                     </div>
                     <span class="font-bold {{ \App\Support\Money::isNegative($entry->amount) ? 'text-rose-600' : 'text-emerald-600' }}">
                         {{ $entry->currency->format($entry->amount) }}

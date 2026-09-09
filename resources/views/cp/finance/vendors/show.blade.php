@@ -71,7 +71,7 @@
                                 <div class="text-xs text-slate-500">{{ $charge->fxCurrency?->format($charge->source_amount) }} × {{ $charge->formattedExchangeRate() }}</div>
                             @endif
                         </td>
-                        <td class="px-3 py-2 whitespace-nowrap">{{ $charge->charge_date->format('Y-m-d') }}</td>
+                        <td class="px-3 py-2 whitespace-nowrap">{{ format_date($charge->charge_date) }}</td>
                         <td class="px-3 py-2">
                             <div class="flex items-center gap-1 justify-end">
                                 <a href="{{ route('cp.vendor-charges.edit', $charge) }}" class="p-1" title="تعديل"><span class="material-symbols-outlined text-base">edit</span></a>
@@ -116,7 +116,7 @@
                         </td>
                         <td class="px-3 py-2">{{ $p->fund->name }}</td>
                         <td class="px-3 py-2">{{ $p->paymentMethod->name }}</td>
-                        <td class="px-3 py-2">{{ $p->occurred_on->format('Y-m-d') }}</td>
+                        <td class="px-3 py-2">{{ format_date($p->occurred_on) }}</td>
                         <td class="px-3 py-2">
                             @unless($p->is_reversed)
                             <div class="flex items-center gap-1 justify-end">

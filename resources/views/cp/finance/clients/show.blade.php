@@ -134,7 +134,7 @@
                                     <div class="text-xs text-slate-500">{{ $service->fxCurrency?->format($service->source_amount) }} × {{ $service->formattedExchangeRate() }}</div>
                                 @endif
                             </td>
-                            <td class="px-3 py-2 whitespace-nowrap">{{ $service->service_date->format('Y-m-d') }}</td>
+                            <td class="px-3 py-2 whitespace-nowrap">{{ format_date($service->service_date) }}</td>
                             <td class="px-3 py-2">
                                 <div class="flex items-center gap-1 justify-end">
                                     <a href="{{ route('cp.client-services.edit', $service) }}" class="p-1" title="تعديل"><span class="material-symbols-outlined text-base">edit</span></a>
@@ -192,7 +192,7 @@
                                 {{ $payment->name }}
                                 @include('cp.partials.note-line', ['notes' => $payment->notes])
                             </td>
-                            <td class="px-3 py-2 whitespace-nowrap">{{ $payment->occurred_on->format('Y-m-d') }}</td>
+                            <td class="px-3 py-2 whitespace-nowrap">{{ format_date($payment->occurred_on) }}</td>
                             <td class="px-3 py-2">
                                 @unless($payment->is_reversed)
                                 <div class="flex items-center gap-1 justify-end">
@@ -220,7 +220,7 @@
             @forelse($timeline as $item)
             <li class="ms-6">
                 <span class="absolute -start-1.5 mt-1.5 h-3 w-3 rounded-full {{ $item['type']==='payment' ? 'bg-emerald-500' : 'bg-primary' }}"></span>
-                <p class="text-xs text-slate-500">{{ $item['date']->format('Y-m-d') }}</p>
+                <p class="text-xs text-slate-500">{{ format_date($item['date']) }}</p>
                 <p class="font-medium">{{ $item['title'] }} — {{ $item['currency']->format($item['amount']) }}</p>
                 @include('cp.partials.note-line', ['notes' => $item['notes'] ?? null])
             </li>

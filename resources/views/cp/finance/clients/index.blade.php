@@ -45,16 +45,16 @@
         <div class="overflow-x-auto">
         <table class="w-full text-right text-sm">
             <thead class="bg-slate-50 dark:bg-slate-700/50"><tr>
-                <th class="px-4 py-3">الاسم</th><th class="px-4 py-3">الجهة</th><th class="px-4 py-3">الهاتف</th><th class="px-4 py-3">المتبقي</th><th class="px-4 py-3">الحالة</th><th class="px-4 py-3">إجراء</th>
+                <th class="px-4 py-3">الجهة</th><th class="px-4 py-3">الاسم</th><th class="px-4 py-3">الهاتف</th><th class="px-4 py-3">المتبقي</th><th class="px-4 py-3">الحالة</th><th class="px-4 py-3">إجراء</th>
             </tr></thead>
             <tbody class="divide-y dark:divide-slate-700">
             @foreach($clients as $client)
                 <tr>
                     <td class="px-4 py-3">
-                        <a href="{{ route('cp.clients.show', array_merge(['client' => $client], $periodQuery)) }}" class="font-medium text-primary">{{ $client->personName() }}</a>
+                        <a href="{{ route('cp.clients.show', array_merge(['client' => $client], $periodQuery)) }}" class="font-medium text-primary">{{ $client->organization() ?: '—' }}</a>
                         @include('cp.partials.note-line', ['notes' => $client->notes])
                     </td>
-                    <td class="px-4 py-3">{{ $client->organization() ?: '—' }}</td>
+                    <td class="px-4 py-3">{{ $client->personName() }}</td>
                     <td class="px-4 py-3">{{ $client->phone ?: '—' }}</td>
                     <td class="px-4 py-3">
                         @foreach($currencies as $currency)

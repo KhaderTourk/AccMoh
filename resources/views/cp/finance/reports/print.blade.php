@@ -211,7 +211,7 @@
                     <div class="sub" style="white-space: pre-line;">{{ $p->notes }}</div>
                 @endif
             </td>
-            <td>{{ $p->occurred_on->format('Y-m-d') }}</td>
+            <td>{{ format_date($p->occurred_on) }}</td>
             <td>{{ $p->paymentMethod?->name ?: '—' }}</td>
             <td class="amount">{{ $p->currency->format($p->amount) }}</td>
         </tr>
@@ -236,7 +236,7 @@
                     <div class="sub" style="white-space: pre-line;">{{ $p->notes }}</div>
                 @endif
             </td>
-            <td>{{ $p->occurred_on->format('Y-m-d') }}</td>
+            <td>{{ format_date($p->occurred_on) }}</td>
             <td>{{ $p->paymentMethod?->name ?: '—' }}</td>
             <td class="amount">{{ $p->currency->format($p->amount) }}</td>
         </tr>

@@ -43,7 +43,7 @@
                     <div class="sub">{{ $charge->fxCurrency?->format($charge->source_amount) }} × {{ $charge->formattedExchangeRate() }}</div>
                 @endif
             </td>
-            <td>{{ $charge->charge_date->format('Y-m-d') }}</td>
+            <td>{{ format_date($charge->charge_date) }}</td>
         </tr>
     @empty
         <tr><td colspan="3" class="empty">لا توجد سجلات.</td></tr>
@@ -64,7 +64,7 @@
             <td class="amount">{{ $p->currency->format($p->amount) }}</td>
             <td>{{ $p->fund->name }}</td>
             <td>{{ $p->paymentMethod->name }}</td>
-            <td>{{ $p->occurred_on->format('Y-m-d') }}</td>
+            <td>{{ format_date($p->occurred_on) }}</td>
         </tr>
     @empty
         <tr><td colspan="5" class="empty">لا توجد دفعات.</td></tr>

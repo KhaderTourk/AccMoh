@@ -176,7 +176,7 @@ class ReportController extends Controller
                     : ['id', 'name', 'company_name']
             ) : collect(),
             'persons' => Person::query()->orderBy('name')->get(['id', 'name']),
-            'exportedAt' => now()->format('Y-m-d H:i'),
+            'exportedAt' => format_date(now(), true),
             'title' => 'التقارير',
             'forExport' => $forExport,
         ] + $this->financeLookups();

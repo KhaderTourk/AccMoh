@@ -116,7 +116,7 @@ class ClientStatementService
             'paymentGroups' => $this->groupPayments($payments),
             'timeline' => $timeline,
             'movementCount' => $services->count() + $payments->where('is_reversed', false)->count(),
-            'exportedAt' => now()->format('Y-m-d H:i'),
+            'exportedAt' => format_date(now(), true),
             'title' => $client->personName(),
             'subtitle' => trim(implode(' · ', array_filter([$client->organization(), $client->phone]))),
         ];

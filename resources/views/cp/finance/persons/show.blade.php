@@ -43,7 +43,7 @@
             <tbody class="divide-y dark:divide-slate-700">
             @forelse($member->cashPayments as $p)
                 <tr class="{{ $p->is_reversed ? 'opacity-40' : $p->direction->rowClass() }}">
-                    <td class="px-3 py-2 whitespace-nowrap">{{ $p->occurred_on->format('Y-m-d') }}</td>
+                    <td class="px-3 py-2 whitespace-nowrap">{{ format_date($p->occurred_on) }}</td>
                     <td class="px-3 py-2 {{ $p->direction->colorClass() }}">{{ $p->direction->label() }}</td>
                     <td class="px-3 py-2">{{ $p->fund->name }}</td>
                     <td class="px-3 py-2">{{ $p->paymentMethod->name }}</td>

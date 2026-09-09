@@ -20,7 +20,7 @@ class PdfExporter
         }
 
         $title = (string) ($data['title'] ?? 'تقرير');
-        $exportedAt = htmlspecialchars((string) ($data['exportedAt'] ?? now()->format('Y-m-d H:i')), ENT_QUOTES, 'UTF-8');
+        $exportedAt = htmlspecialchars((string) ($data['exportedAt'] ?? format_date(now(), true)), ENT_QUOTES, 'UTF-8');
 
         $mpdf = new Mpdf([
             'mode' => 'utf-8',
