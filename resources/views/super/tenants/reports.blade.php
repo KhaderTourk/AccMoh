@@ -59,7 +59,7 @@
                 @forelse($clientSummary as $row)
                     @foreach($row['rows'] as $r)
                     <tr>
-                        <td class="px-3 py-2">{{ $row['client']->name }}</td>
+                        <td class="px-3 py-2">{{ $row['client']->personName() }}</td>
                         <td class="px-3 py-2">{{ $r['currency']->name }}</td>
                         <td class="px-3 py-2">{{ $r['currency']->format($r['billed']) }}</td>
                         <td class="px-3 py-2">{{ $r['currency']->format($r['paid']) }}</td>

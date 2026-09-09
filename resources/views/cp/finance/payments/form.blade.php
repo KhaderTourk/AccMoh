@@ -33,7 +33,7 @@
                 @if(($parties['clients'] ?? collect())->isNotEmpty())
                     <optgroup label="الزبائن">
                         @foreach($parties['clients'] as $c)
-                            <option value="client:{{ $c->id }}" data-name="{{ $c->name }}" @selected($initialPartyKey === 'client:'.$c->id)>{{ $c->name }}</option>
+                            <option value="client:{{ $c->id }}" data-name="{{ $c->personName() }}" @selected($initialPartyKey === 'client:'.$c->id)>{{ $c->personName() }}</option>
                         @endforeach
                     </optgroup>
                 @endif

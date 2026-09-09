@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
+use App\Support\DateRange;
 use App\Support\Money;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -56,24 +57,26 @@ class Person extends Model
             || $this->repayments()->exists();
     }
 
-    public function incomingAmount(int $currencyId): string
+    public function incomingAmount(int $currencyId, ?string $from = null, ?string $to = null): string
     {
         return Money::of(
             $this->cashPayments()
                 ->incoming()
                 ->active()
                 ->where('currency_id', $currencyId)
+                ->tap(fn ($q) => DateRange::constrain($q, 'occurred_on', $from, $to))
                 ->sum('amount')
         );
     }
 
-    public function outgoingAmount(int $currencyId): string
+    public function outgoingAmount(int $currencyId, ?string $from = null, ?string $to = null): string
     {
         return Money::of(
             $this->cashPayments()
                 ->outgoing()
                 ->active()
                 ->where('currency_id', $currencyId)
+                ->tap(fn ($q) => DateRange::constrain($q, 'occurred_on', $from, $to))
                 ->sum('amount')
         );
     }

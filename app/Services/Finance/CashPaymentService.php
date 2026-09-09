@@ -33,7 +33,7 @@ class CashPaymentService
         $pricing = PaymentFx::resolve($data);
         $party = $this->resolveParty($data);
         $fundId = (int) ($data['fund_id'] ?? $this->defaultFundId($party));
-        $name = trim((string) ($data['name'] ?? $party?->name ?? ''));
+        $name = trim((string) ($data['name'] ?? ($party instanceof Client ? $party->personName() : $party?->name) ?? ''));
         if ($name === '') {
             throw new FinanceException('اسم الدفعة مطلوب.');
         }

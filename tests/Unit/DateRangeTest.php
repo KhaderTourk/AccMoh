@@ -61,6 +61,15 @@ class DateRangeTest extends TestCase
         $this->assertNull($to);
     }
 
+    public function test_query_params_omit_empty_dates(): void
+    {
+        $this->assertSame(['q' => 'ahmad'], DateRange::queryParams(null, null, ['q' => 'ahmad']));
+        $this->assertSame(
+            ['from' => '2026-08-01', 'to' => '2026-08-31'],
+            DateRange::queryParams('2026-08-01', '2026-08-31')
+        );
+    }
+
     public function test_label_for_full_range(): void
     {
         $this->assertSame('طوال المدة', DateRange::label(null, null));

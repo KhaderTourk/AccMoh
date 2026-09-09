@@ -21,7 +21,7 @@
             <select name="client_id" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
                 <option value="">الكل</option>
                 @foreach($clients as $c)
-                    <option value="{{ $c->id }}" @selected(request('client_id')==$c->id)>{{ $c->name }}</option>
+                    <option value="{{ $c->id }}" @selected(request('client_id')==$c->id)>{{ $c->personName() }}</option>
                 @endforeach
             </select>
         </div>
@@ -44,7 +44,7 @@
             <tbody class="divide-y dark:divide-slate-700">
             @forelse($services as $s)
                 <tr>
-                    <td class="px-3 py-3"><a href="{{ route('cp.clients.show', $s->client) }}" class="text-primary font-medium">{{ $s->client->name }}</a></td>
+                    <td class="px-3 py-3"><a href="{{ route('cp.clients.show', $s->client) }}" class="text-primary font-medium">{{ $s->client->personName() }}</a></td>
                     <td class="px-3 py-3">{{ $s->serviceType?->name ?: '—' }}</td>
                     <td class="px-3 py-3">
                         {{ $s->title }}

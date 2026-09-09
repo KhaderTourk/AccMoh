@@ -49,7 +49,7 @@ class CashPaymentController extends Controller
                 'direction' => $dir,
                 'occurred_on' => now()->toDateString(),
                 'fund_id' => $fundId,
-                'name' => $party?->name,
+                'name' => $party instanceof Client ? $party->personName() : $party?->name,
                 'party_type' => $partyType,
                 'party_id' => $party?->id,
             ]),
@@ -190,7 +190,7 @@ class CashPaymentController extends Controller
                 'party_key' => 'اختر اسماً من قائمة الزبائن أو الأشخاص أو الموظفين أو الموردين.',
             ]);
         }
-        $data['name'] = $party->name;
+        $data['name'] = $party instanceof Client ? $party->personName() : $party->name;
         unset($data['party_key']);
 
         if ($data['party_type'] === 'person') {
@@ -243,7 +243,7 @@ class CashPaymentController extends Controller
      */
     protected function partyOptions(?CashPayment $payment = null): array
     {
-        $clients = tenantBusinessEnabled() ? Client::query()->active()->orderBy('name')->get(['id', 'name']) : collect();
+        $clients = tenantBusinessEnabled() ? Client::query()->active()->orderBy('name')->get(['id', 'name', 'contact_name', 'company_name']) : collect();
         $persons = Person::query()->active()->orderBy('name')->get(['id', 'name']);
         $vendors = tenantBusinessEnabled() ? Vendor::query()->active()->orderBy('name')->get(['id', 'name', 'type']) : collect();
 

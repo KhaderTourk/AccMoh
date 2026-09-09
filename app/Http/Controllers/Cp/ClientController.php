@@ -7,30 +7,44 @@ use App\Models\Client;
 use App\Models\ClientService;
 use App\Models\Currency;
 use App\Services\Export\PdfExporter;
+use App\Services\Finance\ClientStatementService;
+use App\Support\DateRange;
 use App\Support\Money;
 use App\Support\Phone;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
 
 class ClientController extends Controller
 {
     public function index(Request $request)
     {
+        [$from, $to] = DateRange::fromRequest($request);
+
         $clients = Client::query()
             ->when($request->q, fn ($q, $term) => $q->where(function ($qq) use ($term) {
                 $qq->where('name', 'like', "%{$term}%")
                     ->orWhere('phone', 'like', "%{$term}%")
                     ->orWhere('company_name', 'like', "%{$term}%")
                     ->orWhere('notes', 'like', "%{$term}%");
+                if (Schema::hasColumn('clients', 'contact_name')) {
+                    $qq->orWhere('contact_name', 'like', "%{$term}%");
+                }
             }))
             ->when($request->filled('status'), fn ($q) => $q->where('is_active', $request->status === 'active'))
+            ->when($from || $to, function ($q) use ($from, $to) {
+                $q->where(function ($qq) use ($from, $to) {
+                    $qq->whereHas('services', fn ($s) => DateRange::constrain($s, 'service_date', $from, $to))
+                        ->orWhereHas('cashPayments', fn ($p) => DateRange::constrain($p->active(), 'occurred_on', $from, $to));
+                });
+            })
             ->orderBy('name')
             ->paginate(20)
             ->withQueryString();
 
         $currencies = Currency::query()->active()->get();
+        $periodQuery = DateRange::queryParams($from, $to);
 
-        return view('cp.finance.clients.index', compact('clients', 'currencies'));
+        return view('cp.finance.clients.index', compact('clients', 'currencies', 'from', 'to', 'periodQuery'));
     }
 
     public function create()
@@ -46,20 +60,29 @@ class ClientController extends Controller
         return redirect()->route('cp.clients.show', $client)->with('success', 'تم إضافة الزبون.');
     }
 
-    public function show(Client $client)
+    public function show(Request $request, Client $client, ClientStatementService $statements)
     {
-        return view('cp.finance.clients.show', $this->showPayload($client));
+        return view('cp.finance.clients.show', $this->showPayload($request, $client, $statements));
     }
 
-    public function exportPdf(Client $client, PdfExporter $pdf)
+    public function exportPdf(Request $request, Client $client, PdfExporter $pdf, ClientStatementService $statements)
     {
-        $data = $this->showPayload($client);
+        $request->validate([
+            'opening' => ['sometimes', 'array'],
+            'opening.*' => ['nullable', 'numeric'],
+        ]);
+
+        $data = $this->showPayload($request, $client, $statements);
         $data['exporting'] = true;
+
+        $suffix = ($data['from'] || $data['to'])
+            ? '-'.($data['from'] ?: 'start').'-'.($data['to'] ?: 'now')
+            : '';
 
         return $pdf->download(
             'cp.finance.clients.print',
             $data,
-            'client-'.$client->id.'.pdf'
+            'client-'.$client->id.$suffix.'.pdf'
         );
     }
 
@@ -100,54 +123,14 @@ class ClientController extends Controller
     }
 
     /**
-     * @return array{client: Client, currencies: \Illuminate\Support\Collection, timeline: \Illuminate\Support\Collection, exportedAt: string}
+     * @return array<string, mixed>
      */
-    protected function showPayload(Client $client): array
+    protected function showPayload(Request $request, Client $client, ClientStatementService $statements): array
     {
-        $client->load([
-            'services' => fn ($q) => $q->with(['currency', 'fxCurrency', 'serviceType'])
-                ->orderBy('service_date')
-                ->orderBy('id'),
-            'payments' => fn ($q) => $q->with(['currency', 'fxCurrency', 'paymentMethod'])
-                ->orderByDesc('occurred_on')
-                ->orderByDesc('id'),
-        ]);
-        $currencies = Currency::query()->active()->get();
+        [$from, $to] = DateRange::fromRequest($request);
+        $opening = $request->input('opening', []);
 
-        $timeline = collect();
-        foreach ($client->services as $service) {
-            $timeline->push([
-                'date' => $service->service_date,
-                'type' => 'service',
-                'title' => 'خدمة: '.$service->title,
-                'amount' => $service->amount,
-                'currency' => $service->currency,
-                'notes' => $service->notes,
-            ]);
-        }
-        foreach ($client->payments->where('is_reversed', false) as $payment) {
-            $timeline->push([
-                'date' => $payment->occurred_on,
-                'type' => 'payment',
-                'title' => 'دفعة عبر '.$payment->paymentMethod->name,
-                'amount' => $payment->amount,
-                'currency' => $payment->currency,
-                'notes' => $payment->notes,
-            ]);
-        }
-
-        $timeline = $timeline->sortByDesc(fn ($i) => $i['date']->format('Y-m-d'))->values();
-
-        return [
-            'client' => $client,
-            'currencies' => $currencies,
-            'serviceGroups' => $this->groupServices($client->services),
-            'paymentGroups' => $this->groupPayments($client->payments),
-            'timeline' => $timeline,
-            'exportedAt' => now()->format('Y-m-d H:i'),
-            'title' => $client->name,
-            'subtitle' => trim(implode(' · ', array_filter([$client->company_name, $client->phone]))),
-        ];
+        return $statements->build($client, $from, $to, is_array($opening) ? $opening : []);
     }
 
     public function unpaidServices(Client $client, Request $request)
@@ -184,60 +167,5 @@ class ClientController extends Controller
                 : null,
             'services' => $services,
         ]);
-    }
-
-    protected function groupServices(Collection $services): Collection
-    {
-        return $services
-            ->groupBy(fn ($s) => $s->service_type_id ?: 0)
-            ->map(function (Collection $rows) {
-                $type = $rows->first()->serviceType;
-                $rows = $rows->sortBy(fn ($s) => $s->service_date->format('Y-m-d').sprintf('%010d', $s->id))->values();
-
-                return [
-                    'name' => $type?->name ?: 'بدون نوع',
-                    'uncategorized' => $type === null,
-                    'services' => $rows,
-                    'totals' => $this->totalsByCurrency($rows),
-                ];
-            })
-            ->sortBy(fn ($group) => ($group['uncategorized'] ? '1-' : '0-').$group['name'])
-            ->values();
-    }
-
-    protected function groupPayments(Collection $payments): Collection
-    {
-        return $payments
-            ->groupBy('payment_method_id')
-            ->map(function (Collection $rows) {
-                $method = $rows->first()->paymentMethod;
-                $rows = $rows->sortByDesc(fn ($p) => $p->occurred_on->format('Y-m-d').sprintf('%010d', $p->id))->values();
-
-                return [
-                    'name' => $method?->name ?: '—',
-                    'sort' => $method?->sort_order ?? 999,
-                    'payments' => $rows,
-                    'totals' => $this->totalsByCurrency($rows->where('is_reversed', false)),
-                ];
-            })
-            ->sortBy('sort')
-            ->values();
-    }
-
-    protected function totalsByCurrency(Collection $rows): Collection
-    {
-        return $rows
-            ->groupBy('currency_id')
-            ->map(function (Collection $byCurrency) {
-                $currency = $byCurrency->first()->currency;
-                $total = $byCurrency->reduce(fn ($sum, $row) => Money::add($sum, $row->amount), '0');
-
-                return [
-                    'currency' => $currency,
-                    'total' => $total,
-                    'formatted' => $currency->format($total),
-                ];
-            })
-            ->values();
     }
 }

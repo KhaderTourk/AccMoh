@@ -13,6 +13,7 @@ use App\Models\ServiceType;
 use App\Models\Vendor;
 use App\Services\Finance\BalanceService;
 use App\Support\Money;
+use Illuminate\Support\Facades\Schema;
 
 class OfflineSnapshotBuilder
 {
@@ -64,7 +65,11 @@ class OfflineSnapshotBuilder
 
     protected function clients(array $snapshot)
     {
-        $clients = Client::query()->active()->orderBy('name')->get(['id', 'name', 'phone', 'company_name']);
+        $columns = ['id', 'name', 'phone', 'company_name'];
+        if (Schema::hasColumn('clients', 'contact_name')) {
+            $columns[] = 'contact_name';
+        }
+        $clients = Client::query()->active()->orderBy('name')->get($columns);
         if ($clients->isEmpty()) {
             return [];
         }
@@ -73,9 +78,9 @@ class OfflineSnapshotBuilder
 
         return $clients->map(fn (Client $c) => [
             'id' => $c->id,
-            'name' => $c->name,
+            'name' => $c->personName(),
             'phone' => $c->phone,
-            'company_name' => $c->company_name,
+            'company_name' => $c->organization(),
             'outstanding' => $snapshot['currencies']->mapWithKeys(
                 fn ($cur) => [$cur->code => (string) ($outstanding[$c->id][$cur->id] ?? '0.00')]
             ),

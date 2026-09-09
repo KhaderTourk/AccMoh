@@ -1,48 +1,103 @@
 @extends('cp.layout')
-@section('title', $client->name)
+@section('title', $client->personName())
 @section('content')
+@php
+    $filterCount = collect(['from', 'to', '_preset'])->filter(fn ($key) => filled(request($key)))->count();
+    $periodQuery = \App\Support\DateRange::queryParams($from ?? null, $to ?? null);
+@endphp
 <div class="space-y-6">
     <div class="flex flex-wrap justify-between gap-3">
         <div>
-            <h2 class="text-2xl font-bold">{{ $client->name }}</h2>
+            <h2 class="text-2xl font-bold">{{ $client->personName() }}</h2>
             <p class="text-slate-500 text-sm">
-                @if($client->company_name){{ $client->company_name }} · @endif
+                @if($client->organization()){{ $client->organization() }} · @endif
                 {{ $client->phone }}
             </p>
         </div>
         <div class="flex flex-wrap gap-2">
             <a href="{{ route('cp.client-services.create', ['client_id' => $client->id]) }}" class="cp-btn cp-btn-primary"><span class="material-symbols-outlined">work</span> خدمة</a>
             <a href="{{ route('cp.payments.create', ['incoming', 'client_id' => $client->id]) }}" class="cp-btn cp-btn-in"><span class="material-symbols-outlined">south_west</span> دفعة واردة</a>
-            <a href="{{ route('cp.clients.export-pdf', $client) }}" class="cp-btn cp-btn-ghost"><span class="material-symbols-outlined">picture_as_pdf</span> تصدير PDF</a>
             <a href="{{ route('cp.clients.edit', $client) }}" class="cp-btn cp-btn-ghost"><span class="material-symbols-outlined">edit</span> تعديل</a>
         </div>
     </div>
 
+    @component('cp.partials.filter-panel', ['count' => $filterCount, 'open' => true])
+        @slot('actions')
+            @unless($hasOpening)
+                <a href="{{ route('cp.clients.export-pdf', array_merge(['client' => $client], $periodQuery)) }}" class="cp-btn cp-btn-ghost">
+                    <span class="material-symbols-outlined">picture_as_pdf</span> تصدير PDF
+                </a>
+            @endunless
+        @endslot
+        @include('cp.partials.date-range-fields')
+        @slot('footer')
+            @include('cp.partials.date-range-shortcuts')
+        @endslot
+    @endcomponent
+
+    @if($from || $to)
+        <div class="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm flex flex-wrap justify-between gap-2">
+            <span>عرض حركات: <strong>{{ $periodLabel }}</strong> — {{ $movementCount }} حركة في الفترة.</span>
+        </div>
+    @endif
+
     @include('cp.partials.note-card', ['notes' => $client->notes])
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        @foreach($currencies as $currency)
-            @php
-                $billed = $client->billedAmount($currency->id);
-                $paid = $client->paidAmount($currency->id);
-                $due = $client->outstandingAmount($currency->id);
-            @endphp
-            @if(!\App\Support\Money::isZero($billed) || !\App\Support\Money::isZero($paid))
+        @forelse($summaries as $row)
+            @php $currency = $row['currency']; @endphp
             <div class="rounded-2xl border bg-white dark:bg-slate-800 p-5">
                 <h3 class="font-bold mb-3">{{ $currency->name }}</h3>
                 <div class="space-y-1 text-sm">
-                    <p>قيمة الخدمات: <strong>{{ $currency->format($billed) }}</strong></p>
-                    <p>المدفوع: <strong class="text-emerald-600">{{ $currency->format($paid) }}</strong></p>
-                    @if(\App\Support\Money::isNegative($due))
-                        <p>عربون / رصيد مدفوع مقدماً: <strong class="text-emerald-600">{{ $currency->format(\App\Support\Money::abs($due)) }}</strong></p>
+                    @if($hasOpening)
+                        <p>رصيد سابق قبل الفترة:
+                            <strong class="{{ \App\Support\Money::isNegative($row['computed_opening']) ? 'text-emerald-600' : (\App\Support\Money::isPositive($row['computed_opening']) ? 'text-amber-600' : '') }}">
+                                @if(\App\Support\Money::isNegative($row['computed_opening']))
+                                    عربون {{ $currency->format(\App\Support\Money::abs($row['computed_opening'])) }}
+                                @else
+                                    {{ $currency->format($row['computed_opening']) }}
+                                @endif
+                            </strong>
+                        </p>
+                    @endif
+                    <p>قيمة الخدمات{{ $from || $to ? ' في الفترة' : '' }}: <strong>{{ $currency->format($row['billed']) }}</strong></p>
+                    <p>المدفوع{{ $from || $to ? ' في الفترة' : '' }}: <strong class="text-emerald-600">{{ $currency->format($row['paid']) }}</strong></p>
+                    @if(\App\Support\Money::isNegative($row['closing']))
+                        <p>{{ $hasOpening ? 'المتبقي بعد الفترة' : 'المتبقي' }}: <strong class="text-emerald-600">عربون {{ $currency->format(\App\Support\Money::abs($row['closing'])) }}</strong></p>
                     @else
-                        <p>المتبقي: <strong class="text-amber-600">{{ $currency->format($due) }}</strong></p>
+                        <p>{{ $hasOpening ? 'المتبقي بعد الفترة' : 'المتبقي' }}: <strong class="text-amber-600">{{ $currency->format($row['closing']) }}</strong></p>
+                    @endif
+                    @if($hasOpening && \App\Support\Money::cmp($row['closing'], $row['lifetime_due']) !== 0)
+                        <p class="text-xs text-slate-500 pt-1">الرصيد الفعلي الحالي في النظام: {{ $currency->format($row['lifetime_due']) }}</p>
                     @endif
                 </div>
             </div>
-            @endif
-        @endforeach
+        @empty
+            <div class="rounded-2xl border bg-white dark:bg-slate-800 p-8 text-center text-slate-500 md:col-span-2">لا أرصدة أو حركات{{ $from || $to ? ' في هذه الفترة' : '' }}.</div>
+        @endforelse
     </div>
+
+    @if($hasOpening)
+        <form method="get" action="{{ route('cp.clients.export-pdf', $client) }}" class="rounded-2xl border border-amber-200 dark:border-amber-800/50 bg-amber-50/70 dark:bg-amber-900/15 p-5 space-y-3">
+            @if($from)<input type="hidden" name="from" value="{{ $from }}">@endif
+            @if($to)<input type="hidden" name="to" value="{{ $to }}">@endif
+            <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <h3 class="font-bold">تصدير كشف الفترة</h3>
+                    <p class="text-xs text-slate-600 dark:text-slate-300 mt-1">يمكن تعديل الرصيد السابق للعرض في ملف PDF فقط. التعديل لا يُحفظ ولا يغيّر الأرصدة المسجّلة في النظام.</p>
+                </div>
+                <button class="cp-btn cp-btn-ghost"><span class="material-symbols-outlined">picture_as_pdf</span> تصدير PDF</button>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                @foreach($summaries as $row)
+                    <div>
+                        <label class="text-xs block mb-0.5 text-slate-500">رصيد سابق ({{ $row['currency']->name }})</label>
+                        <input type="number" step="0.01" name="opening[{{ $row['currency']->id }}]" value="{{ $row['computed_opening'] }}" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
+                    </div>
+                @endforeach
+            </div>
+        </form>
+    @endif
 
     <section class="space-y-4">
         <div class="flex items-center justify-between gap-3">
@@ -95,7 +150,7 @@
                 </table>
             </div>
         @empty
-            <div class="rounded-2xl border bg-white dark:bg-slate-800 p-8 text-center text-slate-500">لا توجد خدمات.</div>
+            <div class="rounded-2xl border bg-white dark:bg-slate-800 p-8 text-center text-slate-500">لا توجد خدمات{{ $from || $to ? ' في هذه الفترة' : '' }}.</div>
         @endforelse
     </section>
 
@@ -155,21 +210,23 @@
                 </table>
             </div>
         @empty
-            <div class="rounded-2xl border bg-white dark:bg-slate-800 p-8 text-center text-slate-500">لا توجد دفعات.</div>
+            <div class="rounded-2xl border bg-white dark:bg-slate-800 p-8 text-center text-slate-500">لا توجد دفعات{{ $from || $to ? ' في هذه الفترة' : '' }}.</div>
         @endforelse
     </section>
 
     <section class="rounded-2xl border bg-white dark:bg-slate-800 p-5">
         <h3 class="font-bold mb-4">السجل الزمني</h3>
         <ol class="relative border-s border-slate-200 dark:border-slate-700 ms-3 space-y-4">
-            @foreach($timeline as $item)
+            @forelse($timeline as $item)
             <li class="ms-6">
                 <span class="absolute -start-1.5 mt-1.5 h-3 w-3 rounded-full {{ $item['type']==='payment' ? 'bg-emerald-500' : 'bg-primary' }}"></span>
                 <p class="text-xs text-slate-500">{{ $item['date']->format('Y-m-d') }}</p>
                 <p class="font-medium">{{ $item['title'] }} — {{ $item['currency']->format($item['amount']) }}</p>
                 @include('cp.partials.note-line', ['notes' => $item['notes'] ?? null])
             </li>
-            @endforeach
+            @empty
+            <li class="ms-6 text-slate-500 text-sm">لا حركات{{ $from || $to ? ' في هذه الفترة' : '' }}.</li>
+            @endforelse
         </ol>
     </section>
 </div>

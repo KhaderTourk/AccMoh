@@ -124,7 +124,7 @@
             <h3 class="font-bold mb-4">الزبائن الأكثر مديونية</h3>
             @forelse($topIndebted as $row)
                 <div class="flex justify-between py-2 border-b border-slate-100 dark:border-slate-700 text-sm">
-                    <a href="{{ route('cp.clients.show', $row['client']) }}" class="text-primary font-medium">{{ $row['client']->name }}</a>
+                    <a href="{{ route('cp.clients.show', $row['client']) }}" class="text-primary font-medium">{{ $row['client']->personName() }}</a>
                     <span>
                         @foreach($snapshot['currencies'] as $currency)
                             @if(\App\Support\Money::isPositive($row['by_currency'][$currency->id] ?? 0))

@@ -25,7 +25,7 @@
 </table>
 @endif
 
-<h2>تقرير الأرصدة</h2>
+        <h2>الأرصدة الحالية</h2>
 <table class="data">
     <thead>
         <tr>
@@ -83,16 +83,32 @@
     </tr>
 </table>
 
-@if(tenantBusinessEnabled())
+@if(tenantBusinessEnabled() && $clientSummary->isNotEmpty())
 <h2>تقرير الزبائن</h2>
 <table class="data">
-    <thead><tr><th>الزبون</th><th>العملة</th><th>الخدمات</th><th>المدفوع</th><th>المتبقي</th></tr></thead>
+    <thead><tr>
+        <th>الزبون</th>
+        <th>العملة</th>
+        @if(!empty($hasOpening))<th>رصيد سابق</th>@endif
+        <th>الخدمات</th>
+        <th>المدفوع</th>
+        <th>المتبقي</th>
+    </tr></thead>
     <tbody>
-    @forelse($clientSummary as $row)
+    @foreach($clientSummary as $row)
         @foreach($row['rows'] as $r)
         <tr>
-            <td>{{ $row['client']->name }}</td>
+            <td>{{ $row['client']->personName() }}</td>
             <td>{{ $r['currency']->name }}</td>
+            @if(!empty($hasOpening))
+                <td>
+                    @if(\App\Support\Money::isNegative($r['opening']))
+                        عربون {{ $r['currency']->format(\App\Support\Money::abs($r['opening'])) }}
+                    @else
+                        {{ $r['currency']->format($r['opening']) }}
+                    @endif
+                </td>
+            @endif
             <td>{{ $r['currency']->format($r['billed']) }}</td>
             <td>{{ $r['currency']->format($r['paid']) }}</td>
             <td>
@@ -104,19 +120,17 @@
             </td>
         </tr>
         @endforeach
-    @empty
-        <tr><td colspan="5" class="empty">لا بيانات.</td></tr>
-    @endforelse
+    @endforeach
     </tbody>
 </table>
 @endif
 
-@if(tenantBusinessEnabled())
+@if(tenantBusinessEnabled() && $workerSummary->isNotEmpty())
 <h2>تقرير الموظفين</h2>
 <table class="data">
     <thead><tr><th>الموظف</th><th>العملة</th><th>مستحق له</th><th>المدفوع</th><th>المتبقي</th></tr></thead>
     <tbody>
-    @forelse($workerSummary as $row)
+    @foreach($workerSummary as $row)
         @foreach($row['rows'] as $r)
         <tr>
             <td>{{ $row['vendor']->name }}</td>
@@ -132,44 +146,43 @@
             </td>
         </tr>
         @endforeach
-    @empty
-        <tr><td colspan="5" class="empty">لا بيانات للموظفين.</td></tr>
-    @endforelse
-    </tbody>
-</table>
-
-<h2>تقرير الموردين</h2>
-<table class="data">
-    <thead><tr><th>المورد</th><th>العملة</th><th>مستحق له</th><th>المدفوع</th><th>المتبقي</th></tr></thead>
-    <tbody>
-    @forelse($supplierSummary as $row)
-        @foreach($row['rows'] as $r)
-        <tr>
-            <td>{{ $row['vendor']->name }}</td>
-            <td>{{ $r['currency']->name }}</td>
-            <td>{{ $r['currency']->format($r['billed']) }}</td>
-            <td>{{ $r['currency']->format($r['paid']) }}</td>
-            <td>
-                @if(\App\Support\Money::isNegative($r['due']))
-                    مقدماً {{ $r['currency']->format(\App\Support\Money::abs($r['due'])) }}
-                @else
-                    {{ $r['currency']->format($r['due']) }}
-                @endif
-            </td>
-        </tr>
-        @endforeach
-    @empty
-        <tr><td colspan="5" class="empty">لا بيانات للموردين.</td></tr>
-    @endforelse
+    @endforeach
     </tbody>
 </table>
 @endif
 
+@if(tenantBusinessEnabled() && $supplierSummary->isNotEmpty())
+<h2>تقرير الموردين</h2>
+<table class="data">
+    <thead><tr><th>المورد</th><th>العملة</th><th>مستحق له</th><th>المدفوع</th><th>المتبقي</th></tr></thead>
+    <tbody>
+    @foreach($supplierSummary as $row)
+        @foreach($row['rows'] as $r)
+        <tr>
+            <td>{{ $row['vendor']->name }}</td>
+            <td>{{ $r['currency']->name }}</td>
+            <td>{{ $r['currency']->format($r['billed']) }}</td>
+            <td>{{ $r['currency']->format($r['paid']) }}</td>
+            <td>
+                @if(\App\Support\Money::isNegative($r['due']))
+                    مقدماً {{ $r['currency']->format(\App\Support\Money::abs($r['due'])) }}
+                @else
+                    {{ $r['currency']->format($r['due']) }}
+                @endif
+            </td>
+        </tr>
+        @endforeach
+    @endforeach
+    </tbody>
+</table>
+@endif
+
+@if($personSummary->isNotEmpty())
 <h2>تقرير الأشخاص</h2>
 <table class="data">
     <thead><tr><th>الشخص</th><th>العملة</th><th>وارد</th><th>صادر</th></tr></thead>
     <tbody>
-    @forelse($personSummary as $row)
+    @foreach($personSummary as $row)
         @foreach($row['rows'] as $r)
         <tr>
             <td>{{ $row['member']->name }}</td>
@@ -178,15 +191,17 @@
             <td>{{ $r['currency']->format($r['out']) }}</td>
         </tr>
         @endforeach
-    @empty
-        <tr><td colspan="4" class="empty">لا بيانات.</td></tr>
-    @endforelse
+    @endforeach
     </tbody>
 </table>
+@endif
 
-<h2>دفعات واردة</h2>
+<h2>دفعات واردة{{ isset($incomingCount) ? ' ('.$incomingCount.')' : '' }}</h2>
+@if(!empty($incomingTotals) && $incomingTotals->isNotEmpty())
+<p class="muted">الإجمالي: @foreach($incomingTotals as $total){{ $total['formatted'] }}@if(! $loop->last) · @endif @endforeach</p>
+@endif
 <table class="data">
-    <thead><tr><th>الاسم</th><th>التاريخ</th><th>المبلغ</th></tr></thead>
+    <thead><tr><th>الاسم</th><th>التاريخ</th><th>الطريقة</th><th>المبلغ</th></tr></thead>
     <tbody>
     @forelse($incoming as $p)
         <tr>
@@ -197,17 +212,21 @@
                 @endif
             </td>
             <td>{{ $p->occurred_on->format('Y-m-d') }}</td>
+            <td>{{ $p->paymentMethod?->name ?: '—' }}</td>
             <td class="amount">{{ $p->currency->format($p->amount) }}</td>
         </tr>
     @empty
-        <tr><td colspan="3" class="empty">لا دفعات واردة في الفترة.</td></tr>
+        <tr><td colspan="4" class="empty">لا دفعات واردة مطابقة للتصفية.</td></tr>
     @endforelse
     </tbody>
 </table>
 
-<h2>دفعات صادرة</h2>
+<h2>دفعات صادرة{{ isset($outgoingCount) ? ' ('.$outgoingCount.')' : '' }}</h2>
+@if(!empty($outgoingTotals) && $outgoingTotals->isNotEmpty())
+<p class="muted">الإجمالي: @foreach($outgoingTotals as $total){{ $total['formatted'] }}@if(! $loop->last) · @endif @endforeach</p>
+@endif
 <table class="data">
-    <thead><tr><th>الاسم</th><th>التاريخ</th><th>المبلغ</th></tr></thead>
+    <thead><tr><th>الاسم</th><th>التاريخ</th><th>الطريقة</th><th>المبلغ</th></tr></thead>
     <tbody>
     @forelse($outgoing as $p)
         <tr>
@@ -218,10 +237,11 @@
                 @endif
             </td>
             <td>{{ $p->occurred_on->format('Y-m-d') }}</td>
+            <td>{{ $p->paymentMethod?->name ?: '—' }}</td>
             <td class="amount">{{ $p->currency->format($p->amount) }}</td>
         </tr>
     @empty
-        <tr><td colspan="3" class="empty">لا دفعات صادرة في الفترة.</td></tr>
+        <tr><td colspan="4" class="empty">لا دفعات صادرة مطابقة للتصفية.</td></tr>
     @endforelse
     </tbody>
 </table>

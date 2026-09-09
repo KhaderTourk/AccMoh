@@ -13,7 +13,7 @@
     <div>
         <label class="text-sm">الزبون *</label>
         <select name="client_id" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700" @disabled($service->exists)>
-            @foreach($clients as $c)<option value="{{ $c->id }}" @selected(old('client_id', $service->client_id)==$c->id)>{{ $c->name }}</option>@endforeach
+            @foreach($clients as $c)<option value="{{ $c->id }}" @selected(old('client_id', $service->client_id)==$c->id)>{{ $c->personName() }}</option>@endforeach
         </select>
         @if($service->exists)<input type="hidden" name="client_id" value="{{ $service->client_id }}">@endif
     </div>

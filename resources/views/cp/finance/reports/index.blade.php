@@ -3,20 +3,99 @@
 @section('content')
 <div class="space-y-8">
     @php
-        $filterCount = collect(['from', 'to', '_preset'])->filter(fn ($key) => filled(request($key)))->count();
+        $filterCount = collect(['from', 'to', '_preset', 'currency_id', 'fund_id', 'payment_method_id', 'party_type', 'client_id', 'person_id', 'q'])
+            ->filter(fn ($key) => filled(request($key)))->count();
+        $filterQuery = $filterQuery ?? \App\Support\DateRange::queryParams($from, $to);
     @endphp
-    @component('cp.partials.filter-panel', ['count' => $filterCount])
+    @component('cp.partials.filter-panel', ['count' => $filterCount, 'open' => true])
         @slot('actions')
-            <a href="{{ route('cp.reports.export-pdf', array_filter(['from' => $from, 'to' => $to])) }}" class="cp-btn cp-btn-ghost">
+            <a href="{{ route('cp.reports.export-pdf', $filterQuery) }}" class="cp-btn cp-btn-ghost">
                 <span class="material-symbols-outlined">picture_as_pdf</span>
                 تصدير PDF
             </a>
         @endslot
+        <div>
+            <label class="text-xs block mb-0.5 text-slate-500">بحث في الدفعات</label>
+            <input type="text" name="q" value="{{ request('q') }}" placeholder="الاسم أو الملاحظات" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
+        </div>
+        <div>
+            <label class="text-xs block mb-0.5 text-slate-500">العملة</label>
+            <select name="currency_id" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
+                <option value="">الكل</option>
+                @foreach($currencies as $c)
+                    <option value="{{ $c->id }}" @selected(request('currency_id')==$c->id)>{{ $c->name }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div>
+            <label class="text-xs block mb-0.5 text-slate-500">الدرج</label>
+            <select name="fund_id" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
+                <option value="">الكل</option>
+                @foreach($funds as $f)
+                    <option value="{{ $f->id }}" @selected(request('fund_id')==$f->id)>{{ $f->name }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div>
+            <label class="text-xs block mb-0.5 text-slate-500">طريقة الدفع</label>
+            <select name="payment_method_id" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
+                <option value="">الكل</option>
+                @foreach($paymentMethods as $m)
+                    <option value="{{ $m->id }}" @selected(request('payment_method_id')==$m->id)>{{ $m->name }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div>
+            <label class="text-xs block mb-0.5 text-slate-500">نوع الطرف</label>
+            <select name="party_type" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
+                <option value="">الكل</option>
+                @if(tenantBusinessEnabled())
+                    <option value="client" @selected(request('party_type')==='client')>زبائن</option>
+                @endif
+                <option value="person" @selected(request('party_type')==='person')>أشخاص</option>
+                @if(tenantBusinessEnabled())
+                    <option value="worker" @selected(request('party_type')==='worker')>موظفون</option>
+                    <option value="supplier" @selected(request('party_type')==='supplier')>موردون</option>
+                @endif
+            </select>
+        </div>
+        @if(tenantBusinessEnabled())
+        <div>
+            <label class="text-xs block mb-0.5 text-slate-500">زبون محدد</label>
+            <select name="client_id" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
+                <option value="">الكل</option>
+                @foreach($clients as $c)
+                    <option value="{{ $c->id }}" @selected(request('client_id')==$c->id)>{{ $c->personName() }}</option>
+                @endforeach
+            </select>
+        </div>
+        @endif
+        <div>
+            <label class="text-xs block mb-0.5 text-slate-500">شخص محدد</label>
+            <select name="person_id" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
+                <option value="">الكل</option>
+                @foreach($persons as $p)
+                    <option value="{{ $p->id }}" @selected(request('person_id')==$p->id)>{{ $p->name }}</option>
+                @endforeach
+            </select>
+        </div>
         @include('cp.partials.date-range-fields')
         @slot('footer')
             @include('cp.partials.date-range-shortcuts')
         @endslot
     @endcomponent
+
+    <div class="rounded-xl border bg-white dark:bg-slate-800 px-4 py-3 text-sm flex flex-wrap items-center justify-between gap-3">
+        <div>
+            <span class="text-slate-500">نتائج التصفية:</span>
+            <strong>{{ $periodLabel }}</strong>
+            <span class="text-slate-500"> · وارد {{ $incomingCount }} · صادر {{ $outgoingCount }}</span>
+        </div>
+        <a href="{{ route('cp.reports.export-pdf', $filterQuery) }}" class="text-primary font-medium inline-flex items-center gap-1">
+            <span class="material-symbols-outlined text-base">picture_as_pdf</span>
+            تصدير النتائج الحالية
+        </a>
+    </div>
 
     @if(tenantBusinessEnabled() && count($profitRows))
     <section>
@@ -45,7 +124,8 @@
     @endif
 
     <section>
-        <h2 class="font-bold text-lg mb-3">تقرير الأرصدة</h2>
+        <h2 class="font-bold text-lg mb-1">الأرصدة الحالية</h2>
+        <p class="text-xs text-slate-500 mb-3">أرصدة الأدراج الحالية في النظام، ولا تتأثر بتصفية الفترة.</p>
         <div class="overflow-x-auto rounded-2xl border bg-white dark:bg-slate-800">
             <table class="w-full text-sm text-right">
                 <thead class="bg-slate-50 dark:bg-slate-700/50"><tr><th class="px-3 py-2">الدرج</th>@foreach($snapshot['currencies'] as $c)<th class="px-3 py-2">{{ $c->name }}</th>@endforeach</tr></thead>
@@ -63,6 +143,7 @@
         @if(tenantBusinessEnabled())
         <div class="rounded-2xl border p-4 bg-white dark:bg-slate-800">
             <h3 class="font-bold mb-2">مستحق على الزبائن</h3>
+            <p class="text-xs text-slate-500 mb-1">الرصيد الحالي</p>
             @foreach($snapshot['currencies'] as $c)<p>{{ $c->format($receivables[$c->id] ?? 0) }}</p>@endforeach
         </div>
         <div class="rounded-2xl border p-4 bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/40">
@@ -83,18 +164,36 @@
         </div>
     </section>
 
-    @if(tenantBusinessEnabled())
+    @if(tenantBusinessEnabled() && request('party_type') !== 'person' && request('party_type') !== 'worker' && request('party_type') !== 'supplier')
     <section>
-        <h2 class="font-bold text-lg mb-3">تقرير الزبائن</h2>
-        <div class="rounded-2xl border bg-white dark:bg-slate-800 overflow-hidden">
+        <h2 class="font-bold text-lg mb-3">تقرير الزبائن{{ $from || $to ? ' — '.$periodLabel : '' }}</h2>
+        <div class="rounded-2xl border bg-white dark:bg-slate-800 overflow-x-auto">
             <table class="w-full text-sm text-right">
-                <thead class="bg-slate-50 dark:bg-slate-700/50"><tr><th class="px-3 py-2">الزبون</th><th class="px-3 py-2">العملة</th><th class="px-3 py-2">الخدمات</th><th class="px-3 py-2">المدفوع</th><th class="px-3 py-2">المتبقي</th></tr></thead>
+                <thead class="bg-slate-50 dark:bg-slate-700/50"><tr>
+                    <th class="px-3 py-2">الزبون</th>
+                    <th class="px-3 py-2">العملة</th>
+                    @if(!empty($hasOpening))<th class="px-3 py-2">رصيد سابق</th>@endif
+                    <th class="px-3 py-2">الخدمات</th>
+                    <th class="px-3 py-2">المدفوع</th>
+                    <th class="px-3 py-2">المتبقي</th>
+                </tr></thead>
                 <tbody class="divide-y dark:divide-slate-700">
                 @forelse($clientSummary as $row)
                     @foreach($row['rows'] as $r)
                     <tr>
-                        <td class="px-3 py-2">{{ $row['client']->name }}</td>
+                        <td class="px-3 py-2">
+                            <a href="{{ route('cp.clients.show', array_merge(['client' => $row['client']], \App\Support\DateRange::queryParams($from, $to))) }}" class="text-primary font-medium">{{ $row['client']->personName() }}</a>
+                        </td>
                         <td class="px-3 py-2">{{ $r['currency']->name }}</td>
+                        @if(!empty($hasOpening))
+                            <td class="px-3 py-2">
+                                @if(\App\Support\Money::isNegative($r['opening']))
+                                    عربون {{ $r['currency']->format(\App\Support\Money::abs($r['opening'])) }}
+                                @else
+                                    {{ $r['currency']->format($r['opening']) }}
+                                @endif
+                            </td>
+                        @endif
                         <td class="px-3 py-2">{{ $r['currency']->format($r['billed']) }}</td>
                         <td class="px-3 py-2 text-emerald-600">{{ $r['currency']->format($r['paid']) }}</td>
                         <td class="px-3 py-2 font-bold">
@@ -107,7 +206,7 @@
                     </tr>
                     @endforeach
                 @empty
-                    <tr><td colspan="5" class="p-6 text-center text-slate-500">لا بيانات.</td></tr>
+                    <tr><td colspan="{{ !empty($hasOpening) ? 6 : 5 }}" class="p-6 text-center text-slate-500">لا بيانات مطابقة للتصفية.</td></tr>
                 @endforelse
                 </tbody>
             </table>
@@ -115,18 +214,20 @@
     </section>
     @endif
 
-    @if(tenantBusinessEnabled())
+    @if(tenantBusinessEnabled() && request('party_type') !== 'person' && request('party_type') !== 'client' && request('party_type') !== 'supplier')
         @include('cp.finance.reports.vendor-table', [
             'summary' => $workerSummary,
-            'heading' => 'تقرير الموظفين',
+            'heading' => 'تقرير الموظفين'.(($from || $to) ? ' — '.$periodLabel : ''),
             'nameLabel' => 'الموظف',
             'billedLabel' => 'مستحق له',
             'empty' => 'لا بيانات للموظفين.',
             'routePrefix' => 'workers',
         ])
+    @endif
+    @if(tenantBusinessEnabled() && request('party_type') !== 'person' && request('party_type') !== 'client' && request('party_type') !== 'worker')
         @include('cp.finance.reports.vendor-table', [
             'summary' => $supplierSummary,
-            'heading' => 'تقرير الموردين',
+            'heading' => 'تقرير الموردين'.(($from || $to) ? ' — '.$periodLabel : ''),
             'nameLabel' => 'المورد',
             'billedLabel' => 'مستحق له',
             'empty' => 'لا بيانات للموردين.',
@@ -134,8 +235,9 @@
         ])
     @endif
 
+    @if(request('party_type') !== 'client' && request('party_type') !== 'worker' && request('party_type') !== 'supplier')
     <section>
-        <h2 class="font-bold text-lg mb-3">تقرير الأشخاص</h2>
+        <h2 class="font-bold text-lg mb-3">تقرير الأشخاص{{ $from || $to ? ' — '.$periodLabel : '' }}</h2>
         <div class="rounded-2xl border bg-white dark:bg-slate-800 overflow-hidden">
             <table class="w-full text-sm text-right">
                 <thead class="bg-slate-50 dark:bg-slate-700/50"><tr><th class="px-3 py-2">الشخص</th><th class="px-3 py-2">العملة</th><th class="px-3 py-2">وارد</th><th class="px-3 py-2">صادر</th></tr></thead>
@@ -150,44 +252,67 @@
                     </tr>
                     @endforeach
                 @empty
-                    <tr><td colspan="4" class="p-6 text-center text-slate-500">لا بيانات.</td></tr>
+                    <tr><td colspan="4" class="p-6 text-center text-slate-500">لا بيانات مطابقة للتصفية.</td></tr>
                 @endforelse
                 </tbody>
             </table>
         </div>
     </section>
+    @endif
 
     <section class="grid lg:grid-cols-2 gap-6">
         <div>
-            <h2 class="font-bold text-lg mb-3">دفعات واردة</h2>
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                <h2 class="font-bold text-lg">دفعات واردة ({{ $incomingCount }})</h2>
+                @if($incomingTotals->isNotEmpty())
+                    <div class="text-sm font-bold text-emerald-700 dark:text-emerald-300">
+                        @foreach($incomingTotals as $total){{ $total['formatted'] }}@if(! $loop->last) · @endif @endforeach
+                    </div>
+                @endif
+            </div>
             <div class="rounded-2xl border bg-white dark:bg-slate-800 max-h-96 overflow-y-auto">
                 @forelse($incoming as $p)
                     <div class="px-3 py-2 border-b text-sm flex justify-between gap-3 bg-emerald-50/70 dark:bg-emerald-900/20">
                         <span>
-                            {{ $p->name }} — {{ $p->occurred_on->format('Y-m-d') }}
+                            <a href="{{ route('cp.payments.show', $p) }}" class="font-medium">{{ $p->name }}</a>
+                            <span class="text-slate-500"> — {{ $p->occurred_on->format('Y-m-d') }}@if($p->paymentMethod) · {{ $p->paymentMethod->name }}@endif</span>
                             @include('cp.partials.note-line', ['notes' => $p->notes])
                         </span>
-                        <strong class="text-emerald-600">{{ $p->currency->format($p->amount) }}</strong>
+                        <strong class="text-emerald-600 whitespace-nowrap">{{ $p->currency->format($p->amount) }}</strong>
                     </div>
                 @empty
-                    <p class="p-6 text-slate-500 text-sm">لا دفعات واردة في الفترة.</p>
+                    <p class="p-6 text-slate-500 text-sm">لا دفعات واردة مطابقة للتصفية.</p>
                 @endforelse
+                @if($incomingCount > $incoming->count())
+                    <p class="p-3 text-xs text-slate-500 text-center">يُعرض {{ $incoming->count() }} من {{ $incomingCount }}. التصدير يشمل الكل.</p>
+                @endif
             </div>
         </div>
         <div>
-            <h2 class="font-bold text-lg mb-3">دفعات صادرة</h2>
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                <h2 class="font-bold text-lg">دفعات صادرة ({{ $outgoingCount }})</h2>
+                @if($outgoingTotals->isNotEmpty())
+                    <div class="text-sm font-bold text-rose-700 dark:text-rose-300">
+                        @foreach($outgoingTotals as $total){{ $total['formatted'] }}@if(! $loop->last) · @endif @endforeach
+                    </div>
+                @endif
+            </div>
             <div class="rounded-2xl border bg-white dark:bg-slate-800 max-h-96 overflow-y-auto">
                 @forelse($outgoing as $p)
                     <div class="px-3 py-2 border-b text-sm flex justify-between gap-3 bg-rose-50/70 dark:bg-rose-900/20">
                         <span>
-                            {{ $p->name }} — {{ $p->occurred_on->format('Y-m-d') }}
+                            <a href="{{ route('cp.payments.show', $p) }}" class="font-medium">{{ $p->name }}</a>
+                            <span class="text-slate-500"> — {{ $p->occurred_on->format('Y-m-d') }}@if($p->paymentMethod) · {{ $p->paymentMethod->name }}@endif@if($p->fund) · {{ $p->fund->name }}@endif</span>
                             @include('cp.partials.note-line', ['notes' => $p->notes])
                         </span>
-                        <strong class="text-rose-600">{{ $p->currency->format($p->amount) }}</strong>
+                        <strong class="text-rose-600 whitespace-nowrap">{{ $p->currency->format($p->amount) }}</strong>
                     </div>
                 @empty
-                    <p class="p-6 text-slate-500 text-sm">لا دفعات صادرة في الفترة.</p>
+                    <p class="p-6 text-slate-500 text-sm">لا دفعات صادرة مطابقة للتصفية.</p>
                 @endforelse
+                @if($outgoingCount > $outgoing->count())
+                    <p class="p-3 text-xs text-slate-500 text-center">يُعرض {{ $outgoing->count() }} من {{ $outgoingCount }}. التصدير يشمل الكل.</p>
+                @endif
             </div>
         </div>
     </section>

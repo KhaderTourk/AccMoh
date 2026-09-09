@@ -40,7 +40,7 @@ class ClientPaymentService
                 'fx_currency_id' => $resolved['fx_currency_id'],
                 'currency_id' => $data['currency_id'],
                 'payment_method_id' => $data['payment_method_id'],
-                'payer_name' => $data['payer_name'] ?: $client->name,
+                'payer_name' => $data['payer_name'] ?: $client->personName(),
                 'payment_date' => $data['payment_date'],
                 'notes' => $data['notes'] ?? null,
                 'ledger_group_id' => 'pending',
@@ -54,7 +54,7 @@ class ClientPaymentService
                 'currency_id' => $data['currency_id'],
                 'amount' => $resolved['amount'],
                 'occurred_on' => $data['payment_date'],
-                'description' => 'دفعة من العميل '.$client->name,
+                'description' => 'دفعة من العميل '.$client->personName(),
                 'notes' => $data['notes'] ?? null,
                 'related' => $payment,
             ]]);

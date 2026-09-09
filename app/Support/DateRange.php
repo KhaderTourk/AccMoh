@@ -70,6 +70,27 @@ class DateRange
         return $query;
     }
 
+    public static function before(Builder $query, string $column, ?string $before): Builder
+    {
+        if ($before) {
+            $query->whereDate($column, '<', $before);
+        }
+
+        return $query;
+    }
+
+    /**
+     * @param  array<string, mixed>  $extra
+     * @return array<string, mixed>
+     */
+    public static function queryParams(?string $from, ?string $to, array $extra = []): array
+    {
+        return array_filter(
+            array_merge(['from' => $from, 'to' => $to], $extra),
+            fn ($value) => $value !== null && $value !== '' && $value !== []
+        );
+    }
+
     public static function label(?string $from, ?string $to): string
     {
         if (! $from && ! $to) {

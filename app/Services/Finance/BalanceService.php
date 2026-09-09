@@ -259,16 +259,16 @@ class BalanceService
     /**
      * @return Collection<int, array{vendor: Vendor, rows: list<array{currency: Currency, billed: string, paid: string, due: string}>}>
      */
-    public function vendorAccountSummary(VendorType $type): Collection
+    public function vendorAccountSummary(VendorType $type, ?string $from = null, ?string $to = null): Collection
     {
         $currencies = Currency::query()->active()->get();
 
-        return Vendor::query()->ofType($type)->orderBy('name')->get()->map(function (Vendor $vendor) use ($currencies) {
+        return Vendor::query()->ofType($type)->orderBy('name')->get()->map(function (Vendor $vendor) use ($currencies, $from, $to) {
             $rows = [];
             foreach ($currencies as $currency) {
-                $billed = $vendor->billedAmount($currency->id);
-                $paid = $vendor->paidAmount($currency->id);
-                $due = $vendor->outstandingAmount($currency->id);
+                $billed = $vendor->billedAmount($currency->id, $from, $to);
+                $paid = $vendor->paidAmount($currency->id, $from, $to);
+                $due = Money::sub($billed, $paid);
                 if (Money::isZero($billed) && Money::isZero($paid)) {
                     continue;
                 }

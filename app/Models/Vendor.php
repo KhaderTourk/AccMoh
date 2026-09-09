@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\VendorType;
 use App\Models\Concerns\BelongsToTenant;
+use App\Support\DateRange;
 use App\Support\Money;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -61,22 +62,24 @@ class Vendor extends Model
         return $query->where('type', $type);
     }
 
-    public function billedAmount(int $currencyId): string
+    public function billedAmount(int $currencyId, ?string $from = null, ?string $to = null): string
     {
         return Money::of(
             $this->charges()
                 ->where('currency_id', $currencyId)
+                ->tap(fn ($q) => DateRange::constrain($q, 'charge_date', $from, $to))
                 ->sum('amount')
         );
     }
 
-    public function paidAmount(int $currencyId): string
+    public function paidAmount(int $currencyId, ?string $from = null, ?string $to = null): string
     {
         return Money::of(
             $this->cashPayments()
                 ->outgoing()
                 ->active()
                 ->where('currency_id', $currencyId)
+                ->tap(fn ($q) => DateRange::constrain($q, 'occurred_on', $from, $to))
                 ->sum('amount')
         );
     }

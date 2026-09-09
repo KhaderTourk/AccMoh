@@ -1,44 +1,31 @@
 @extends('cp.print')
 @section('content')
-@php
-    $hasBalances = false;
-@endphp
-@foreach($currencies as $currency)
-    @php
-        $billed = $client->billedAmount($currency->id);
-        $paid = $client->paidAmount($currency->id);
-        $due = $client->outstandingAmount($currency->id);
-    @endphp
-    @if(!\App\Support\Money::isZero($billed) || !\App\Support\Money::isZero($paid))
-        @php $hasBalances = true; @endphp
-    @endif
-@endforeach
-
-@if($hasBalances)
-<h2>ملخص الحساب</h2>
+@if(!empty($summaries))
+<h2>ملخص الحساب{{ !empty($hasOpening) || !empty($from) || !empty($to) ? ' — '.$periodLabel : '' }}</h2>
 <table class="kpis">
     <tr>
-    @foreach($currencies as $currency)
-        @php
-            $billed = $client->billedAmount($currency->id);
-            $paid = $client->paidAmount($currency->id);
-            $due = $client->outstandingAmount($currency->id);
-        @endphp
-        @if(!\App\Support\Money::isZero($billed) || !\App\Support\Money::isZero($paid))
+    @foreach($summaries as $i => $row)
+        @if($i && $i % 3 === 0)</tr><tr>@endif
+        @php $currency = $row['currency']; @endphp
         <td>
             <div class="kpi-label">{{ $currency->name }}</div>
-            <div class="sub">قيمة الخدمات: {{ $currency->format($billed) }}</div>
-            <div class="sub">المدفوع: {{ $currency->format($paid) }}</div>
-            @if(\App\Support\Money::isNegative($due))
-                <div class="kpi-value">عربون {{ $currency->format(\App\Support\Money::abs($due)) }}</div>
+            @if(!empty($hasOpening))
+                <div class="sub">رصيد سابق: {{ $currency->format($row['opening']) }}@if(!empty($row['opening_overridden'])) (معدّل للعرض)@endif</div>
+            @endif
+            <div class="sub">قيمة الخدمات: {{ $currency->format($row['billed']) }}</div>
+            <div class="sub">المدفوع: {{ $currency->format($row['paid']) }}</div>
+            @if(\App\Support\Money::isNegative($row['closing']))
+                <div class="kpi-value">عربون {{ $currency->format(\App\Support\Money::abs($row['closing'])) }}</div>
             @else
-                <div class="kpi-value {{ \App\Support\Money::isZero($due) ? '' : 'neg' }}">المتبقي {{ $currency->format($due) }}</div>
+                <div class="kpi-value {{ \App\Support\Money::isZero($row['closing']) ? '' : 'neg' }}">المتبقي {{ $currency->format($row['closing']) }}</div>
             @endif
         </td>
-        @endif
     @endforeach
     </tr>
 </table>
+@if(!empty($hasOpening))
+<p class="muted">الرصيد السابق للعرض في هذا الكشف فقط، ولا يغيّر الأرصدة المسجّلة في النظام.</p>
+@endif
 @endif
 
 @if(filled($client->notes))
@@ -79,7 +66,7 @@
     </table>
 @empty
 <table class="data">
-    <tbody><tr><td class="empty">لا توجد خدمات.</td></tr></tbody>
+    <tbody><tr><td class="empty">لا توجد خدمات{{ !empty($from) || !empty($to) ? ' في هذه الفترة' : '' }}.</td></tr></tbody>
 </table>
 @endforelse
 
@@ -118,7 +105,7 @@
     </table>
 @empty
 <table class="data">
-    <tbody><tr><td class="empty">لا توجد دفعات.</td></tr></tbody>
+    <tbody><tr><td class="empty">لا توجد دفعات{{ !empty($from) || !empty($to) ? ' في هذه الفترة' : '' }}.</td></tr></tbody>
 </table>
 @endforelse
 
@@ -138,7 +125,7 @@
             <td class="amount">{{ $item['currency']->format($item['amount']) }}</td>
         </tr>
     @empty
-        <tr><td colspan="3" class="empty">لا حركات.</td></tr>
+        <tr><td colspan="3" class="empty">لا حركات{{ !empty($from) || !empty($to) ? ' في هذه الفترة' : '' }}.</td></tr>
     @endforelse
     </tbody>
 </table>

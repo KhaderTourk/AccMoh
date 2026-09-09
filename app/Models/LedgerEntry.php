@@ -6,6 +6,7 @@ use App\Models\Concerns\BelongsToTenant;
 
 use App\Enums\TransactionType;
 use App\Models\CashPayment;
+use App\Models\Client;
 use App\Models\FundTransfer;
 use App\Models\Vendor;
 use App\Models\VendorCharge;
@@ -87,7 +88,7 @@ class LedgerEntry extends Model
                     default => null,
                 };
 
-                return trim(($kind ? $kind.' · ' : '').($party->name ?? $related->name));
+                return trim(($kind ? $kind.' · ' : '').($party instanceof Client ? $party->personName() : ($party->name ?? $related->name)));
             }
 
             return $related->name;
