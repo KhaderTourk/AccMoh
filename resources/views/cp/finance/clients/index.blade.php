@@ -8,6 +8,7 @@
 <div class="space-y-4">
     @component('cp.partials.filter-panel', ['count' => $filterCount])
         @slot('actions')
+            <a href="{{ route('cp.clients.import') }}" class="cp-btn cp-btn-ghost"><span class="material-symbols-outlined">upload_file</span> استيراد من إكسيل</a>
             <a href="{{ route('cp.clients.create') }}" class="cp-btn cp-btn-primary"><span class="material-symbols-outlined">add</span> زبون جديد</a>
         @endslot
         <div>

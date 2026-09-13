@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Cp\DashboardController;
 use App\Http\Controllers\Cp\BalanceController;
 use App\Http\Controllers\Cp\ClientController;
+use App\Http\Controllers\Cp\ClientImportController;
 use App\Http\Controllers\Cp\ClientServiceController;
 use App\Http\Controllers\Cp\CashPaymentController;
 use App\Http\Controllers\Cp\PersonController;
@@ -73,6 +74,10 @@ Route::prefix('cp')->name('cp.')->middleware(['cp.auth', 'cp.check'])->group(fun
     Route::delete('/payments/{payment}', [CashPaymentController::class, 'destroy'])->name('payments.destroy');
 
     Route::middleware('cp.business')->group(function () {
+        Route::get('/clients/import', [ClientImportController::class, 'create'])->name('clients.import');
+        Route::post('/clients/import/preview', [ClientImportController::class, 'preview'])->name('clients.import.preview');
+        Route::get('/clients/import/review', [ClientImportController::class, 'review'])->name('clients.import.review');
+        Route::post('/clients/import', [ClientImportController::class, 'store'])->name('clients.import.store');
         Route::resource('clients', ClientController::class);
         Route::get('/clients/{client}/export-pdf', [ClientController::class, 'exportPdf'])->name('clients.export-pdf');
         Route::get('/clients/{client}/unpaid-services', [ClientController::class, 'unpaidServices'])->name('clients.unpaid-services');
