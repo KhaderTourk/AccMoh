@@ -5,7 +5,7 @@
     <div class="flex flex-wrap items-start justify-between gap-3">
         <div>
             <h2 class="text-xl font-bold">استيراد ملفات الزبائن القديمة</h2>
-            <p class="text-sm text-slate-500 mt-1">ارفع ملف إكسيل لكل عميل. الاسم يُقرأ من اسم الملف بالشكل: <span dir="ltr">2026 - كشف حساب - اسم الزبون</span></p>
+            <p class="text-sm text-slate-500 mt-1">ارفع ملف إكسيل لكل زبون. الاسم يُقرأ من اسم الملف بالشكل: <span dir="ltr">2026 - كشف حساب - اسم الزبون</span></p>
         </div>
         <a href="{{ route('cp.clients.index') }}" class="px-4 py-2 rounded-xl border">رجوع</a>
     </div>

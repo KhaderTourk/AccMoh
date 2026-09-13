@@ -52,6 +52,8 @@ class LegacyClientImportTest extends TestCase
         $this->actingAs($this->user)
             ->get(route('cp.clients.import.review', ['token' => $token]))
             ->assertOk()
+            ->assertSee('اسم الزبون')
+            ->assertSee('الجهة')
             ->assertSee('مخبز السعادة')
             ->assertSee('إعلان ممول');
 
@@ -59,13 +61,18 @@ class LegacyClientImportTest extends TestCase
             ->post(route('cp.clients.import.store'), [
                 'token' => $token,
                 'clients' => [
-                    0 => ['client_name' => 'مخبز السعادة', 'merge' => '0'],
+                    0 => [
+                        'client_name' => 'مخبز السعادة',
+                        'company_name' => 'مجموعة السعادة',
+                        'merge' => '0',
+                    ],
                 ],
             ])
             ->assertRedirect(route('cp.clients.index'));
 
         $client = Client::query()->where('name', 'مخبز السعادة')->first();
         $this->assertNotNull($client);
+        $this->assertSame('مجموعة السعادة', $client->company_name);
         $this->assertSame(2, $client->services()->count());
         $this->assertSame(1, $client->payments()->count());
 

@@ -42,20 +42,22 @@ class LegacyClientImportService
                 ->first();
             $merge = (bool) ($draft['merge'] ?? true);
             $created = false;
+            $companyName = trim((string) ($draft['company_name'] ?? ''));
+            $companyName = $companyName !== '' ? $companyName : null;
 
             if ($existing && $merge) {
                 $client = $existing;
                 if (filled($draft['phone'] ?? null) && ! $client->phone) {
                     $client->phone = $draft['phone'];
                 }
-                if (filled($draft['company_name'] ?? null) && ! $client->company_name) {
-                    $client->company_name = $draft['company_name'];
+                if ($companyName) {
+                    $client->company_name = $companyName;
                 }
                 $client->save();
             } else {
                 $client = Client::query()->create([
                     'name' => $name,
-                    'company_name' => $draft['company_name'] ?? $name,
+                    'company_name' => $companyName,
                     'phone' => $draft['phone'] ?? null,
                     'notes' => $draft['notes'] ?? 'مستورد من ملف إكسيل قديم',
                     'is_active' => true,

@@ -22,14 +22,17 @@
                 <div class="px-5 py-4 border-b dark:border-slate-700 flex flex-wrap items-start justify-between gap-3">
                     <div class="space-y-2 min-w-[16rem] flex-1">
                         <p class="text-xs text-slate-500">{{ $draft['filename'] }}</p>
-                        <label class="text-sm block">اسم العميل
+                        <label class="text-sm block">اسم الزبون
                             <input name="clients[{{ $i }}][client_name]" value="{{ old("clients.$i.client_name", $draft['client_name']) }}" class="mt-1 w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
+                        </label>
+                        <label class="text-sm block">الجهة
+                            <input name="clients[{{ $i }}][company_name]" value="{{ old("clients.$i.company_name", $draft['company_name']) }}" class="mt-1 w-full rounded-xl border px-3 py-2 dark:bg-slate-700" placeholder="اختياري">
                         </label>
                         @if($draft['existing_client_id'])
                             <label class="inline-flex items-center gap-2 text-sm text-amber-700 dark:text-amber-300">
                                 <input type="hidden" name="clients[{{ $i }}][merge]" value="0">
                                 <input type="checkbox" name="clients[{{ $i }}][merge]" value="1" @checked(old("clients.$i.merge", true))>
-                                دمج مع العميل الحالي «{{ $draft['existing_client_name'] }}»
+                                دمج مع الزبون الحالي «{{ $draft['existing_client_name'] }}»
                             </label>
                         @endif
                     </div>
@@ -50,7 +53,6 @@
                     <p class="text-slate-500">
                         {{ count($draft['services']) }} خدمة · {{ count($draft['payments']) }} دفعة
                         @if($draft['phone']) · هاتف: {{ $draft['phone'] }}@endif
-                        @if($draft['company_name']) · جهة: {{ $draft['company_name'] }}@endif
                     </p>
 
                     <details open class="rounded-xl border dark:border-slate-700">

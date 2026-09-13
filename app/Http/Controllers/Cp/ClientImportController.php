@@ -70,6 +70,7 @@ class ClientImportController extends Controller
             'clients.*.skip' => ['nullable', 'boolean'],
             'clients.*.merge' => ['nullable', 'boolean'],
             'clients.*.client_name' => ['nullable', 'string', 'max:255'],
+            'clients.*.company_name' => ['nullable', 'string', 'max:255'],
         ]);
 
         $drafts = Cache::get($this->cacheKey($data['token']));
@@ -96,6 +97,8 @@ class ClientImportController extends Controller
             }
 
             $draft['client_name'] = trim((string) ($form['client_name'] ?? $draft['client_name']));
+            $companyName = trim((string) ($form['company_name'] ?? $draft['company_name'] ?? ''));
+            $draft['company_name'] = $companyName !== '' ? $companyName : null;
             $draft['merge'] = $request->boolean("clients.$index.merge", (bool) ($draft['existing_client_id'] ?? false));
 
             try {
@@ -115,7 +118,7 @@ class ClientImportController extends Controller
 
         Cache::forget($this->cacheKey($data['token']));
 
-        $message = "تم استيراد {$imported} عميل، {$services} خدمة، {$payments} دفعة.";
+        $message = "تم استيراد {$imported} زبون، {$services} خدمة، {$payments} دفعة.";
         if ($warnings !== []) {
             $message .= ' تنبيهات: '.implode(' | ', array_slice($warnings, 0, 8));
         }
