@@ -76,11 +76,12 @@ class ReportController extends Controller
                         $opening = $hasOpening ? $client->openingBalance($currency->id, $from) : '0.00';
                         $billed = $client->billedAmount($currency->id, $from, $to);
                         $paid = $client->paidAmount($currency->id, $from, $to);
-                        $due = Money::sub(Money::add($opening, $billed), $paid);
-                        if (Money::isZero($opening) && Money::isZero($billed) && Money::isZero($paid)) {
+                        $goods = $client->goodsTakenAmount($currency->id, $from, $to);
+                        $due = Money::sub(Money::sub(Money::add($opening, $billed), $paid), $goods);
+                        if (Money::isZero($opening) && Money::isZero($billed) && Money::isZero($paid) && Money::isZero($goods)) {
                             continue;
                         }
-                        $rows[] = compact('currency', 'opening', 'billed', 'paid', 'due');
+                        $rows[] = compact('currency', 'opening', 'billed', 'paid', 'goods', 'due');
                     }
 
                     return ['client' => $client, 'rows' => $rows];

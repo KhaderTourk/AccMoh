@@ -4,6 +4,7 @@ namespace App\Services\Api;
 
 use App\Models\CashPayment;
 use App\Models\Client;
+use App\Models\ClientGoodsTake;
 use App\Models\ClientService;
 use App\Models\Currency;
 use App\Models\Fund;
@@ -114,6 +115,17 @@ class OfflineSnapshotBuilder
             $out[(int) $row->client_id][(int) $row->currency_id] = Money::of($row->total);
         }
         foreach ($paid as $row) {
+            $cid = (int) $row->client_id;
+            $cur = (int) $row->currency_id;
+            $out[$cid][$cur] = Money::sub($out[$cid][$cur] ?? '0.00', $row->total);
+        }
+
+        $goods = ClientGoodsTake::query()
+            ->whereIn('client_id', $clientIds)
+            ->selectRaw('client_id, currency_id, SUM(amount) as total')
+            ->groupBy('client_id', 'currency_id')
+            ->get();
+        foreach ($goods as $row) {
             $cid = (int) $row->client_id;
             $cur = (int) $row->currency_id;
             $out[$cid][$cur] = Money::sub($out[$cid][$cur] ?? '0.00', $row->total);

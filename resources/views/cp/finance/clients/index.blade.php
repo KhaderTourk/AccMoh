@@ -27,7 +27,7 @@
         @slot('footer')
             @include('cp.partials.date-range-shortcuts')
             @if($from || $to)
-                <p class="text-xs text-slate-500 mt-2">عند تحديد فترة تظهر فقط الزبائن الذين لديهم خدمات أو دفعات ضمنها، ويمكن تصدير كشف الحركات لنفس الفترة.</p>
+                <p class="text-xs text-slate-500 mt-2">عند تحديد فترة تظهر فقط الزبائن الذين لديهم خدمات أو دفعات أو بضاعة مأخوذة ضمنها، ويمكن تصدير كشف الحركات لنفس الفترة.</p>
             @endif
         @endslot
     @endcomponent
@@ -35,7 +35,7 @@
     @if($from || $to)
         <div class="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm">
             حركات الفترة: <strong>{{ \App\Support\DateRange::label($from, $to) }}</strong>
-            — التصدير من كل صف يعرض خدمات ودفعات هذه الفترة مع الرصيد السابق إن وُجد.
+            — التصدير من كل صف يعرض خدمات ودفعات وبضاعة هذه الفترة مع الرصيد السابق إن وُجد.
         </div>
     @endif
 

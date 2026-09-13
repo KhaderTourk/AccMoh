@@ -108,11 +108,12 @@ class TenantController extends Controller
                     foreach ($snapshot['currencies'] as $currency) {
                         $billed = $client->billedAmount($currency->id);
                         $paid = $client->paidAmount($currency->id);
+                        $goods = $client->goodsTakenAmount($currency->id);
                         $due = $client->outstandingAmount($currency->id);
-                        if (\App\Support\Money::isZero($billed) && \App\Support\Money::isZero($paid)) {
+                        if (\App\Support\Money::isZero($billed) && \App\Support\Money::isZero($paid) && \App\Support\Money::isZero($goods)) {
                             continue;
                         }
-                        $rows[] = compact('currency', 'billed', 'paid', 'due');
+                        $rows[] = compact('currency', 'billed', 'paid', 'goods', 'due');
                     }
 
                     return ['client' => $client, 'rows' => $rows];

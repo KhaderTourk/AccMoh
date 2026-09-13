@@ -15,6 +15,7 @@ class CheckCpPermission
         'cp.balances' => 'finance',
         'cp.clients' => 'finance',
         'cp.client-services' => 'finance',
+        'cp.client-goods-takes' => 'finance',
         'cp.payments' => 'finance',
         'cp.persons' => 'finance',
         'cp.transfers' => 'finance',

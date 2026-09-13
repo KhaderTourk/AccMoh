@@ -6,6 +6,7 @@ use App\Exceptions\FinanceException;
 use App\Enums\VendorType;
 use App\Models\CashPayment;
 use App\Models\Client;
+use App\Models\ClientGoodsTake;
 use App\Models\ClientService;
 use App\Models\Currency;
 use App\Models\Fund;
@@ -133,9 +134,18 @@ class BalanceService
             ->groupBy('currency_id')
             ->pluck('total', 'currency_id');
 
+        $goods = ClientGoodsTake::query()
+            ->when($clientId, fn ($q) => $q->where('client_id', $clientId))
+            ->selectRaw('currency_id, SUM(amount) as total')
+            ->groupBy('currency_id')
+            ->pluck('total', 'currency_id');
+
         $out = [];
         foreach (Currency::query()->active()->pluck('id') as $currencyId) {
-            $out[$currencyId] = Money::sub($billed[$currencyId] ?? '0', $paid[$currencyId] ?? '0');
+            $out[$currencyId] = Money::sub(
+                Money::sub($billed[$currencyId] ?? '0', $paid[$currencyId] ?? '0'),
+                $goods[$currencyId] ?? '0'
+            );
         }
 
         return $out;

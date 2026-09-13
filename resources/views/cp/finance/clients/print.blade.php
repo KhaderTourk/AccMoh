@@ -14,6 +14,7 @@
             @endif
             <div class="sub">قيمة الخدمات: {{ $currency->format($row['billed']) }}</div>
             <div class="sub">المدفوع: {{ $currency->format($row['paid']) }}</div>
+            <div class="sub">بضاعة مأخوذة: {{ $currency->format($row['goods'] ?? '0.00') }}</div>
             @if(\App\Support\Money::isNegative($row['closing']))
                 <div class="kpi-value">عربون {{ $currency->format(\App\Support\Money::abs($row['closing'])) }}</div>
             @else
@@ -108,6 +109,42 @@
     <tbody><tr><td class="empty">لا توجد دفعات{{ !empty($from) || !empty($to) ? ' في هذه الفترة' : '' }}.</td></tr></tbody>
 </table>
 @endforelse
+
+<h2>بضاعة مأخوذة</h2>
+@if(($goodsTakes ?? collect())->isNotEmpty())
+    <h3 style="font-size:12px;margin:12px 0 6px;color:#b45309;">خصم من حساب الزبون
+        @if(($goodsTotals ?? collect())->isNotEmpty())
+            — الإجمالي:
+            @foreach($goodsTotals as $total){{ $total['formatted'] }}@if(! $loop->last) · @endif @endforeach
+        @endif
+    </h3>
+    <table class="data">
+        <thead><tr><th>المنتج</th><th>السعر</th><th>التاريخ</th></tr></thead>
+        <tbody>
+        @foreach($goodsTakes as $take)
+            <tr>
+                <td>
+                    {{ $take->title }}
+                    @if(filled($take->notes))
+                        <div class="sub" style="white-space: pre-line;">{{ $take->notes }}</div>
+                    @endif
+                </td>
+                <td>
+                    {{ $take->currency->format($take->amount) }}
+                    @if($take->isFx())
+                        <div class="sub">{{ $take->fxCurrency?->format($take->source_amount) }} × {{ $take->formattedExchangeRate() }}</div>
+                    @endif
+                </td>
+                <td>{{ format_date($take->taken_on) }}</td>
+            </tr>
+        @endforeach
+        </tbody>
+    </table>
+@else
+<table class="data">
+    <tbody><tr><td class="empty">لا توجد بضاعة مأخوذة{{ !empty($from) || !empty($to) ? ' في هذه الفترة' : '' }}.</td></tr></tbody>
+</table>
+@endif
 
 <h2>السجل الزمني</h2>
 <table class="data">

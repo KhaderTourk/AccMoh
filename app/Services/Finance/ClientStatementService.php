@@ -31,6 +31,10 @@ class ClientStatementService
                 ->tap(fn ($qq) => DateRange::constrain($qq, 'occurred_on', $from, $to))
                 ->orderBy('occurred_on')
                 ->orderBy('id'),
+            'goodsTakes' => fn ($q) => $q->with(['currency', 'fxCurrency'])
+                ->tap(fn ($qq) => DateRange::constrain($qq, 'taken_on', $from, $to))
+                ->orderBy('taken_on')
+                ->orderBy('id'),
         ]);
 
         $currencies = Currency::query()->active()->get();
@@ -41,6 +45,7 @@ class ClientStatementService
             $computedOpening = $hasOpening ? $client->openingBalance($currency->id, $from) : '0.00';
             $periodBilled = $client->billedAmount($currency->id, $from, $to);
             $periodPaid = $client->paidAmount($currency->id, $from, $to);
+            $periodGoods = $client->goodsTakenAmount($currency->id, $from, $to);
 
             $opening = $computedOpening;
             $openingOverridden = false;
@@ -50,13 +55,14 @@ class ClientStatementService
                 $openingOverridden = Money::cmp($opening, $computedOpening) !== 0;
             }
 
-            $closing = Money::sub(Money::add($opening, $periodBilled), $periodPaid);
+            $closing = Money::sub(Money::sub(Money::add($opening, $periodBilled), $periodPaid), $periodGoods);
             $lifetimeDue = $client->outstandingAmount($currency->id);
 
             if (
                 Money::isZero($computedOpening)
                 && Money::isZero($periodBilled)
                 && Money::isZero($periodPaid)
+                && Money::isZero($periodGoods)
                 && Money::isZero($lifetimeDue)
                 && ! $openingOverridden
             ) {
@@ -70,6 +76,7 @@ class ClientStatementService
                 'opening_overridden' => $openingOverridden,
                 'billed' => $periodBilled,
                 'paid' => $periodPaid,
+                'goods' => $periodGoods,
                 'closing' => $closing,
                 'lifetime_due' => $lifetimeDue,
             ];
@@ -77,6 +84,7 @@ class ClientStatementService
 
         $payments = $client->payments;
         $services = $client->services;
+        $goodsTakes = $client->goodsTakes;
 
         $timeline = collect();
         foreach ($services as $service) {
@@ -99,6 +107,16 @@ class ClientStatementService
                 'notes' => $payment->notes,
             ]);
         }
+        foreach ($goodsTakes as $take) {
+            $timeline->push([
+                'date' => $take->taken_on,
+                'type' => 'goods',
+                'title' => 'بضاعة مأخوذة: '.$take->title,
+                'amount' => $take->amount,
+                'currency' => $take->currency,
+                'notes' => $take->notes,
+            ]);
+        }
 
         $timeline = $hasOpening || $to
             ? $timeline->sortBy(fn ($i) => $i['date']->format('Y-m-d').sprintf('%010d', $i['date']->timestamp))->values()
@@ -114,8 +132,10 @@ class ClientStatementService
             'summaries' => $summaries,
             'serviceGroups' => $this->groupServices($services),
             'paymentGroups' => $this->groupPayments($payments),
+            'goodsTakes' => $goodsTakes->sortByDesc(fn ($t) => $t->taken_on->format('Y-m-d').sprintf('%010d', $t->id))->values(),
+            'goodsTotals' => $this->totalsByCurrency($goodsTakes),
             'timeline' => $timeline,
-            'movementCount' => $services->count() + $payments->where('is_reversed', false)->count(),
+            'movementCount' => $services->count() + $payments->where('is_reversed', false)->count() + $goodsTakes->count(),
             'exportedAt' => format_date(now(), true),
             'title' => $client->personName(),
             'subtitle' => trim(implode(' · ', array_filter([$client->organization(), $client->phone]))),

@@ -54,7 +54,7 @@
         <h2 class="font-bold text-lg mb-3">تقرير الزبائن</h2>
         <div class="rounded-2xl border bg-white overflow-hidden">
             <table class="w-full text-sm text-right">
-                <thead class="bg-slate-50"><tr><th class="px-3 py-2">الزبون</th><th class="px-3 py-2">العملة</th><th class="px-3 py-2">الخدمات</th><th class="px-3 py-2">المدفوع</th><th class="px-3 py-2">المتبقي</th></tr></thead>
+                <thead class="bg-slate-50"><tr><th class="px-3 py-2">الزبون</th><th class="px-3 py-2">العملة</th><th class="px-3 py-2">الخدمات</th><th class="px-3 py-2">المدفوع</th><th class="px-3 py-2">بضاعة مأخوذة</th><th class="px-3 py-2">المتبقي</th></tr></thead>
                 <tbody class="divide-y">
                 @forelse($clientSummary as $row)
                     @foreach($row['rows'] as $r)
@@ -63,6 +63,7 @@
                         <td class="px-3 py-2">{{ $r['currency']->name }}</td>
                         <td class="px-3 py-2">{{ $r['currency']->format($r['billed']) }}</td>
                         <td class="px-3 py-2">{{ $r['currency']->format($r['paid']) }}</td>
+                        <td class="px-3 py-2">{{ $r['currency']->format($r['goods'] ?? '0.00') }}</td>
                         <td class="px-3 py-2 font-bold">
                             @if(\App\Support\Money::isNegative($r['due']))
                                 عربون {{ $r['currency']->format(\App\Support\Money::abs($r['due'])) }}
@@ -73,7 +74,7 @@
                     </tr>
                     @endforeach
                 @empty
-                    <tr><td colspan="5" class="p-6 text-center text-slate-500">لا بيانات.</td></tr>
+                    <tr><td colspan="6" class="p-6 text-center text-slate-500">لا بيانات.</td></tr>
                 @endforelse
                 </tbody>
             </table>

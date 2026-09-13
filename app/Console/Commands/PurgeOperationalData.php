@@ -19,6 +19,7 @@ class PurgeOperationalData extends Command
         'family_loan_repayment_items',
         'client_payments',
         'client_services',
+        'client_goods_takes',
         'family_loan_repayments',
         'family_loans',
         'expenses',

@@ -92,6 +92,7 @@
         @if(!empty($hasOpening))<th>رصيد سابق</th>@endif
         <th>الخدمات</th>
         <th>المدفوع</th>
+        <th>بضاعة مأخوذة</th>
         <th>المتبقي</th>
     </tr></thead>
     <tbody>
@@ -111,6 +112,7 @@
             @endif
             <td>{{ $r['currency']->format($r['billed']) }}</td>
             <td>{{ $r['currency']->format($r['paid']) }}</td>
+            <td>{{ $r['currency']->format($r['goods'] ?? '0.00') }}</td>
             <td>
                 @if(\App\Support\Money::isNegative($r['due']))
                     عربون {{ $r['currency']->format(\App\Support\Money::abs($r['due'])) }}

@@ -175,6 +175,7 @@
                     @if(!empty($hasOpening))<th class="px-3 py-2">رصيد سابق</th>@endif
                     <th class="px-3 py-2">الخدمات</th>
                     <th class="px-3 py-2">المدفوع</th>
+                    <th class="px-3 py-2">بضاعة مأخوذة</th>
                     <th class="px-3 py-2">المتبقي</th>
                 </tr></thead>
                 <tbody class="divide-y dark:divide-slate-700">
@@ -196,6 +197,7 @@
                         @endif
                         <td class="px-3 py-2">{{ $r['currency']->format($r['billed']) }}</td>
                         <td class="px-3 py-2 text-emerald-600">{{ $r['currency']->format($r['paid']) }}</td>
+                        <td class="px-3 py-2 text-amber-700 dark:text-amber-300">{{ $r['currency']->format($r['goods'] ?? '0.00') }}</td>
                         <td class="px-3 py-2 font-bold">
                             @if(\App\Support\Money::isNegative($r['due']))
                                 عربون {{ $r['currency']->format(\App\Support\Money::abs($r['due'])) }}
@@ -206,7 +208,7 @@
                     </tr>
                     @endforeach
                 @empty
-                    <tr><td colspan="{{ !empty($hasOpening) ? 6 : 5 }}" class="p-6 text-center text-slate-500">لا بيانات مطابقة للتصفية.</td></tr>
+                    <tr><td colspan="{{ !empty($hasOpening) ? 7 : 6 }}" class="p-6 text-center text-slate-500">لا بيانات مطابقة للتصفية.</td></tr>
                 @endforelse
                 </tbody>
             </table>

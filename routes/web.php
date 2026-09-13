@@ -5,6 +5,7 @@ use App\Http\Controllers\Cp\DashboardController;
 use App\Http\Controllers\Cp\BalanceController;
 use App\Http\Controllers\Cp\ClientController;
 use App\Http\Controllers\Cp\ClientImportController;
+use App\Http\Controllers\Cp\ClientGoodsTakeController;
 use App\Http\Controllers\Cp\ClientServiceController;
 use App\Http\Controllers\Cp\CashPaymentController;
 use App\Http\Controllers\Cp\PersonController;
@@ -82,6 +83,7 @@ Route::prefix('cp')->name('cp.')->middleware(['cp.auth', 'cp.check'])->group(fun
         Route::get('/clients/{client}/export-pdf', [ClientController::class, 'exportPdf'])->name('clients.export-pdf');
         Route::get('/clients/{client}/unpaid-services', [ClientController::class, 'unpaidServices'])->name('clients.unpaid-services');
         Route::resource('client-services', ClientServiceController::class)->except(['show']);
+        Route::resource('client-goods-takes', ClientGoodsTakeController::class)->except(['index', 'show']);
         Route::resource('service-types', ServiceTypeController::class)->except(['show']);
 
         Route::resource('vendor-charges', VendorChargeController::class)->except(['index', 'show']);

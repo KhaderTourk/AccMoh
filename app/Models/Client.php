@@ -43,6 +43,11 @@ class Client extends Model
         return $this->cashPayments()->incoming();
     }
 
+    public function goodsTakes(): HasMany
+    {
+        return $this->hasMany(ClientGoodsTake::class);
+    }
+
     public function legacyPayments(): HasMany
     {
         return $this->hasMany(ClientPayment::class);
@@ -55,7 +60,10 @@ class Client extends Model
 
     public function hasFinancialHistory(): bool
     {
-        return $this->services()->exists() || $this->cashPayments()->exists() || $this->legacyPayments()->exists();
+        return $this->services()->exists()
+            || $this->cashPayments()->exists()
+            || $this->goodsTakes()->exists()
+            || $this->legacyPayments()->exists();
     }
 
     public function billedAmount(int $currencyId, ?string $from = null, ?string $to = null): string
@@ -81,6 +89,16 @@ class Client extends Model
         );
     }
 
+    public function goodsTakenAmount(int $currencyId, ?string $from = null, ?string $to = null): string
+    {
+        return Money::of(
+            $this->goodsTakes()
+                ->where('currency_id', $currencyId)
+                ->tap(fn ($q) => DateRange::constrain($q, 'taken_on', $from, $to))
+                ->sum('amount')
+        );
+    }
+
     public function openingBalance(int $currencyId, ?string $from): string
     {
         if (! $from) {
@@ -102,13 +120,22 @@ class Client extends Model
                 ->tap(fn ($q) => DateRange::before($q, 'occurred_on', $from))
                 ->sum('amount')
         );
+        $goods = Money::of(
+            $this->goodsTakes()
+                ->where('currency_id', $currencyId)
+                ->tap(fn ($q) => DateRange::before($q, 'taken_on', $from))
+                ->sum('amount')
+        );
 
-        return Money::sub($billed, $paid);
+        return Money::sub(Money::sub($billed, $paid), $goods);
     }
 
     public function outstandingAmount(int $currencyId): string
     {
-        return Money::sub($this->billedAmount($currencyId), $this->paidAmount($currencyId));
+        return Money::sub(
+            Money::sub($this->billedAmount($currencyId), $this->paidAmount($currencyId)),
+            $this->goodsTakenAmount($currencyId)
+        );
     }
 
     public function personName(): string

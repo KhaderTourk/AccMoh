@@ -16,6 +16,7 @@
         </div>
         <div class="flex flex-wrap gap-2">
             <a href="{{ route('cp.client-services.create', ['client_id' => $client->id]) }}" class="cp-btn cp-btn-primary"><span class="material-symbols-outlined">work</span> خدمة</a>
+            <a href="{{ route('cp.client-goods-takes.create', ['client_id' => $client->id]) }}" class="cp-btn cp-btn-ghost"><span class="material-symbols-outlined">shopping_bag</span> أخذ منتج</a>
             <a href="{{ route('cp.payments.create', ['incoming', 'client_id' => $client->id]) }}" class="cp-btn cp-btn-in"><span class="material-symbols-outlined">south_west</span> دفعة واردة</a>
             <a href="{{ route('cp.clients.edit', $client) }}" class="cp-btn cp-btn-ghost"><span class="material-symbols-outlined">edit</span> تعديل</a>
         </div>
@@ -62,6 +63,7 @@
                     @endif
                     <p>قيمة الخدمات{{ $from || $to ? ' في الفترة' : '' }}: <strong>{{ $currency->format($row['billed']) }}</strong></p>
                     <p>المدفوع{{ $from || $to ? ' في الفترة' : '' }}: <strong class="text-emerald-600">{{ $currency->format($row['paid']) }}</strong></p>
+                    <p>بضاعة مأخوذة{{ $from || $to ? ' في الفترة' : '' }}: <strong class="text-amber-700 dark:text-amber-300">{{ $currency->format($row['goods']) }}</strong></p>
                     @if(\App\Support\Money::isNegative($row['closing']))
                         <p>{{ $hasOpening ? 'المتبقي بعد الفترة' : 'المتبقي' }}: <strong class="text-emerald-600">عربون {{ $currency->format(\App\Support\Money::abs($row['closing'])) }}</strong></p>
                     @else
@@ -214,12 +216,70 @@
         @endforelse
     </section>
 
+    <section class="space-y-4">
+        <div class="flex items-center justify-between gap-3">
+            <h3 class="font-bold text-lg">بضاعة مأخوذة</h3>
+            <a href="{{ route('cp.client-goods-takes.create', ['client_id' => $client->id]) }}" class="text-sm text-primary">أخذ منتج</a>
+        </div>
+        <div class="rounded-2xl border bg-white dark:bg-slate-800 overflow-hidden">
+            @if($goodsTakes->isNotEmpty())
+                <div class="px-4 py-3 border-b bg-amber-50 dark:bg-amber-900/20 flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                        <p class="text-xs text-amber-800 dark:text-amber-200 font-medium">خصم من حساب الزبون</p>
+                        <h4 class="font-bold">منتجات أُخذت دون دفع نقدي</h4>
+                    </div>
+                    <div class="text-sm font-bold text-amber-800 dark:text-amber-200">
+                        الإجمالي:
+                        @forelse($goodsTotals as $total)
+                            <span>{{ $total['formatted'] }}</span>@if(! $loop->last) · @endif
+                        @empty
+                            <span>0</span>
+                        @endforelse
+                    </div>
+                </div>
+            @endif
+            <table class="w-full text-sm text-right">
+                <thead class="bg-slate-50 dark:bg-slate-700/40"><tr>
+                    <th class="px-3 py-2">المنتج</th><th class="px-3 py-2">السعر</th><th class="px-3 py-2">التاريخ</th><th class="px-3 py-2"></th>
+                </tr></thead>
+                <tbody class="divide-y dark:divide-slate-700">
+                @forelse($goodsTakes as $take)
+                    <tr class="bg-amber-50/70 dark:bg-amber-900/20">
+                        <td class="px-3 py-2">
+                            {{ $take->title }}
+                            @include('cp.partials.note-line', ['notes' => $take->notes])
+                        </td>
+                        <td class="px-3 py-2">
+                            {{ $take->currency->format($take->amount) }}
+                            @if($take->isFx())
+                                <div class="text-xs text-slate-500">{{ $take->fxCurrency?->format($take->source_amount) }} × {{ $take->formattedExchangeRate() }}</div>
+                            @endif
+                        </td>
+                        <td class="px-3 py-2 whitespace-nowrap">{{ format_date($take->taken_on) }}</td>
+                        <td class="px-3 py-2">
+                            <div class="flex items-center gap-1 justify-end">
+                                <a href="{{ route('cp.client-goods-takes.edit', $take) }}" class="p-1" title="تعديل"><span class="material-symbols-outlined text-base">edit</span></a>
+                                <form method="post" action="{{ route('cp.client-goods-takes.destroy', $take) }}" onsubmit="return confirm('حذف هذا المنتج من حساب الزبون؟')">
+                                    @csrf @method('DELETE')
+                                    <button type="submit" class="p-1 text-rose-600" title="حذف"><span class="material-symbols-outlined text-base">delete</span></button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                @empty
+                    <tr><td colspan="4" class="px-3 py-8 text-center text-slate-500">لا توجد بضاعة مأخوذة{{ $from || $to ? ' في هذه الفترة' : '' }}.</td></tr>
+                @endforelse
+                </tbody>
+            </table>
+        </div>
+    </section>
+
     <section class="rounded-2xl border bg-white dark:bg-slate-800 p-5">
         <h3 class="font-bold mb-4">السجل الزمني</h3>
         <ol class="relative border-s border-slate-200 dark:border-slate-700 ms-3 space-y-4">
             @forelse($timeline as $item)
             <li class="ms-6">
-                <span class="absolute -start-1.5 mt-1.5 h-3 w-3 rounded-full {{ $item['type']==='payment' ? 'bg-emerald-500' : 'bg-primary' }}"></span>
+                <span class="absolute -start-1.5 mt-1.5 h-3 w-3 rounded-full {{ $item['type']==='payment' ? 'bg-emerald-500' : ($item['type']==='goods' ? 'bg-amber-500' : 'bg-primary') }}"></span>
                 <p class="text-xs text-slate-500">{{ format_date($item['date']) }}</p>
                 <p class="font-medium">{{ $item['title'] }} — {{ $item['currency']->format($item['amount']) }}</p>
                 @include('cp.partials.note-line', ['notes' => $item['notes'] ?? null])
