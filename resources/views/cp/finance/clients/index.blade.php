@@ -20,7 +20,7 @@
             <select name="status" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
                 <option value="">الكل</option>
                 <option value="active" @selected(request('status')==='active')>نشط</option>
-                <option value="inactive" @selected(request('status')==='inactive')>غير نشط</option>
+                <option value="inactive" @selected(request('status')==='inactive')>مؤرشف</option>
             </select>
         </div>
         @include('cp.partials.date-range-fields')
@@ -46,11 +46,11 @@
         <div class="overflow-x-auto">
         <table class="w-full text-right text-sm">
             <thead class="bg-slate-50 dark:bg-slate-700/50"><tr>
-                <th class="px-4 py-3">الجهة</th><th class="px-4 py-3">الاسم</th><th class="px-4 py-3">الهاتف</th><th class="px-4 py-3">المتبقي</th><th class="px-4 py-3">الحالة</th><th class="px-4 py-3">إجراء</th>
+                <th class="px-4 py-3">الجهة</th><th class="px-4 py-3">الاسم</th><th class="px-4 py-3">الهاتف</th><th class="px-4 py-3">المتبقي</th><th class="px-4 py-3">الحالة</th><th class="px-4 py-3" data-sort="off">إجراء</th>
             </tr></thead>
             <tbody class="divide-y dark:divide-slate-700">
             @foreach($clients as $client)
-                <tr>
+                <tr class="{{ $client->is_active ? '' : 'bg-slate-50/80 dark:bg-slate-900/40' }}">
                     <td class="px-4 py-3">
                         <a href="{{ route('cp.clients.show', array_merge(['client' => $client], $periodQuery)) }}" class="font-medium text-primary">{{ $client->organization() ?: '—' }}</a>
                         @include('cp.partials.note-line', ['notes' => $client->notes])
@@ -73,9 +73,9 @@
                             <a href="{{ route('cp.clients.show', array_merge(['client' => $client], $periodQuery)) }}" class="p-2 inline-block" title="عرض"><span class="material-symbols-outlined text-base">visibility</span></a>
                             <a href="{{ route('cp.clients.export-pdf', array_merge(['client' => $client], $periodQuery)) }}" class="p-2 inline-block" title="تصدير كشف الفترة"><span class="material-symbols-outlined text-base">picture_as_pdf</span></a>
                             <a href="{{ route('cp.clients.edit', $client) }}" class="p-2 inline-block" title="تعديل"><span class="material-symbols-outlined text-base">edit</span></a>
-                            <form method="post" action="{{ route('cp.clients.destroy', $client) }}" onsubmit="return confirm('حذف/أرشفة هذا الزبون؟')">
+                            <form method="post" action="{{ route('cp.clients.destroy', $client) }}" onsubmit="return confirm('أرشفة هذا الزبون؟ سيبقى ظاهراً في الجدول.')">
                                 @csrf @method('DELETE')
-                                <button type="submit" class="p-2 text-rose-600" title="حذف"><span class="material-symbols-outlined text-base">delete</span></button>
+                                <button type="submit" class="p-2 text-rose-600" title="أرشفة"><span class="material-symbols-outlined text-base">archive</span></button>
                             </form>
                         </div>
                     </td>

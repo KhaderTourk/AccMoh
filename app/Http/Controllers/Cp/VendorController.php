@@ -120,16 +120,10 @@ class VendorController extends Controller
         $this->assertType($vendor);
         $type = $this->type();
 
-        if ($vendor->hasFinancialHistory()) {
-            $vendor->update(['is_active' => false]);
+        $vendor->update(['is_active' => false]);
 
-            return redirect()->route('cp.'.$type->routePrefix().'.index')
-                ->with('success', 'تم الأرشفة لأن هناك سجلات مرتبطة.');
-        }
-
-        $vendor->forceDelete();
-
-        return redirect()->route('cp.'.$type->routePrefix().'.index')->with('success', 'تم الحذف.');
+        return redirect()->route('cp.'.$type->routePrefix().'.index')
+            ->with('success', 'تم الأرشفة. يبقى السجل ظاهراً في الجدول بحالة «مؤرشف»، ويمكن استعادته من صفحة التعديل.');
     }
 
     protected function type(): VendorType
@@ -160,7 +154,10 @@ class VendorController extends Controller
             $rules['work_description'] = ['nullable', 'string', 'max:255'];
         }
 
-        return $request->validate($rules, ['phone.regex' => Phone::message()]) + ['is_active' => true];
+        $data = $request->validate($rules, ['phone.regex' => Phone::message()]);
+        $data['is_active'] = $request->boolean('is_active');
+
+        return $data;
     }
 
     /**

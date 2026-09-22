@@ -304,7 +304,15 @@
                     <div class="px-3 py-2 border-b text-sm flex justify-between gap-3 bg-rose-50/70 dark:bg-rose-900/20">
                         <span>
                             <a href="{{ route('cp.payments.show', $p) }}" class="font-medium">{{ $p->name }}</a>
-                            <span class="text-slate-500"> — {{ format_date($p->occurred_on) }}@if($p->paymentMethod) · {{ $p->paymentMethod->name }}@endif@if($p->fund) · {{ $p->fund->name }}@endif</span>
+                            <span class="text-slate-500">
+                                — {{ format_date($p->occurred_on) }}
+                                @if($p->paymentMethod)
+                                    · {{ $p->paymentMethod->name }}
+                                @endif
+                                @if($p->fund)
+                                    · {{ $p->fund->name }}
+                                @endif
+                            </span>
                             @include('cp.partials.note-line', ['notes' => $p->notes])
                         </span>
                         <strong class="text-rose-600 whitespace-nowrap">{{ $p->currency->format($p->amount) }}</strong>

@@ -101,26 +101,23 @@ class ClientController extends Controller
 
     public function destroy(Client $client)
     {
-        if ($client->hasFinancialHistory()) {
-            $client->update(['is_active' => false]);
+        $client->update(['is_active' => false]);
 
-            return redirect()->route('cp.clients.index')
-                ->with('success', 'تم أرشفة الزبون لأنه يملك سجلاً مالياً (لا يمكن حذفه نهائياً).');
-        }
-
-        $client->forceDelete();
-
-        return redirect()->route('cp.clients.index')->with('success', 'تم حذف الزبون.');
+        return redirect()->route('cp.clients.index')
+            ->with('success', 'تم أرشفة الزبون. يبقى ظاهراً في الجدول بحالة «مؤرشف»، ويمكن استعادته من صفحة التعديل.');
     }
 
     protected function validated(Request $request): array
     {
-        return $request->validate([
+        $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'company_name' => ['nullable', 'string', 'max:255'],
             'phone' => Phone::rules(),
             'notes' => ['nullable', 'string'],
-        ], ['phone.regex' => Phone::message()]) + ['is_active' => true];
+        ], ['phone.regex' => Phone::message()]);
+        $data['is_active'] = $request->boolean('is_active');
+
+        return $data;
     }
 
     /**

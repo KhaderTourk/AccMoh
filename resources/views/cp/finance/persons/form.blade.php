@@ -13,6 +13,11 @@
         </div>
     </div>
     <div><label class="text-sm">ملاحظات</label><textarea name="notes" rows="3" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">{{ old('notes', $member->notes) }}</textarea></div>
+    <div class="flex items-center gap-2">
+        <input type="hidden" name="is_active" value="0">
+        <input type="checkbox" name="is_active" id="is_active" value="1" @checked(old('is_active', $member->is_active ? '1' : '0') == 1) class="rounded border-slate-300 text-primary">
+        <label for="is_active" class="text-sm">نشط</label>
+    </div>
     <div class="flex gap-2">
         <button class="px-5 py-2 rounded-xl bg-primary text-white">حفظ</button>
         <a href="{{ route('cp.persons.index') }}" class="px-5 py-2 rounded-xl border">إلغاء</a>

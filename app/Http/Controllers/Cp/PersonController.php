@@ -73,26 +73,23 @@ class PersonController extends Controller
 
     public function destroy(Person $person)
     {
-        if ($person->hasFinancialHistory()) {
-            $person->update(['is_active' => false]);
+        $person->update(['is_active' => false]);
 
-            return redirect()->route('cp.persons.index')
-                ->with('success', 'تم أرشفة الشخص لأنه يملك سجلاً مالياً.');
-        }
-
-        $person->forceDelete();
-
-        return redirect()->route('cp.persons.index')->with('success', 'تم حذف الشخص.');
+        return redirect()->route('cp.persons.index')
+            ->with('success', 'تم أرشفة الشخص. يبقى ظاهراً في الجدول بحالة «مؤرشف»، ويمكن استعادته من صفحة التعديل.');
     }
 
     protected function validated(Request $request): array
     {
-        return $request->validate([
+        $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'relationship' => ['nullable', 'string', 'max:100'],
             'phone' => Phone::rules(),
             'notes' => ['nullable', 'string'],
-        ], ['phone.regex' => Phone::message()]) + ['is_active' => true];
+        ], ['phone.regex' => Phone::message()]);
+        $data['is_active'] = $request->boolean('is_active');
+
+        return $data;
     }
 
     /**

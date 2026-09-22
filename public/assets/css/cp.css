@@ -426,6 +426,29 @@ html.cp-admin .cp-main {
     background: rgba(244, 63, 94, 0.12);
 }
 
+.cp-main thead th.cp-sortable {
+    cursor: pointer;
+    user-select: none;
+}
+.cp-main thead th.cp-sortable::after {
+    content: '↕';
+    display: inline-block;
+    margin-inline-start: 0.35rem;
+    opacity: 0.35;
+    font-size: 0.75rem;
+}
+.cp-main thead th.cp-sort-asc::after,
+.cp-main thead th.cp-sort-desc::after {
+    opacity: 1;
+    color: #08A46D;
+}
+.cp-main thead th.cp-sort-asc::after {
+    content: '↑';
+}
+.cp-main thead th.cp-sort-desc::after {
+    content: '↓';
+}
+
 .cp-empty {
     padding: 2.5rem 1rem;
     text-align: center;
