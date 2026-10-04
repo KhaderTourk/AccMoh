@@ -7,25 +7,42 @@ use App\Models\Currency;
 use App\Models\Person;
 use App\Services\Export\PdfExporter;
 use App\Support\Phone;
+use App\Support\TableSort;
 use Illuminate\Http\Request;
 
 class PersonController extends Controller
 {
     public function index(Request $request)
     {
-        $members = Person::query()
-            ->when($request->q, fn ($q, $term) => $q->where(function ($qq) use ($term) {
-                $qq->where('name', 'like', "%{$term}%")
-                    ->orWhere('relationship', 'like', "%{$term}%")
-                    ->orWhere('phone', 'like', "%{$term}%")
-                    ->orWhere('notes', 'like', "%{$term}%");
-            }))
-            ->when($request->filled('status'), fn ($q) => $q->where('is_active', $request->status === 'active'))
-            ->orderBy('name')
-            ->paginate(20)
-            ->withQueryString();
-
         $currencies = Currency::query()->active()->get();
+
+        $members = TableSort::paginate(
+            Person::query()
+                ->active()
+                ->when($request->q, fn ($q, $term) => $q->where(function ($qq) use ($term) {
+                    $qq->where('name', 'like', "%{$term}%")
+                        ->orWhere('relationship', 'like', "%{$term}%")
+                        ->orWhere('phone', 'like', "%{$term}%")
+                        ->orWhere('notes', 'like', "%{$term}%");
+                })),
+            [
+                'name' => ['column' => 'name'],
+                'relationship' => ['column' => 'relationship'],
+                'phone' => ['column' => 'phone'],
+                'net' => [
+                    'dir' => 'desc',
+                    'value' => function (Person $member) use ($currencies) {
+                        $sum = 0.0;
+                        foreach ($currencies as $currency) {
+                            $sum += (float) $member->netAmount($currency->id);
+                        }
+
+                        return $sum;
+                    },
+                ],
+            ],
+            'name'
+        );
 
         return view('cp.finance.persons.index', compact('members', 'currencies'));
     }
@@ -76,7 +93,7 @@ class PersonController extends Controller
         $person->update(['is_active' => false]);
 
         return redirect()->route('cp.persons.index')
-            ->with('success', 'تم أرشفة الشخص. يبقى ظاهراً في الجدول بحالة «مؤرشف»، ويمكن استعادته من صفحة التعديل.');
+            ->with('success', 'تم أرشفة الشخص ولن يظهر في القوائم.');
     }
 
     protected function validated(Request $request): array
@@ -98,7 +115,7 @@ class PersonController extends Controller
     protected function showPayload(Person $person): array
     {
         $person->load([
-            'cashPayments' => fn ($q) => $q->with(['currency', 'fxCurrency', 'paymentMethod', 'fund'])
+            'cashPayments' => fn ($q) => $q->active()->with(['currency', 'fxCurrency', 'paymentMethod', 'fund'])
                 ->orderByDesc('occurred_on')
                 ->orderByDesc('id'),
         ]);

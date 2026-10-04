@@ -193,7 +193,8 @@ function offlineWorkspace() {
             const currencies = this.snapshot?.catalog?.currencies || [];
             const ils = currencies.find(c => c.code === 'ILS');
             const cur = ils || currencies[0];
-            const method = this.snapshot?.catalog?.payment_methods?.[0];
+            const methods = this.snapshot?.catalog?.payment_methods || [];
+            const method = methods.find(m => m.slug === 'bank') || methods[0];
             const family = (this.snapshot?.catalog?.funds || []).find(f => f.slug === 'family');
             const business = (this.snapshot?.catalog?.funds || []).find(f => f.slug === 'business');
             const fund = this.tab === 'outgoing' ? (family || business) : (business || family);

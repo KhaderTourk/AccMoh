@@ -48,7 +48,7 @@ class ReportsAndArchiveTest extends TestCase
         $this->assertLessThan(mb_strpos($html, '>الاسم'), mb_strpos($html, '>الجهة'));
     }
 
-    public function test_archived_parties_remain_visible_in_index_tables(): void
+    public function test_archived_parties_are_hidden_from_index_tables(): void
     {
         TenantContext::set((int) $this->user->tenant_id);
         $client = Client::query()->create(['name' => 'زبون للأرشفة', 'company_name' => 'جهة الأرشفة', 'is_active' => true]);
@@ -64,20 +64,20 @@ class ReportsAndArchiveTest extends TestCase
 
         $this->actingAs($this->user)->get(route('cp.clients.index'))
             ->assertOk()
-            ->assertSee('زبون للأرشفة')
-            ->assertSee('مؤرشف');
+            ->assertDontSee('زبون للأرشفة')
+            ->assertDontSee('مؤرشف');
         $this->actingAs($this->user)->get(route('cp.persons.index'))
             ->assertOk()
-            ->assertSee('شخص للأرشفة')
-            ->assertSee('مؤرشف');
+            ->assertDontSee('شخص للأرشفة')
+            ->assertDontSee('مؤرشف');
         $this->actingAs($this->user)->get(route('cp.workers.index'))
             ->assertOk()
-            ->assertSee('موظف للأرشفة')
-            ->assertSee('مؤرشف');
+            ->assertDontSee('موظف للأرشفة')
+            ->assertDontSee('مؤرشف');
         $this->actingAs($this->user)->get(route('cp.suppliers.index'))
             ->assertOk()
-            ->assertSee('مورد للأرشفة')
-            ->assertSee('مؤرشف');
+            ->assertDontSee('مورد للأرشفة')
+            ->assertDontSee('مؤرشف');
 
         $this->assertFalse($client->fresh()->is_active);
         $this->assertFalse($person->fresh()->is_active);

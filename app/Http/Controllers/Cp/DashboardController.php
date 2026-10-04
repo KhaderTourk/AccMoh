@@ -82,8 +82,8 @@ class DashboardController extends Controller
             'workerPayables' => tenantBusinessEnabled() ? $balances->vendorPayables(\App\Enums\VendorType::Worker) : [],
             'supplierPayables' => tenantBusinessEnabled() ? $balances->vendorPayables(\App\Enums\VendorType::Supplier) : [],
             'counts' => [
-                'clients' => tenantBusinessEnabled() ? Client::query()->count() : 0,
-                'persons' => Person::query()->count(),
+                'clients' => tenantBusinessEnabled() ? Client::query()->active()->count() : 0,
+                'persons' => Person::query()->active()->count(),
                 'open_services' => tenantBusinessEnabled()
                     ? ClientService::query()->billable()->count()
                     : 0,

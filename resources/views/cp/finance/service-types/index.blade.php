@@ -8,7 +8,7 @@
     </div>
     <div class="rounded-2xl border bg-white dark:bg-slate-800 overflow-hidden">
         <table class="w-full text-sm text-right">
-            <thead class="bg-slate-50 dark:bg-slate-700/50"><tr><th class="px-3 py-2">الاسم</th><th class="px-3 py-2">الوصف</th><th class="px-3 py-2">الحالة</th><th class="px-3 py-2"></th></tr></thead>
+            <thead class="bg-slate-50 dark:bg-slate-700/50"><tr><th class="px-3 py-2" data-sort-key="name">الاسم</th><th class="px-3 py-2" data-sort-key="description">الوصف</th><th class="px-3 py-2" data-sort-key="status">الحالة</th><th class="px-3 py-2" data-sort="off"></th></tr></thead>
             <tbody class="divide-y dark:divide-slate-700">
             @forelse($types as $t)
                 <tr class="{{ $t->is_active ? '' : 'opacity-40' }}">

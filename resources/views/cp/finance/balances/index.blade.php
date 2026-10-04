@@ -59,7 +59,7 @@
             <div>
                 <label class="text-xs text-slate-500">طريقة الدفع</label>
                 <select name="payment_method_id" required class="cp-input w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-                    @foreach($paymentMethods as $m)<option value="{{ $m->id }}">{{ $m->name }}</option>@endforeach
+                    @foreach($paymentMethods as $m)<option value="{{ $m->id }}" @selected(payment_method_is_selected(old('payment_method_id'), $m))>{{ $m->name }}</option>@endforeach
                 </select>
             </div>
             <div>

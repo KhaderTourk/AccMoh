@@ -5,9 +5,12 @@ namespace App\Http\Controllers\Cp;
 use App\Exceptions\FinanceException;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Cp\Concerns\LoadsFinanceLookups;
+use App\Models\Fund;
 use App\Models\FundTransfer;
+use App\Models\PaymentMethod;
 use App\Services\Finance\FundTransferService;
 use App\Services\Finance\ReversalService;
+use App\Support\TableSort;
 use Illuminate\Http\Request;
 
 class TransferController extends Controller
@@ -16,17 +19,25 @@ class TransferController extends Controller
 
     public function index(Request $request)
     {
-        $transfers = FundTransfer::query()
-            ->with(['fund', 'fromMethod', 'toMethod', 'currency', 'toCurrency'])
-            ->when($request->fund_id, fn ($q, $id) => $q->where('fund_id', $id))
-            ->when($request->currency_id, fn ($q, $id) => $q->where(function ($qq) use ($id) {
-                $qq->where('currency_id', $id)->orWhere('to_currency_id', $id);
-            }))
-            ->when($request->q, fn ($q, $term) => $q->where('notes', 'like', "%{$term}%"))
-            ->when($request->boolean('active_only', true), fn ($q) => $q->active())
-            ->orderByDesc('transfer_date')
-            ->paginate(20)
-            ->withQueryString();
+        $transfers = TableSort::paginate(
+            FundTransfer::query()
+                ->with(['fund', 'fromMethod', 'toMethod', 'currency', 'toCurrency'])
+                ->when($request->fund_id, fn ($q, $id) => $q->where('fund_id', $id))
+                ->when($request->currency_id, fn ($q, $id) => $q->where(function ($qq) use ($id) {
+                    $qq->where('currency_id', $id)->orWhere('to_currency_id', $id);
+                }))
+                ->when($request->q, fn ($q, $term) => $q->where('notes', 'like', "%{$term}%"))
+                ->when($request->boolean('active_only', true), fn ($q) => $q->active()),
+            [
+                'fund' => ['query' => fn () => Fund::query()->select('name')->whereColumn('funds.id', 'fund_transfers.fund_id')],
+                'from' => ['query' => fn () => PaymentMethod::query()->select('name')->whereColumn('payment_methods.id', 'fund_transfers.from_payment_method_id')],
+                'to' => ['query' => fn () => PaymentMethod::query()->select('name')->whereColumn('payment_methods.id', 'fund_transfers.to_payment_method_id')],
+                'amount' => ['column' => 'amount', 'dir' => 'desc'],
+                'rate' => ['column' => 'exchange_rate', 'dir' => 'desc'],
+                'date' => ['column' => 'transfer_date', 'dir' => 'desc'],
+            ],
+            'date'
+        );
 
         return view('cp.finance.transfers.index', array_merge(compact('transfers'), $this->financeLookups()));
     }

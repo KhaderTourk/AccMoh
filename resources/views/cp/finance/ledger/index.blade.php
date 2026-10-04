@@ -61,15 +61,15 @@
     <div class="rounded-2xl border bg-white dark:bg-slate-800 overflow-x-auto">
         <table class="w-full text-sm text-right min-w-[860px]">
             <thead class="bg-slate-50 dark:bg-slate-700/50"><tr>
-                <th class="px-3 py-3">التاريخ</th>
-                <th class="px-3 py-3">الوقت</th>
-                <th class="px-3 py-3">نوع الحركة</th>
-                <th class="px-3 py-3">البيان</th>
-                <th class="px-3 py-3">الطرف</th>
-                <th class="px-3 py-3">الدرج</th>
-                <th class="px-3 py-3">الطريقة</th>
-                <th class="px-3 py-3">المبلغ</th>
-                <th class="px-3 py-3">بواسطة</th>
+                <th class="px-3 py-3" data-sort-key="date">التاريخ</th>
+                <th class="px-3 py-3" data-sort-key="time">الوقت</th>
+                <th class="px-3 py-3" data-sort-key="type">نوع الحركة</th>
+                <th class="px-3 py-3" data-sort-key="description">البيان</th>
+                <th class="px-3 py-3" data-sort-key="party">الطرف</th>
+                <th class="px-3 py-3" data-sort-key="fund">الدرج</th>
+                <th class="px-3 py-3" data-sort-key="method">الطريقة</th>
+                <th class="px-3 py-3" data-sort-key="amount">المبلغ</th>
+                <th class="px-3 py-3" data-sort-key="user">بواسطة</th>
             </tr></thead>
             <tbody class="divide-y dark:divide-slate-700">
             @forelse($entries as $e)

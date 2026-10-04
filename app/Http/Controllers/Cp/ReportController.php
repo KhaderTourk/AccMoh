@@ -67,6 +67,7 @@ class ReportController extends Controller
 
         $clientSummary = $showClients
             ? Client::query()
+                ->active()
                 ->when($clientId, fn ($q) => $q->where('id', $clientId))
                 ->orderBy('name')
                 ->get()
@@ -90,6 +91,7 @@ class ReportController extends Controller
 
         $personSummary = $showPersons
             ? Person::query()
+                ->active()
                 ->when($personId, fn ($q) => $q->where('id', $personId))
                 ->orderBy('name')
                 ->get()
@@ -171,12 +173,12 @@ class ReportController extends Controller
             'hasOpening' => $hasOpening,
             'periodLabel' => DateRange::label($from, $to),
             'filterQuery' => $filterQuery,
-            'clients' => tenantBusinessEnabled() ? Client::query()->orderBy('name')->get(
+            'clients' => tenantBusinessEnabled() ? Client::query()->active()->orderBy('name')->get(
                 Schema::hasColumn('clients', 'contact_name')
                     ? ['id', 'name', 'contact_name', 'company_name']
                     : ['id', 'name', 'company_name']
             ) : collect(),
-            'persons' => Person::query()->orderBy('name')->get(['id', 'name']),
+            'persons' => Person::query()->active()->orderBy('name')->get(['id', 'name']),
             'exportedAt' => format_date(now(), true),
             'title' => 'التقارير',
             'forExport' => $forExport,

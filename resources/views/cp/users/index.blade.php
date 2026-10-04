@@ -20,11 +20,11 @@
                 <table class="w-full text-right">
                     <thead class="bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700">
                         <tr>
-                            <th class="px-4 py-3 text-sm font-medium text-slate-600 dark:text-slate-300">الاسم</th>
-                            <th class="px-4 py-3 text-sm font-medium text-slate-600 dark:text-slate-300">البريد</th>
-                            <th class="px-4 py-3 text-sm font-medium text-slate-600 dark:text-slate-300">الدور</th>
-                            <th class="px-4 py-3 text-sm font-medium text-slate-600 dark:text-slate-300">الحالة</th>
-                            <th class="px-4 py-3 text-sm font-medium text-slate-600 dark:text-slate-300 w-28">إجراء</th>
+                            <th class="px-4 py-3 text-sm font-medium text-slate-600 dark:text-slate-300" data-sort-key="name">الاسم</th>
+                            <th class="px-4 py-3 text-sm font-medium text-slate-600 dark:text-slate-300" data-sort-key="email">البريد</th>
+                            <th class="px-4 py-3 text-sm font-medium text-slate-600 dark:text-slate-300" data-sort-key="role">الدور</th>
+                            <th class="px-4 py-3 text-sm font-medium text-slate-600 dark:text-slate-300" data-sort-key="status">الحالة</th>
+                            <th class="px-4 py-3 text-sm font-medium text-slate-600 dark:text-slate-300 w-28" data-sort="off">إجراء</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-200 dark:divide-slate-700">

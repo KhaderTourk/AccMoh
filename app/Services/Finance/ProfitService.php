@@ -87,7 +87,7 @@ class ProfitService
             );
 
             $clientOutstanding = '0.00';
-            foreach (Client::query()->get() as $client) {
+            foreach (Client::query()->active()->get() as $client) {
                 $due = $client->outstandingAmount($currency->id);
                 if (Money::isPositive($due)) {
                     $clientOutstanding = Money::add($clientOutstanding, $due);
@@ -132,7 +132,7 @@ class ProfitService
 
     protected function vendorRemaining(VendorType $type, int $currencyId): string
     {
-        $ids = Vendor::query()->ofType($type)->pluck('id');
+        $ids = Vendor::query()->active()->ofType($type)->pluck('id');
         if ($ids->isEmpty()) {
             return '0.00';
         }

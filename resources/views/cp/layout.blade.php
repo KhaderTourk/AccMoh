@@ -312,6 +312,11 @@
             }
         })();
     </script>
+    <script>
+        document.querySelectorAll('input[type="date"]').forEach(function (el) {
+            el.setAttribute('lang', 'en-US');
+        });
+    </script>
     <script src="{{ asset('assets/js/cp-table-sort.js') }}?v={{ @filemtime(public_path('assets/js/cp-table-sort.js')) ?: time() }}"></script>
     @stack('scripts')
 </body>

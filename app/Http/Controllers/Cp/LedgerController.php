@@ -7,9 +7,13 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Cp\Concerns\LoadsFinanceLookups;
 use App\Models\CashPayment;
 use App\Models\Currency;
+use App\Models\Fund;
 use App\Models\FundTransfer;
 use App\Models\LedgerEntry;
+use App\Models\PaymentMethod;
+use App\Models\User;
 use App\Support\DateRange;
+use App\Support\TableSort;
 use Illuminate\Http\Request;
 
 class LedgerController extends Controller
@@ -41,27 +45,39 @@ class LedgerController extends Controller
                 }));
         };
 
-        $entries = LedgerEntry::query()
-            ->with([
-                'fund',
-                'paymentMethod',
-                'currency',
-                'creator',
-                'related' => function ($morphTo) {
-                    $morphTo->morphWith([
-                        CashPayment::class => ['party'],
-                        FundTransfer::class => ['fund'],
-                    ]);
-                },
-            ])
-            ->tap($apply)
-            ->orderByDesc('occurred_on')
-            ->orderByDesc('created_at')
-            ->orderByDesc('id')
-            ->paginate(40)
-            ->withQueryString();
+        $entries = TableSort::paginate(
+            LedgerEntry::query()
+                ->withoutReversedPayments()
+                ->with([
+                    'fund',
+                    'paymentMethod',
+                    'currency',
+                    'creator',
+                    'related' => function ($morphTo) {
+                        $morphTo->morphWith([
+                            CashPayment::class => ['party'],
+                            FundTransfer::class => ['fund'],
+                        ]);
+                    },
+                ])
+                ->tap($apply),
+            [
+                'date' => ['column' => 'occurred_on', 'dir' => 'desc'],
+                'time' => ['column' => 'created_at', 'dir' => 'desc'],
+                'type' => ['column' => 'transaction_type'],
+                'description' => ['column' => 'description'],
+                'party' => ['value' => fn (LedgerEntry $entry) => $entry->counterpartyLabel() ?? ''],
+                'fund' => ['query' => fn () => Fund::query()->select('name')->whereColumn('funds.id', 'ledger_entries.fund_id')],
+                'method' => ['query' => fn () => PaymentMethod::query()->select('name')->whereColumn('payment_methods.id', 'ledger_entries.payment_method_id')],
+                'amount' => ['column' => 'amount', 'dir' => 'desc'],
+                'user' => ['query' => fn () => User::query()->select('name')->whereColumn('users.id', 'ledger_entries.created_by')],
+            ],
+            'date',
+            40
+        );
 
         $totals = LedgerEntry::query()
+            ->withoutReversedPayments()
             ->tap($apply)
             ->selectRaw('currency_id, SUM(amount) as total')
             ->groupBy('currency_id')

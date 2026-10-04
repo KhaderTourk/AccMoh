@@ -26,7 +26,7 @@
         if (date) {
             return {
                 empty: false,
-                num: Date.UTC(+date[3], +date[2] - 1, +date[1], +(date[4] || 0), +(date[5] || 0)),
+                num: Date.UTC(+date[3], +date[1] - 1, +date[2], +(date[4] || 0), +(date[5] || 0)),
                 text: raw
             };
         }
@@ -98,6 +98,19 @@
         });
     }
 
+    function hasPagination(table) {
+        var node = table.parentElement;
+        var depth = 0;
+        while (node && depth < 3) {
+            if (node.querySelector('nav, a[rel="next"], a[rel="prev"]')) {
+                return true;
+            }
+            node = node.parentElement;
+            depth++;
+        }
+        return false;
+    }
+
     function bind(table) {
         if (table.getAttribute('data-sortable') === 'off' || !table.tHead || !table.tHead.rows.length) {
             return;
@@ -117,7 +130,17 @@
             th.setAttribute('title', 'ترتيب تصاعدي أو تنازلي');
 
             function activate() {
+                var key = th.getAttribute('data-sort-key');
                 var direction = th.classList.contains('cp-sort-asc') ? 'desc' : 'asc';
+                if (key && hasPagination(table)) {
+                    var url = new URL(window.location.href);
+                    url.searchParams.set('sort', key);
+                    url.searchParams.set('dir', direction);
+                    url.searchParams.delete('page');
+                    window.location.href = url.toString();
+                    return;
+                }
+
                 headers.forEach(function (header) {
                     header.classList.remove('cp-sort-asc', 'cp-sort-desc');
                     header.removeAttribute('aria-sort');
@@ -137,6 +160,19 @@
                 }
             });
         });
+
+        var params = new URLSearchParams(window.location.search);
+        var currentKey = params.get('sort');
+        var currentDir = params.get('dir') === 'desc' ? 'desc' : 'asc';
+        if (currentKey) {
+            headers.forEach(function (header) {
+                if (header.getAttribute('data-sort-key') !== currentKey) {
+                    return;
+                }
+                header.classList.add(currentDir === 'asc' ? 'cp-sort-asc' : 'cp-sort-desc');
+                header.setAttribute('aria-sort', currentDir === 'asc' ? 'ascending' : 'descending');
+            });
+        }
     }
 
     document.querySelectorAll('.cp-main table').forEach(bind);

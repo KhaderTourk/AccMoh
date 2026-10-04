@@ -9,6 +9,7 @@ use App\Models\Fund;
 use App\Models\Vendor;
 use App\Services\Export\PdfExporter;
 use App\Support\Phone;
+use App\Support\TableSort;
 use Illuminate\Http\Request;
 
 class VendorController extends Controller
@@ -16,21 +17,34 @@ class VendorController extends Controller
     public function index(Request $request)
     {
         $type = $this->type();
-        $vendors = Vendor::query()
-            ->ofType($type)
-            ->when($request->q, fn ($q, $term) => $q->where(function ($qq) use ($term) {
-                $qq->where('name', 'like', "%{$term}%")
-                    ->orWhere('phone', 'like', "%{$term}%")
-                    ->orWhere('job_title', 'like', "%{$term}%")
-                    ->orWhere('work_description', 'like', "%{$term}%")
-                    ->orWhere('notes', 'like', "%{$term}%");
-            }))
-            ->when($request->filled('status'), fn ($q) => $q->where('is_active', $request->status === 'active'))
-            ->orderBy('name')
-            ->paginate(20)
-            ->withQueryString();
-
         $currencies = Currency::query()->active()->get();
+        $detailColumn = $type === VendorType::Worker ? 'job_title' : 'work_description';
+        $columns = [
+            'name' => ['column' => 'name'],
+            'detail' => ['column' => $detailColumn],
+            'phone' => ['column' => 'phone'],
+        ];
+        foreach ($currencies as $currency) {
+            $columns['due-'.$currency->id] = [
+                'dir' => 'desc',
+                'value' => fn (Vendor $vendor) => (float) $vendor->outstandingAmount($currency->id),
+            ];
+        }
+
+        $vendors = TableSort::paginate(
+            Vendor::query()
+                ->active()
+                ->ofType($type)
+                ->when($request->q, fn ($q, $term) => $q->where(function ($qq) use ($term) {
+                    $qq->where('name', 'like', "%{$term}%")
+                        ->orWhere('phone', 'like', "%{$term}%")
+                        ->orWhere('job_title', 'like', "%{$term}%")
+                        ->orWhere('work_description', 'like', "%{$term}%")
+                        ->orWhere('notes', 'like', "%{$term}%");
+                })),
+            $columns,
+            'name'
+        );
 
         return view('cp.finance.vendors.index', [
             'vendors' => $vendors,
@@ -65,7 +79,7 @@ class VendorController extends Controller
             'charges' => fn ($q) => $q->with(['currency', 'fxCurrency'])
                 ->orderBy('charge_date')
                 ->orderBy('id'),
-            'cashPayments' => fn ($q) => $q->with(['currency', 'fxCurrency', 'paymentMethod', 'fund'])
+            'cashPayments' => fn ($q) => $q->active()->with(['currency', 'fxCurrency', 'paymentMethod', 'fund'])
                 ->orderByDesc('occurred_on')
                 ->orderByDesc('id'),
         ]);
@@ -81,7 +95,7 @@ class VendorController extends Controller
             'charges' => fn ($q) => $q->with(['currency', 'fxCurrency'])
                 ->orderBy('charge_date')
                 ->orderBy('id'),
-            'cashPayments' => fn ($q) => $q->with(['currency', 'fxCurrency', 'paymentMethod', 'fund'])
+            'cashPayments' => fn ($q) => $q->active()->with(['currency', 'fxCurrency', 'paymentMethod', 'fund'])
                 ->orderByDesc('occurred_on')
                 ->orderByDesc('id'),
         ]);
@@ -123,7 +137,7 @@ class VendorController extends Controller
         $vendor->update(['is_active' => false]);
 
         return redirect()->route('cp.'.$type->routePrefix().'.index')
-            ->with('success', 'تم الأرشفة. يبقى السجل ظاهراً في الجدول بحالة «مؤرشف»، ويمكن استعادته من صفحة التعديل.');
+            ->with('success', 'تم الأرشفة ولن يظهر السجل في القوائم.');
     }
 
     protected function type(): VendorType

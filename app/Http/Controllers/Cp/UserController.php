@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Cp;
 use App\Http\Controllers\Controller;
 use App\Models\Role;
 use App\Models\User;
+use App\Support\TableSort;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
@@ -25,10 +26,17 @@ class UserController extends Controller
 
     public function index()
     {
-        $users = User::with('role')
-            ->where('tenant_id', auth()->user()->tenant_id)
-            ->orderBy('name')
-            ->paginate(15);
+        $users = TableSort::paginate(
+            User::with('role')->where('tenant_id', auth()->user()->tenant_id),
+            [
+                'name' => ['column' => 'name'],
+                'email' => ['column' => 'email'],
+                'role' => ['query' => fn () => Role::query()->select('name')->whereColumn('roles.id', 'users.role_id')],
+                'status' => ['column' => 'is_active', 'dir' => 'desc'],
+            ],
+            'name',
+            15
+        );
         return view('cp.users.index', compact('users'));
     }
 

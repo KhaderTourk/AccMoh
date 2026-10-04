@@ -27,7 +27,7 @@ class ClientStatementService
                 ->tap(fn ($qq) => DateRange::constrain($qq, 'service_date', $from, $to))
                 ->orderBy('service_date')
                 ->orderBy('id'),
-            'payments' => fn ($q) => $q->with(['currency', 'fxCurrency', 'paymentMethod'])
+            'payments' => fn ($q) => $q->active()->with(['currency', 'fxCurrency', 'paymentMethod'])
                 ->tap(fn ($qq) => DateRange::constrain($qq, 'occurred_on', $from, $to))
                 ->orderBy('occurred_on')
                 ->orderBy('id'),
@@ -145,14 +145,14 @@ class ClientStatementService
     protected function groupServices(Collection $services): Collection
     {
         return $services
-            ->groupBy(fn ($s) => $s->service_type_id ?: 0)
+            ->groupBy(fn ($s) => $s->title ?: ($s->serviceType?->name ?: 'بدون نوع'))
             ->map(function (Collection $rows) {
-                $type = $rows->first()->serviceType;
+                $first = $rows->first();
                 $rows = $rows->sortBy(fn ($s) => $s->service_date->format('Y-m-d').sprintf('%010d', $s->id))->values();
 
                 return [
-                    'name' => $type?->name ?: 'بدون نوع',
-                    'uncategorized' => $type === null,
+                    'name' => $first->title ?: ($first->serviceType?->name ?: 'بدون نوع'),
+                    'uncategorized' => ! filled($first->title) && $first->serviceType === null,
                     'services' => $rows,
                     'totals' => $this->totalsByCurrency($rows),
                 ];

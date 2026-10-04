@@ -147,11 +147,22 @@ if (!function_exists('money_format_currency')) {
 
 if (! function_exists('format_date')) {
     /**
-     * Display a date as day/month/year (e.g. 09/09/2026).
+     * Display a date as month/day/year (e.g. 09/15/2026).
      */
     function format_date(mixed $value, bool $withTime = false): string
     {
         return \App\Support\DateRange::display($value, $withTime);
+    }
+}
+
+if (! function_exists('payment_method_is_selected')) {
+    function payment_method_is_selected(mixed $selectedId, object $method): bool
+    {
+        if ($selectedId === null || $selectedId === '') {
+            return ($method->slug ?? null) === 'bank';
+        }
+
+        return (string) $selectedId === (string) $method->id;
     }
 }
 

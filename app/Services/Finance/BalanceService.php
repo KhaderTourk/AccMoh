@@ -217,7 +217,7 @@ class BalanceService
             ->get()
             ->groupBy('client_id');
 
-        $clients = Client::query()->whereIn('id', $rows->keys())->get()->keyBy('id');
+        $clients = Client::query()->active()->whereIn('id', $rows->keys())->get()->keyBy('id');
         $currencies = Currency::query()->active()->get()->keyBy('id');
 
         return $rows->map(function ($payments, $clientId) use ($clients, $currencies) {
@@ -240,7 +240,7 @@ class BalanceService
      */
     public function vendorPayables(?VendorType $type = null): array
     {
-        $ids = Vendor::query()->when($type, fn ($q) => $q->ofType($type))->pluck('id');
+        $ids = Vendor::query()->active()->when($type, fn ($q) => $q->ofType($type))->pluck('id');
         $out = [];
         foreach (Currency::query()->active()->pluck('id') as $currencyId) {
             if ($ids->isEmpty()) {
@@ -273,7 +273,7 @@ class BalanceService
     {
         $currencies = Currency::query()->active()->get();
 
-        return Vendor::query()->ofType($type)->orderBy('name')->get()->map(function (Vendor $vendor) use ($currencies, $from, $to) {
+        return Vendor::query()->active()->ofType($type)->orderBy('name')->get()->map(function (Vendor $vendor) use ($currencies, $from, $to) {
             $rows = [];
             foreach ($currencies as $currency) {
                 $billed = $vendor->billedAmount($currency->id, $from, $to);

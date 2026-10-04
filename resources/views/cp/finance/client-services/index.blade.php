@@ -34,20 +34,20 @@
     <div class="rounded-2xl border bg-white dark:bg-slate-800 overflow-hidden">
         <table class="w-full text-sm text-right">
             <thead class="bg-slate-50 dark:bg-slate-700/50"><tr>
-                <th class="px-3 py-3">العميل</th>
-                <th class="px-3 py-3">النوع</th>
-                <th class="px-3 py-3">تفاصيل الخدمة</th>
-                <th class="px-3 py-3">السعر</th>
-                <th class="px-3 py-3">التاريخ</th>
-                <th class="px-3 py-3"></th>
+                <th class="px-3 py-3" data-sort-key="client">العميل</th>
+                <th class="px-3 py-3" data-sort-key="type">التصنيف</th>
+                <th class="px-3 py-3" data-sort-key="details">تفاصيل الخدمة</th>
+                <th class="px-3 py-3" data-sort-key="amount">السعر</th>
+                <th class="px-3 py-3" data-sort-key="date">التاريخ</th>
+                <th class="px-3 py-3" data-sort="off"></th>
             </tr></thead>
             <tbody class="divide-y dark:divide-slate-700">
             @forelse($services as $s)
                 <tr>
                     <td class="px-3 py-3"><a href="{{ route('cp.clients.show', $s->client) }}" class="text-primary font-medium">{{ $s->client->personName() }}</a></td>
-                    <td class="px-3 py-3">{{ $s->serviceType?->name ?: '—' }}</td>
+                    <td class="px-3 py-3">{{ $s->title ?: ($s->serviceType?->name ?: '—') }}</td>
                     <td class="px-3 py-3">
-                        {{ $s->title }}
+                        {{ $s->description ?: '—' }}
                         @include('cp.partials.note-line', ['notes' => $s->notes])
                     </td>
                     <td class="px-3 py-3">

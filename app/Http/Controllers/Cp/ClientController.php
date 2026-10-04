@@ -11,6 +11,7 @@ use App\Services\Finance\ClientStatementService;
 use App\Support\DateRange;
 use App\Support\Money;
 use App\Support\Phone;
+use App\Support\TableSort;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 
@@ -20,29 +21,45 @@ class ClientController extends Controller
     {
         [$from, $to] = DateRange::fromRequest($request);
 
-        $clients = Client::query()
-            ->when($request->q, fn ($q, $term) => $q->where(function ($qq) use ($term) {
-                $qq->where('name', 'like', "%{$term}%")
-                    ->orWhere('phone', 'like', "%{$term}%")
-                    ->orWhere('company_name', 'like', "%{$term}%")
-                    ->orWhere('notes', 'like', "%{$term}%");
-                if (Schema::hasColumn('clients', 'contact_name')) {
-                    $qq->orWhere('contact_name', 'like', "%{$term}%");
-                }
-            }))
-            ->when($request->filled('status'), fn ($q) => $q->where('is_active', $request->status === 'active'))
-            ->when($from || $to, function ($q) use ($from, $to) {
-                $q->where(function ($qq) use ($from, $to) {
-                    $qq->whereHas('services', fn ($s) => DateRange::constrain($s, 'service_date', $from, $to))
-                        ->orWhereHas('cashPayments', fn ($p) => DateRange::constrain($p->active(), 'occurred_on', $from, $to))
-                        ->orWhereHas('goodsTakes', fn ($g) => DateRange::constrain($g, 'taken_on', $from, $to));
-                });
-            })
-            ->orderBy('name')
-            ->paginate(20)
-            ->withQueryString();
-
         $currencies = Currency::query()->active()->get();
+
+        $clients = TableSort::paginate(
+            Client::query()
+                ->active()
+                ->when($request->q, fn ($q, $term) => $q->where(function ($qq) use ($term) {
+                    $qq->where('name', 'like', "%{$term}%")
+                        ->orWhere('phone', 'like', "%{$term}%")
+                        ->orWhere('company_name', 'like', "%{$term}%")
+                        ->orWhere('notes', 'like', "%{$term}%");
+                    if (Schema::hasColumn('clients', 'contact_name')) {
+                        $qq->orWhere('contact_name', 'like', "%{$term}%");
+                    }
+                }))
+                ->when($from || $to, function ($q) use ($from, $to) {
+                    $q->where(function ($qq) use ($from, $to) {
+                        $qq->whereHas('services', fn ($s) => DateRange::constrain($s, 'service_date', $from, $to))
+                            ->orWhereHas('cashPayments', fn ($p) => DateRange::constrain($p->active(), 'occurred_on', $from, $to))
+                            ->orWhereHas('goodsTakes', fn ($g) => DateRange::constrain($g, 'taken_on', $from, $to));
+                    });
+                }),
+            [
+                'company' => ['column' => 'company_name'],
+                'name' => ['column' => 'name'],
+                'phone' => ['column' => 'phone'],
+                'due' => [
+                    'dir' => 'desc',
+                    'value' => function (Client $client) use ($currencies) {
+                        $sum = 0.0;
+                        foreach ($currencies as $currency) {
+                            $sum += (float) $client->outstandingAmount($currency->id);
+                        }
+
+                        return $sum;
+                    },
+                ],
+            ],
+            'name'
+        );
         $periodQuery = DateRange::queryParams($from, $to);
 
         return view('cp.finance.clients.index', compact('clients', 'currencies', 'from', 'to', 'periodQuery'));
@@ -104,7 +121,7 @@ class ClientController extends Controller
         $client->update(['is_active' => false]);
 
         return redirect()->route('cp.clients.index')
-            ->with('success', 'تم أرشفة الزبون. يبقى ظاهراً في الجدول بحالة «مؤرشف»، ويمكن استعادته من صفحة التعديل.');
+            ->with('success', 'تم أرشفة الزبون ولن يظهر في القوائم.');
     }
 
     protected function validated(Request $request): array

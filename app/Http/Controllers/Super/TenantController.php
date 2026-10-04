@@ -77,6 +77,7 @@ class TenantController extends Controller
             $personNet = $balances->personNet();
 
             $recent = LedgerEntry::query()
+                ->withoutReversedPayments()
                 ->with(['fund', 'paymentMethod', 'currency'])
                 ->orderByDesc('occurred_on')
                 ->orderByDesc('id')
@@ -84,8 +85,8 @@ class TenantController extends Controller
                 ->get();
 
             $counts = [
-                'clients' => $tenant->business_enabled ? Client::query()->count() : 0,
-                'persons' => Person::query()->count(),
+                'clients' => $tenant->business_enabled ? Client::query()->active()->count() : 0,
+                'persons' => Person::query()->active()->count(),
                 'users' => User::query()->where('tenant_id', $tenant->id)->count(),
             ];
 
@@ -103,7 +104,7 @@ class TenantController extends Controller
             $personNet = $balances->personNet();
 
             $clientSummary = $tenant->business_enabled
-                ? Client::query()->orderBy('name')->get()->map(function (Client $client) use ($snapshot) {
+                ? Client::query()->active()->orderBy('name')->get()->map(function (Client $client) use ($snapshot) {
                     $rows = [];
                     foreach ($snapshot['currencies'] as $currency) {
                         $billed = $client->billedAmount($currency->id);
@@ -120,7 +121,7 @@ class TenantController extends Controller
                 })->filter(fn ($r) => $r['rows'] !== [])
                 : collect();
 
-            $personSummary = Person::query()->orderBy('name')->get()->map(function (Person $person) use ($snapshot) {
+            $personSummary = Person::query()->active()->orderBy('name')->get()->map(function (Person $person) use ($snapshot) {
                 $rows = [];
                 foreach ($snapshot['currencies'] as $currency) {
                     $in = $person->incomingAmount($currency->id);

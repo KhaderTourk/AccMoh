@@ -23,13 +23,13 @@
         <div>
             <label class="text-sm">من طريقة دفع *</label>
             <select name="from_payment_method_id" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-                @foreach($paymentMethods as $m)<option value="{{ $m->id }}">{{ $m->name }}</option>@endforeach
+                @foreach($paymentMethods as $m)<option value="{{ $m->id }}" @selected(payment_method_is_selected(old('from_payment_method_id'), $m))>{{ $m->name }}</option>@endforeach
             </select>
         </div>
         <div>
             <label class="text-sm">إلى طريقة دفع *</label>
             <select name="to_payment_method_id" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-                @foreach($paymentMethods as $m)<option value="{{ $m->id }}">{{ $m->name }}</option>@endforeach
+                @foreach($paymentMethods as $m)<option value="{{ $m->id }}" @selected(payment_method_is_selected(old('to_payment_method_id'), $m))>{{ $m->name }}</option>@endforeach
             </select>
             <p class="text-xs text-slate-500 mt-1" x-show="!isFx">يجب أن تختلف عن المصدر عند نفس العملة.</p>
             <p class="text-xs text-slate-500 mt-1" x-show="isFx">يمكن أن تكون نفس الطريقة عند صرف العملة.</p>

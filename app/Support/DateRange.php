@@ -100,7 +100,7 @@ class DateRange
         try {
             $date = $value instanceof Carbon ? $value : Carbon::parse($value);
 
-            return $date->format($withTime ? 'd/m/Y H:i' : 'd/m/Y');
+            return $date->format($withTime ? 'm/d/Y H:i' : 'm/d/Y');
         } catch (\Throwable) {
             return '';
         }

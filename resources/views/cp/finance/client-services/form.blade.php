@@ -3,6 +3,10 @@
 @section('content')
 @php
     $ilsId = (string) ($ilsCurrency?->id ?? '');
+    $categories = ['خصم', 'منتج', 'خدمة'];
+    $currentTitle = $service->title ?: $service->serviceType?->name;
+    $category = old('category', in_array($currentTitle, $categories, true) ? $currentTitle : ($service->exists ? 'أخرى' : 'خدمة'));
+    $customCategory = old('custom_category', ($category === 'أخرى' && $service->exists) ? $currentTitle : '');
 @endphp
 <form method="post"
       action="{{ $service->exists ? route('cp.client-services.update', $service) : route('cp.client-services.store') }}"
@@ -18,12 +22,17 @@
         @if($service->exists)<input type="hidden" name="client_id" value="{{ $service->client_id }}">@endif
     </div>
     <div>
-        <label class="text-sm">الخدمة *</label>
-        <select name="service_type_id" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-            @foreach($serviceTypes as $t)
-                <option value="{{ $t->id }}" @selected(old('service_type_id', $service->service_type_id)==$t->id)>{{ $t->name }}</option>
-            @endforeach
+        <label class="text-sm">التصنيف *</label>
+        <select name="category" x-model="category" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
+            <option value="خصم">خصم</option>
+            <option value="منتج">منتج</option>
+            <option value="خدمة">خدمة</option>
+            <option value="أخرى">أخرى</option>
         </select>
+    </div>
+    <div x-show="category === 'أخرى'" x-cloak>
+        <label class="text-sm">عنوان التصنيف *</label>
+        <input type="text" name="custom_category" x-model="customCategory" x-bind:disabled="category !== 'أخرى'" x-bind:required="category === 'أخرى'" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700" placeholder="اكتب اسم التصنيف">
     </div>
     <div>
         <label class="text-sm">وصف الخدمة</label>
@@ -75,6 +84,8 @@
 function serviceForm() {
     return {
         ilsId: @json($ilsId),
+        category: @json($category),
+        customCategory: @json($customCategory),
         currencyId: @json((string) old('currency_id', $service->fx_currency_id ?: $service->currency_id ?: $ilsId)),
         amount: @json((string) old('source_amount', old('amount', $service->source_amount ?: $service->amount))),
         rate: @json((string) old('exchange_rate', $service->formattedExchangeRate())),

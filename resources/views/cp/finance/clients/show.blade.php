@@ -240,7 +240,7 @@
             @endif
             <table class="w-full text-sm text-right">
                 <thead class="bg-slate-50 dark:bg-slate-700/40"><tr>
-                    <th class="px-3 py-2">المنتج</th><th class="px-3 py-2">السعر</th><th class="px-3 py-2">التاريخ</th><th class="px-3 py-2"></th>
+                    <th class="px-3 py-2">خصم/أخرى</th><th class="px-3 py-2">السعر</th><th class="px-3 py-2">التاريخ</th><th class="px-3 py-2"></th>
                 </tr></thead>
                 <tbody class="divide-y dark:divide-slate-700">
                 @forelse($goodsTakes as $take)

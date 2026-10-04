@@ -25,7 +25,7 @@
         @if($take->exists)<input type="hidden" name="client_id" value="{{ $take->client_id }}">@endif
     </div>
     <div>
-        <label class="text-sm">اسم المنتج *</label>
+        <label class="text-sm">خصم/أخرى *</label>
         <input type="text" name="title" value="{{ old('title', $take->title) }}" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700" placeholder="مثال: علبة شوكولاتة">
     </div>
     <div>

@@ -10,6 +10,7 @@ use App\Models\Client;
 use App\Models\FundTransfer;
 use App\Models\Vendor;
 use App\Models\VendorCharge;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
@@ -68,6 +69,25 @@ class LedgerEntry extends Model
     public function related(): MorphTo
     {
         return $this->morphTo();
+    }
+
+    /**
+     * Hide the original movement and its reversal for deleted or edited payments.
+     * The replacement payment keeps its own ledger lines.
+     */
+    public function scopeWithoutReversedPayments(Builder $query): Builder
+    {
+        $morph = (new CashPayment)->getMorphClass();
+
+        return $query->where(function (Builder $outer) use ($morph) {
+            $outer->where(function (Builder $inner) use ($morph) {
+                $inner->where('related_type', '!=', $morph)
+                    ->orWhereNull('related_type');
+            })->orWhereNotIn(
+                'related_id',
+                CashPayment::query()->where('is_reversed', true)->select('id')
+            );
+        });
     }
 
     public function recordedAt(): string

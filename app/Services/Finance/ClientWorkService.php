@@ -43,7 +43,7 @@ class ClientWorkService
         $resolved = $this->resolvePricing($data);
 
         $service->update([
-            'service_type_id' => $data['service_type_id'] ?? $service->service_type_id,
+            'service_type_id' => array_key_exists('service_type_id', $data) ? $data['service_type_id'] : $service->service_type_id,
             'title' => $data['title'],
             'description' => array_key_exists('description', $data) ? $data['description'] : $service->description,
             'amount' => $resolved['amount'],

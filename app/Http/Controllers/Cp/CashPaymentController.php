@@ -11,10 +11,12 @@ use App\Models\CashPayment;
 use App\Models\Client;
 use App\Models\Currency;
 use App\Models\Fund;
+use App\Models\PaymentMethod;
 use App\Models\Person;
 use App\Models\Vendor;
 use App\Services\Finance\CashPaymentService;
 use App\Support\DateRange;
+use App\Support\TableSort;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -122,23 +124,29 @@ class CashPaymentController extends Controller
     {
         [$from, $to] = $this->dateRange($request);
 
-        $payments = CashPayment::query()
-            ->with(['party', 'fund', 'currency', 'fxCurrency', 'paymentMethod'])
-            ->where('direction', $direction)
-            ->when($request->fund_id, fn ($q, $id) => $q->where('fund_id', $id))
-            ->when($request->currency_id, fn ($q, $id) => $q->where('currency_id', $id))
-            ->when($request->payment_method_id, fn ($q, $id) => $q->where('payment_method_id', $id))
-            ->tap(fn ($q) => DateRange::constrain($q, 'occurred_on', $from, $to))
-            ->when($request->q, fn ($q, $term) => $q->where(function ($qq) use ($term) {
-                $qq->where('name', 'like', "%{$term}%")
-                    ->orWhere('account_holder_name', 'like', "%{$term}%")
-                    ->orWhere('notes', 'like', "%{$term}%");
-            }))
-            ->when($request->boolean('active_only', true), fn ($q) => $q->active())
-            ->orderByDesc('occurred_on')
-            ->orderByDesc('id')
-            ->paginate(20)
-            ->withQueryString();
+        $payments = TableSort::paginate(
+            CashPayment::query()
+                ->with(['party', 'fund', 'currency', 'fxCurrency', 'paymentMethod'])
+                ->where('direction', $direction)
+                ->active()
+                ->when($request->fund_id, fn ($q, $id) => $q->where('fund_id', $id))
+                ->when($request->currency_id, fn ($q, $id) => $q->where('currency_id', $id))
+                ->when($request->payment_method_id, fn ($q, $id) => $q->where('payment_method_id', $id))
+                ->tap(fn ($q) => DateRange::constrain($q, 'occurred_on', $from, $to))
+                ->when($request->q, fn ($q, $term) => $q->where(function ($qq) use ($term) {
+                    $qq->where('name', 'like', "%{$term}%")
+                        ->orWhere('account_holder_name', 'like', "%{$term}%")
+                        ->orWhere('notes', 'like', "%{$term}%");
+                })),
+            [
+                'occurred_on' => ['column' => 'occurred_on', 'dir' => 'desc'],
+                'name' => ['column' => 'name'],
+                'fund' => ['query' => fn () => Fund::query()->select('name')->whereColumn('funds.id', 'cash_payments.fund_id')],
+                'method' => ['query' => fn () => PaymentMethod::query()->select('name')->whereColumn('payment_methods.id', 'cash_payments.payment_method_id')],
+                'amount' => ['column' => 'amount', 'dir' => 'desc'],
+            ],
+            'occurred_on'
+        );
 
         return view('cp.finance.payments.index', [
             'payments' => $payments,

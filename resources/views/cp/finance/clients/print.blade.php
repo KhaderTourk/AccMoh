@@ -119,7 +119,7 @@
         @endif
     </h3>
     <table class="data">
-        <thead><tr><th>المنتج</th><th>السعر</th><th>التاريخ</th></tr></thead>
+        <thead><tr><th>خصم/أخرى</th><th>السعر</th><th>التاريخ</th></tr></thead>
         <tbody>
         @foreach($goodsTakes as $take)
             <tr>

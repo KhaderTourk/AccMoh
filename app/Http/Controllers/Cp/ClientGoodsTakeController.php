@@ -50,7 +50,7 @@ class ClientGoodsTakeController extends Controller
         return view('cp.finance.client-goods-takes.form', [
             'take' => $clientGoodsTake,
             'client' => $clientGoodsTake->client,
-            'clients' => Client::query()->orderBy('name')->get(),
+            'clients' => Client::query()->active()->orderBy('name')->get(),
         ] + $this->financeLookups());
     }
 

@@ -53,7 +53,7 @@ class VendorChargeController extends Controller
         return view('cp.finance.vendor-charges.form', [
             'charge' => $vendorCharge,
             'vendor' => $vendorCharge->vendor,
-            'vendors' => Vendor::query()->orderBy('name')->get(),
+            'vendors' => Vendor::query()->active()->orderBy('name')->get(),
         ] + $this->financeLookups());
     }
 

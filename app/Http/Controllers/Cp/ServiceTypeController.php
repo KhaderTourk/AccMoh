@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Cp;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Cp\Concerns\LoadsFinanceLookups;
 use App\Models\ServiceType;
+use App\Support\TableSort;
 use Illuminate\Http\Request;
 
 class ServiceTypeController extends Controller
@@ -13,7 +14,16 @@ class ServiceTypeController extends Controller
 
     public function index()
     {
-        $types = ServiceType::query()->with('defaultCurrency')->orderBy('name')->paginate(30);
+        $types = TableSort::paginate(
+            ServiceType::query()->with('defaultCurrency'),
+            [
+                'name' => ['column' => 'name'],
+                'description' => ['column' => 'description'],
+                'status' => ['column' => 'is_active', 'dir' => 'desc'],
+            ],
+            'name',
+            30
+        );
 
         return view('cp.finance.service-types.index', compact('types'));
     }
