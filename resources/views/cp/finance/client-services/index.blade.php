@@ -35,7 +35,7 @@
         <table class="w-full text-sm text-right">
             <thead class="bg-slate-50 dark:bg-slate-700/50"><tr>
                 <th class="px-3 py-3" data-sort-key="client">العميل</th>
-                <th class="px-3 py-3" data-sort-key="type">التصنيف</th>
+                <th class="px-3 py-3" data-sort-key="type">النوع</th>
                 <th class="px-3 py-3" data-sort-key="details">تفاصيل الخدمة</th>
                 <th class="px-3 py-3" data-sort-key="amount">السعر</th>
                 <th class="px-3 py-3" data-sort-key="date">التاريخ</th>
@@ -45,9 +45,9 @@
             @forelse($services as $s)
                 <tr>
                     <td class="px-3 py-3"><a href="{{ route('cp.clients.show', $s->client) }}" class="text-primary font-medium">{{ $s->client->personName() }}</a></td>
-                    <td class="px-3 py-3">{{ $s->title ?: ($s->serviceType?->name ?: '—') }}</td>
+                    <td class="px-3 py-3">{{ $s->serviceType?->name ?: '—' }}</td>
                     <td class="px-3 py-3">
-                        {{ $s->description ?: '—' }}
+                        {{ $s->title }}
                         @include('cp.partials.note-line', ['notes' => $s->notes])
                     </td>
                     <td class="px-3 py-3">

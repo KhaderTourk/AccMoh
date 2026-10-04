@@ -9,11 +9,11 @@ use App\Http\Controllers\Cp\Concerns\LoadsFinanceLookups;
 use App\Models\Client;
 use App\Models\ClientService;
 use App\Models\Currency;
+use App\Models\ServiceType;
 use App\Services\Finance\ClientWorkService;
 use App\Support\DateRange;
 use App\Support\TableSort;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 
 class ClientServiceController extends Controller
 {
@@ -36,8 +36,8 @@ class ClientServiceController extends Controller
                 })),
             [
                 'client' => ['query' => fn () => Client::query()->select('name')->whereColumn('clients.id', 'client_services.client_id')],
-                'type' => ['column' => 'title'],
-                'details' => ['column' => 'description'],
+                'type' => ['query' => fn () => ServiceType::query()->select('name')->whereColumn('service_types.id', 'client_services.service_type_id')],
+                'details' => ['column' => 'title'],
                 'amount' => ['column' => 'amount', 'dir' => 'desc'],
                 'date' => ['column' => 'service_date', 'dir' => 'desc'],
             ],
@@ -76,7 +76,7 @@ class ClientServiceController extends Controller
 
     public function edit(ClientService $clientService)
     {
-        $clientService->load(['currency', 'fxCurrency']);
+        $clientService->load(['currency', 'fxCurrency', 'serviceType']);
 
         return view('cp.finance.client-services.form', [
             'service' => $clientService,
@@ -113,8 +113,7 @@ class ClientServiceController extends Controller
 
         $data = $request->validate([
             'client_id' => ['required', 'exists:clients,id'],
-            'category' => ['required', Rule::in(['خصم', 'منتج', 'خدمة', 'أخرى'])],
-            'custom_category' => ['nullable', 'required_if:category,أخرى', 'string', 'max:255'],
+            'service_type_id' => ['required', 'exists:service_types,id'],
             'description' => ['nullable', 'string'],
             'amount' => [$isFx ? 'nullable' : 'required', 'numeric', 'gt:0'],
             'source_amount' => [$isFx ? 'required' : 'nullable', 'numeric', 'gt:0'],
@@ -124,10 +123,8 @@ class ClientServiceController extends Controller
             'notes' => ['nullable', 'string'],
         ]);
 
-        $data['title'] = $data['category'] === 'أخرى'
-            ? trim((string) $data['custom_category'])
-            : $data['category'];
-        $data['service_type_id'] = null;
+        $type = ServiceType::query()->find($data['service_type_id']);
+        $data['title'] = $type?->name ?: 'خدمة';
         $data['status'] = ClientServiceStatus::Completed->value;
 
         if ($isFx && empty($data['source_amount']) && filled($data['amount'] ?? null)) {
