@@ -89,38 +89,45 @@ class ClientStatementService
         $timeline = collect();
         foreach ($services as $service) {
             $timeline->push([
+                'id' => $service->id,
+                'sort_at' => $service->created_at?->getTimestamp() ?? $service->id,
                 'date' => $service->service_date,
                 'type' => 'service',
                 'title' => 'خدمة: '.$service->title,
                 'amount' => $service->amount,
+                'delta' => $service->status?->countsTowardReceivable() ? $service->amount : '0.00',
                 'currency' => $service->currency,
                 'notes' => $service->notes,
             ]);
         }
         foreach ($payments->where('is_reversed', false) as $payment) {
             $timeline->push([
+                'id' => $payment->id,
+                'sort_at' => $payment->created_at?->getTimestamp() ?? $payment->id,
                 'date' => $payment->occurred_on,
                 'type' => 'payment',
                 'title' => 'دفعة عبر '.$payment->paymentMethod->name,
                 'amount' => $payment->amount,
+                'delta' => Money::neg($payment->amount),
                 'currency' => $payment->currency,
                 'notes' => $payment->notes,
             ]);
         }
         foreach ($goodsTakes as $take) {
             $timeline->push([
+                'id' => $take->id,
+                'sort_at' => $take->created_at?->getTimestamp() ?? $take->id,
                 'date' => $take->taken_on,
                 'type' => 'goods',
                 'title' => 'بضاعة مأخوذة: '.$take->title,
                 'amount' => $take->amount,
+                'delta' => Money::neg($take->amount),
                 'currency' => $take->currency,
                 'notes' => $take->notes,
             ]);
         }
 
-        $timeline = $hasOpening || $to
-            ? $timeline->sortBy(fn ($i) => $i['date']->format('Y-m-d').sprintf('%010d', $i['date']->timestamp))->values()
-            : $timeline->sortByDesc(fn ($i) => $i['date']->format('Y-m-d'))->values();
+        $timeline = $this->withBalanceAfterEachMovement($timeline, $summaries, $client, $from, $hasOpening || $to);
 
         return [
             'client' => $client,
@@ -140,6 +147,39 @@ class ClientStatementService
             'title' => $client->personName(),
             'subtitle' => trim(implode(' · ', array_filter([$client->organization(), $client->phone]))),
         ];
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $summaries
+     */
+    protected function withBalanceAfterEachMovement(Collection $timeline, array $summaries, Client $client, ?string $from, bool $oldestFirst): Collection
+    {
+        $running = [];
+        foreach ($summaries as $summary) {
+            $running[(int) $summary['currency']->id] = $summary['opening'];
+        }
+
+        $chronological = $timeline
+            ->sortBy(fn ($item) => $item['date']->format('Y-m-d').sprintf('%010d', $item['sort_at']).sprintf('%010d', $item['id']))
+            ->values();
+
+        $balanced = $chronological->map(function (array $item) use (&$running, $client, $from) {
+            $currencyId = (int) $item['currency']->id;
+            if (! array_key_exists($currencyId, $running)) {
+                $running[$currencyId] = $from ? $client->openingBalance($currencyId, $from) : '0.00';
+            }
+
+            $running[$currencyId] = Money::add($running[$currencyId], $item['delta']);
+            $item['balance'] = $running[$currencyId];
+
+            return $item;
+        });
+
+        $displayKey = fn ($item) => $item['date']->format('Y-m-d').sprintf('%010d', $item['sort_at']).sprintf('%010d', $item['id']);
+
+        return $oldestFirst
+            ? $balanced->sortBy($displayKey)->values()
+            : $balanced->sortByDesc($displayKey)->values();
     }
 
     protected function groupServices(Collection $services): Collection

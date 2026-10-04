@@ -16,7 +16,7 @@
         </div>
         <div class="flex flex-wrap gap-2">
             <a href="{{ route('cp.client-services.create', ['client_id' => $client->id]) }}" class="cp-btn cp-btn-primary"><span class="material-symbols-outlined">work</span> خدمة</a>
-            <a href="{{ route('cp.client-goods-takes.create', ['client_id' => $client->id]) }}" class="cp-btn cp-btn-ghost"><span class="material-symbols-outlined">shopping_bag</span> أخذ منتج</a>
+            <a href="{{ route('cp.client-goods-takes.create', ['client_id' => $client->id]) }}" class="cp-btn cp-btn-ghost"><span class="material-symbols-outlined">shopping_bag</span> خصم/أخرى</a>
             <a href="{{ route('cp.payments.create', ['incoming', 'client_id' => $client->id]) }}" class="cp-btn cp-btn-in"><span class="material-symbols-outlined">south_west</span> دفعة واردة</a>
             <a href="{{ route('cp.clients.edit', $client) }}" class="cp-btn cp-btn-ghost"><span class="material-symbols-outlined">edit</span> تعديل</a>
         </div>
@@ -219,7 +219,7 @@
     <section class="space-y-4">
         <div class="flex items-center justify-between gap-3">
             <h3 class="font-bold text-lg">بضاعة مأخوذة</h3>
-            <a href="{{ route('cp.client-goods-takes.create', ['client_id' => $client->id]) }}" class="text-sm text-primary">أخذ منتج</a>
+            <a href="{{ route('cp.client-goods-takes.create', ['client_id' => $client->id]) }}" class="text-sm text-primary">خصم/أخرى</a>
         </div>
         <div class="rounded-2xl border bg-white dark:bg-slate-800 overflow-hidden">
             @if($goodsTakes->isNotEmpty())
@@ -282,6 +282,7 @@
                 <span class="absolute -start-1.5 mt-1.5 h-3 w-3 rounded-full {{ $item['type']==='payment' ? 'bg-emerald-500' : ($item['type']==='goods' ? 'bg-amber-500' : 'bg-primary') }}"></span>
                 <p class="text-xs text-slate-500">{{ format_date($item['date']) }}</p>
                 <p class="font-medium">{{ $item['title'] }} — {{ $item['currency']->format($item['amount']) }}</p>
+                <p class="text-sm text-slate-600 dark:text-slate-300">الرصيد بعد الحركة: {{ $item['currency']->format($item['balance']) }}</p>
                 @include('cp.partials.note-line', ['notes' => $item['notes'] ?? null])
             </li>
             @empty

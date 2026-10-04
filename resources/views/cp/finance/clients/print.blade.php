@@ -148,7 +148,7 @@
 
 <h2>السجل الزمني</h2>
 <table class="data">
-    <thead><tr><th>التاريخ</th><th>الحركة</th><th>المبلغ</th></tr></thead>
+    <thead><tr><th>التاريخ</th><th>الحركة</th><th>المبلغ</th><th>الرصيد بعد الحركة</th></tr></thead>
     <tbody>
     @forelse($timeline as $item)
         <tr>
@@ -160,9 +160,10 @@
                 @endif
             </td>
             <td class="amount">{{ $item['currency']->format($item['amount']) }}</td>
+            <td class="amount">{{ $item['currency']->format($item['balance']) }}</td>
         </tr>
     @empty
-        <tr><td colspan="3" class="empty">لا حركات{{ !empty($from) || !empty($to) ? ' في هذه الفترة' : '' }}.</td></tr>
+        <tr><td colspan="4" class="empty">لا حركات{{ !empty($from) || !empty($to) ? ' في هذه الفترة' : '' }}.</td></tr>
     @endforelse
     </tbody>
 </table>

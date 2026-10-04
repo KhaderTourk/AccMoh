@@ -124,7 +124,7 @@ class ClientGoodsTakeTest extends TestCase
         $this->actingAs($this->user)
             ->get(route('cp.clients.show', $client))
             ->assertOk()
-            ->assertSee('أخذ منتج')
+            ->assertSee('خصم/أخرى')
             ->assertSee(route('cp.client-goods-takes.create', ['client_id' => $client->id]), false);
 
         $this->actingAs($this->user)

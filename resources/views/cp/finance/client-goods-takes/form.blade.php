@@ -1,5 +1,5 @@
 @extends('cp.layout')
-@section('title', $take->exists ? 'تعديل منتج مأخوذ' : 'أخذ منتج من زبون')
+@section('title', $take->exists ? 'تعديل خصم/أخرى' : 'خصم/أخرى')
 @section('content')
 @php
     $ilsId = (string) ($ilsCurrency?->id ?? '');
@@ -12,7 +12,7 @@
     @csrf
     @if($take->exists) @method('PUT') @endif
     <div>
-        <h2 class="text-xl font-bold">{{ $take->exists ? 'تعديل منتج مأخوذ' : 'أخذ منتج من زبون' }}</h2>
+        <h2 class="text-xl font-bold">{{ $take->exists ? 'تعديل خصم/أخرى' : 'خصم/أخرى' }}</h2>
         <p class="text-sm text-slate-500 mt-1">يُخصم سعر المنتج من المبلغ المستحق على الزبون دون تسجيل دفعة نقدية.</p>
     </div>
     <div>
