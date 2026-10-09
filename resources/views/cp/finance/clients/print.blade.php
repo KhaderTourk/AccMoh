@@ -15,6 +15,7 @@
             <div class="sub">قيمة الخدمات: {{ $currency->format($row['billed']) }}</div>
             <div class="sub">المدفوع: {{ $currency->format($row['paid']) }}</div>
             <div class="sub">بضاعة مأخوذة: {{ $currency->format($row['goods'] ?? '0.00') }}</div>
+            <div class="sub">رصيد مرحّل: {{ $currency->format($row['memos'] ?? '0.00') }}</div>
             @if(\App\Support\Money::isNegative($row['closing']))
                 <div class="kpi-value">عربون {{ $currency->format(\App\Support\Money::abs($row['closing'])) }}</div>
             @else
@@ -110,6 +111,25 @@
 </table>
 @endforelse
 
+<h2>رصيد مرحّل</h2>
+@if(($balanceMemos ?? collect())->isNotEmpty())
+<table class="data">
+    <thead><tr><th>البيان</th><th>الاتجاه</th><th>المبلغ</th><th>التاريخ</th></tr></thead>
+    <tbody>
+    @foreach($balanceMemos as $memo)
+        <tr>
+            <td>{{ $memo->statementTitle() }}@if(filled($memo->notes))<div class="sub" style="white-space: pre-line;">{{ $memo->notes }}</div>@endif</td>
+            <td>{{ $memo->direction->label() }}</td>
+            <td>{{ $memo->currency->format($memo->amount) }}</td>
+            <td>{{ format_date($memo->memo_date) }}</td>
+        </tr>
+    @endforeach
+    </tbody>
+</table>
+@else
+<p class="muted">لا يوجد رصيد مرحّل{{ !empty($from) || !empty($to) ? ' في هذه الفترة' : '' }}.</p>
+@endif
+
 <h2>بضاعة مأخوذة</h2>
 @if(($goodsTakes ?? collect())->isNotEmpty())
     <h3 style="font-size:12px;margin:12px 0 6px;color:#b45309;">خصم من حساب الزبون
@@ -119,7 +139,7 @@
         @endif
     </h3>
     <table class="data">
-        <thead><tr><th>خصم/أخرى</th><th>السعر</th><th>التاريخ</th></tr></thead>
+        <thead><tr><th>التصنيف</th><th>السعر</th><th>التاريخ</th></tr></thead>
         <tbody>
         @foreach($goodsTakes as $take)
             <tr>
@@ -148,9 +168,15 @@
 
 <h2>السجل الزمني</h2>
 <table class="data">
-    <thead><tr><th>التاريخ</th><th>الحركة</th><th>المبلغ</th><th>الرصيد بعد الحركة</th></tr></thead>
+    <thead><tr><th>التاريخ</th><th>الحركة</th><th>دائن</th><th>مدين</th><th>الرصيد بعد الحركة</th></tr></thead>
     <tbody>
     @forelse($timeline as $item)
+        @php
+            $delta = (string) ($item['delta'] ?? '0');
+            $isCredit = \App\Support\Money::isNegative($delta)
+                || (\App\Support\Money::isZero($delta) && in_array($item['type'] ?? '', ['payment', 'goods'], true));
+            $formattedAmount = $item['currency']->format($item['amount']);
+        @endphp
         <tr>
             <td>{{ format_date($item['date']) }}</td>
             <td>
@@ -159,11 +185,12 @@
                     <div class="sub" style="white-space: pre-line;">{{ $item['notes'] }}</div>
                 @endif
             </td>
-            <td class="amount">{{ $item['currency']->format($item['amount']) }}</td>
+            <td class="amount">{{ $isCredit ? $formattedAmount : '—' }}</td>
+            <td class="amount">{{ $isCredit ? '—' : $formattedAmount }}</td>
             <td class="amount">{{ $item['currency']->format($item['balance']) }}</td>
         </tr>
     @empty
-        <tr><td colspan="4" class="empty">لا حركات{{ !empty($from) || !empty($to) ? ' في هذه الفترة' : '' }}.</td></tr>
+        <tr><td colspan="5" class="empty">لا حركات{{ !empty($from) || !empty($to) ? ' في هذه الفترة' : '' }}.</td></tr>
     @endforelse
     </tbody>
 </table>

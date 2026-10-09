@@ -58,7 +58,7 @@ class CashPaymentFormTest extends TestCase
         $this->actingAs($this->user)
             ->get('/cp/payments/incoming/create?fund_id='.$family->id)
             ->assertOk()
-            ->assertSee('اختر الاسم')
+            ->assertSee('اختر الجهة')
             ->assertSee('الزبائن')
             ->assertSee('الأشخاص')
             ->assertSee('الموظفون')
@@ -72,7 +72,7 @@ class CashPaymentFormTest extends TestCase
         $this->actingAs($this->user)
             ->get('/cp/payments/outgoing/create?fund_id='.$family->id)
             ->assertOk()
-            ->assertSee('اختر الاسم')
+            ->assertSee('اختر الجهة')
             ->assertSee('party_key');
     }
 

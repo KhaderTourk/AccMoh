@@ -23,6 +23,7 @@
                 <tr>
                     <td class="px-3 py-2">
                         <a class="text-primary" href="{{ route('cp.'.$type->routePrefix().'.show', $v) }}">{{ $v->name }}</a>
+                        @includeWhen(! $v->is_active, 'cp.partials.archived-badge')
                         @include('cp.partials.note-line', ['notes' => $v->notes])
                     </td>
                     <td class="px-3 py-2">{{ ($type === \App\Enums\VendorType::Worker ? $v->job_title : $v->work_description) ?: '—' }}</td>

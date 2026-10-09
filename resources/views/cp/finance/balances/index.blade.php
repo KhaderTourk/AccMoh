@@ -74,7 +74,7 @@
             </div>
             <div>
                 <label class="text-xs text-slate-500">التاريخ</label>
-                <input type="date" name="occurred_on" value="{{ old('occurred_on', date('Y-m-d')) }}" required class="cp-input w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
+                @include('cp.partials.date-field', ['name' => 'occurred_on', 'value' => old('occurred_on', date('Y-m-d')), 'required' => true, 'class' => 'cp-input w-full rounded-xl border px-3 py-2 dark:bg-slate-700 text-left'])
             </div>
             <button class="px-4 py-2 rounded-xl bg-primary text-white font-medium">تسجيل</button>
             <div class="md:col-span-3 lg:col-span-3">

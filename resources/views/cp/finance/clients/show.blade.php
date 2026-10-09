@@ -17,6 +17,7 @@
         <div class="flex flex-wrap gap-2">
             <a href="{{ route('cp.client-services.create', ['client_id' => $client->id]) }}" class="cp-btn cp-btn-primary"><span class="material-symbols-outlined">work</span> خدمة</a>
             <a href="{{ route('cp.client-goods-takes.create', ['client_id' => $client->id]) }}" class="cp-btn cp-btn-ghost"><span class="material-symbols-outlined">shopping_bag</span> خصم/أخرى</a>
+            <a href="{{ route('cp.balance-memos.create', ['client_id' => $client->id]) }}" class="cp-btn cp-btn-ghost"><span class="material-symbols-outlined">account_balance</span> رصيد مرحّل</a>
             <a href="{{ route('cp.payments.create', ['incoming', 'client_id' => $client->id]) }}" class="cp-btn cp-btn-in"><span class="material-symbols-outlined">south_west</span> دفعة واردة</a>
             <a href="{{ route('cp.clients.edit', $client) }}" class="cp-btn cp-btn-ghost"><span class="material-symbols-outlined">edit</span> تعديل</a>
         </div>
@@ -64,6 +65,7 @@
                     <p>قيمة الخدمات{{ $from || $to ? ' في الفترة' : '' }}: <strong>{{ $currency->format($row['billed']) }}</strong></p>
                     <p>المدفوع{{ $from || $to ? ' في الفترة' : '' }}: <strong class="text-emerald-600">{{ $currency->format($row['paid']) }}</strong></p>
                     <p>بضاعة مأخوذة{{ $from || $to ? ' في الفترة' : '' }}: <strong class="text-amber-700 dark:text-amber-300">{{ $currency->format($row['goods']) }}</strong></p>
+                    <p>رصيد مرحّل{{ $from || $to ? ' في الفترة' : '' }}: <strong>{{ $currency->format($row['memos'] ?? '0.00') }}</strong></p>
                     @if(\App\Support\Money::isNegative($row['closing']))
                         <p>{{ $hasOpening ? 'المتبقي بعد الفترة' : 'المتبقي' }}: <strong class="text-emerald-600">عربون {{ $currency->format(\App\Support\Money::abs($row['closing'])) }}</strong></p>
                     @else
@@ -156,6 +158,12 @@
         @endforelse
     </section>
 
+    @include('cp.partials.balance-memos-section', [
+        'memos' => $balanceMemos,
+        'createUrl' => route('cp.balance-memos.create', ['client_id' => $client->id]),
+        'transferUrl' => route('cp.balance-memos.transfer', ['client_id' => $client->id]),
+    ])
+
     <section class="space-y-4">
         <div class="flex items-center justify-between gap-3">
             <h3 class="font-bold text-lg">الدفعات</h3>
@@ -240,7 +248,7 @@
             @endif
             <table class="w-full text-sm text-right">
                 <thead class="bg-slate-50 dark:bg-slate-700/40"><tr>
-                    <th class="px-3 py-2">خصم/أخرى</th><th class="px-3 py-2">السعر</th><th class="px-3 py-2">التاريخ</th><th class="px-3 py-2"></th>
+                    <th class="px-3 py-2">التصنيف</th><th class="px-3 py-2">السعر</th><th class="px-3 py-2">التاريخ</th><th class="px-3 py-2"></th>
                 </tr></thead>
                 <tbody class="divide-y dark:divide-slate-700">
                 @forelse($goodsTakes as $take)

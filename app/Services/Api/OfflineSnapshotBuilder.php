@@ -8,6 +8,7 @@ use App\Models\ClientGoodsTake;
 use App\Models\ClientService;
 use App\Models\Currency;
 use App\Models\Fund;
+use App\Models\PartyBalanceMemo;
 use App\Models\PaymentMethod;
 use App\Models\Person;
 use App\Models\ServiceType;
@@ -129,6 +130,18 @@ class OfflineSnapshotBuilder
             $cid = (int) $row->client_id;
             $cur = (int) $row->currency_id;
             $out[$cid][$cur] = Money::sub($out[$cid][$cur] ?? '0.00', $row->total);
+        }
+
+        $memos = PartyBalanceMemo::query()
+            ->where('party_type', 'client')
+            ->whereIn('party_id', $clientIds)
+            ->selectRaw('party_id, currency_id, SUM('.PartyBalanceMemo::signedAmountSql().') as total')
+            ->groupBy('party_id', 'currency_id')
+            ->get();
+        foreach ($memos as $row) {
+            $cid = (int) $row->party_id;
+            $cur = (int) $row->currency_id;
+            $out[$cid][$cur] = Money::add($out[$cid][$cur] ?? '0.00', $row->total);
         }
 
         return $out;

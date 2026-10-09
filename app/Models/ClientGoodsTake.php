@@ -6,6 +6,7 @@ use App\Models\Concerns\BelongsToTenant;
 use App\Models\Concerns\HasIlsExchange;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ClientGoodsTake extends Model
@@ -16,6 +17,8 @@ class ClientGoodsTake extends Model
 
     protected $fillable = [
         'client_id',
+        'party_type',
+        'party_id',
         'title',
         'amount',
         'source_amount',
@@ -34,6 +37,11 @@ class ClientGoodsTake extends Model
             'exchange_rate' => 'decimal:8',
             'taken_on' => 'date',
         ];
+    }
+
+    public function party(): MorphTo
+    {
+        return $this->morphTo();
     }
 
     public function client(): BelongsTo

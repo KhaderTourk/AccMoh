@@ -24,16 +24,16 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>
             <label class="text-sm">تاريخ الدفعة *</label>
-            <input type="date" name="occurred_on" value="{{ old('occurred_on', optional($payment->occurred_on)->format('Y-m-d') ?? date('Y-m-d')) }}" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
+            @include('cp.partials.date-field', ['name' => 'occurred_on', 'value' => old('occurred_on', optional($payment->occurred_on)->format('Y-m-d') ?? date('Y-m-d')), 'required' => true])
         </div>
         <div>
-            <label class="text-sm">الاسم *</label>
+            <label class="text-sm">الجهة *</label>
             <select name="party_key" x-ref="partySelect" x-model="partyKey" @change="syncParty()" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700" @disabled($partyLocked)>
-                <option value="">اختر الاسم</option>
+                <option value="">اختر الجهة</option>
                 @if(($parties['clients'] ?? collect())->isNotEmpty())
                     <optgroup label="الزبائن">
                         @foreach($parties['clients'] as $c)
-                            <option value="client:{{ $c->id }}" data-name="{{ $c->personName() }}" @selected($initialPartyKey === 'client:'.$c->id)>{{ $c->personName() }}</option>
+                            <option value="client:{{ $c->id }}" data-name="{{ $c->directoryLabel() }}" @selected($initialPartyKey === 'client:'.$c->id)>{{ $c->directoryLabel() }}</option>
                         @endforeach
                     </optgroup>
                 @endif

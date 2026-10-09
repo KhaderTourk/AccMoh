@@ -64,7 +64,7 @@
         <div class="grid md:grid-cols-2 gap-3">
             <div>
                 <label class="text-xs">التاريخ *</label>
-                <input type="date" x-model="form.occurred_on" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
+                <input type="text" data-date-display x-model="form.occurred_on" inputmode="numeric" placeholder="يوم\شهر\سنة" dir="ltr" maxlength="10" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700 text-left">
             </div>
             <div>
                 <label class="text-xs">الاسم *</label>
@@ -159,7 +159,8 @@
 <script src="{{ asset('assets/js/cp-offline.js') }}"></script>
 <script>
 function offlineWorkspace() {
-    const today = new Date().toISOString().slice(0, 10);
+    const isoToday = new Date().toISOString().slice(0, 10).split('-');
+    const today = isoToday[2] + '\\' + isoToday[1] + '\\' + isoToday[0];
     return {
         online: navigator.onLine,
         busy: false,
@@ -274,6 +275,19 @@ function offlineWorkspace() {
             if (n > 0) await this.runSync();
         },
 
+        toStorageDate(value) {
+            const raw = String(value || '').trim();
+            const parts = raw.match(/^(\d{1,2})[\\\/](\d{1,2})[\\\/](\d{4})$/);
+            if (parts) {
+                return parts[3] + '-' + parts[2].padStart(2, '0') + '-' + parts[1].padStart(2, '0');
+            }
+            const digits = raw.replace(/\D/g, '');
+            if (digits.length === 8) {
+                return digits.slice(4) + '-' + digits.slice(2, 4) + '-' + digits.slice(0, 2);
+            }
+            return raw;
+        },
+
         onPartyChange() {
             if (!this.form.party_key) return;
             const [type, id] = this.form.party_key.split(':');
@@ -296,7 +310,7 @@ function offlineWorkspace() {
                 currency_id: Number(this.form.currency_id),
                 amount: Number(this.form.amount),
                 account_holder_name: this.form.account_holder_name || null,
-                occurred_on: this.form.occurred_on,
+                occurred_on: this.toStorageDate(this.form.occurred_on),
                 notes: this.form.notes || null,
             };
             if (this.form.party_key) {

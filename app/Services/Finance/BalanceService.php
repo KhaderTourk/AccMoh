@@ -11,6 +11,7 @@ use App\Models\ClientService;
 use App\Models\Currency;
 use App\Models\Fund;
 use App\Models\LedgerEntry;
+use App\Models\PartyBalanceMemo;
 use App\Models\PaymentMethod;
 use App\Models\Vendor;
 use App\Models\VendorCharge;
@@ -135,16 +136,27 @@ class BalanceService
             ->pluck('total', 'currency_id');
 
         $goods = ClientGoodsTake::query()
+            ->whereNotNull('client_id')
             ->when($clientId, fn ($q) => $q->where('client_id', $clientId))
             ->selectRaw('currency_id, SUM(amount) as total')
             ->groupBy('currency_id')
             ->pluck('total', 'currency_id');
 
+        $memos = PartyBalanceMemo::query()
+            ->where('party_type', 'client')
+            ->when($clientId, fn ($q) => $q->where('party_id', $clientId))
+            ->selectRaw('currency_id, SUM('.PartyBalanceMemo::signedAmountSql().') as total')
+            ->groupBy('currency_id')
+            ->pluck('total', 'currency_id');
+
         $out = [];
         foreach (Currency::query()->active()->pluck('id') as $currencyId) {
-            $out[$currencyId] = Money::sub(
-                Money::sub($billed[$currencyId] ?? '0', $paid[$currencyId] ?? '0'),
-                $goods[$currencyId] ?? '0'
+            $out[$currencyId] = Money::add(
+                Money::sub(
+                    Money::sub($billed[$currencyId] ?? '0', $paid[$currencyId] ?? '0'),
+                    $goods[$currencyId] ?? '0'
+                ),
+                $memos[$currencyId] ?? '0'
             );
         }
 
@@ -174,9 +186,26 @@ class BalanceService
             ->groupBy('currency_id')
             ->pluck('total', 'currency_id');
 
+        $goods = ClientGoodsTake::query()
+            ->where('party_type', 'person')
+            ->when($personId, fn ($q) => $q->where('party_id', $personId))
+            ->selectRaw('currency_id, SUM(amount) as total')
+            ->groupBy('currency_id')
+            ->pluck('total', 'currency_id');
+
+        $memos = PartyBalanceMemo::query()
+            ->where('party_type', 'person')
+            ->when($personId, fn ($q) => $q->where('party_id', $personId))
+            ->selectRaw('currency_id, SUM('.PartyBalanceMemo::signedAmountSql().') as total')
+            ->groupBy('currency_id')
+            ->pluck('total', 'currency_id');
+
         $out = [];
         foreach (Currency::query()->active()->pluck('id') as $currencyId) {
-            $out[$currencyId] = Money::sub($incoming[$currencyId] ?? '0', $outgoing[$currencyId] ?? '0');
+            $out[$currencyId] = Money::sub(
+                Money::add($memos[$currencyId] ?? '0', $outgoing[$currencyId] ?? '0'),
+                Money::add($incoming[$currencyId] ?? '0', $goods[$currencyId] ?? '0')
+            );
         }
 
         return $out;
@@ -259,7 +288,23 @@ class BalanceService
                     ->where('currency_id', $currencyId)
                     ->sum('amount')
             );
-            $due = Money::sub($billed, $paid);
+            $goods = Money::of(
+                ClientGoodsTake::query()
+                    ->where('party_type', 'vendor')
+                    ->whereIn('party_id', $ids)
+                    ->where('currency_id', $currencyId)
+                    ->sum('amount')
+            );
+            $memos = Money::of(
+                PartyBalanceMemo::query()
+                    ->where('party_type', 'vendor')
+                    ->whereIn('party_id', $ids)
+                    ->where('currency_id', $currencyId)
+                    ->selectRaw('COALESCE(SUM('.PartyBalanceMemo::signedAmountSql().'), 0) as signed_total')
+                    ->first()
+                    ?->signed_total
+            );
+            $due = Money::sub(Money::sub(Money::sub($billed, $paid), $goods), $memos);
             $out[$currencyId] = Money::isPositive($due) ? $due : '0.00';
         }
 
@@ -278,8 +323,10 @@ class BalanceService
             foreach ($currencies as $currency) {
                 $billed = $vendor->billedAmount($currency->id, $from, $to);
                 $paid = $vendor->paidAmount($currency->id, $from, $to);
-                $due = Money::sub($billed, $paid);
-                if (Money::isZero($billed) && Money::isZero($paid)) {
+                $goods = $vendor->goodsTakenAmount($currency->id, $from, $to);
+                $memos = $vendor->memoDelta($currency->id, $from, $to);
+                $due = Money::sub(Money::sub(Money::sub($billed, $paid), $goods), $memos);
+                if (Money::isZero($billed) && Money::isZero($paid) && Money::isZero($goods) && Money::isZero($memos)) {
                     continue;
                 }
                 $rows[] = compact('currency', 'billed', 'paid', 'due');

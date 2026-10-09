@@ -13,6 +13,7 @@ class CheckCpPermission
         'cp.users' => 'users',
         'cp.roles' => 'users',
         'cp.balances' => 'finance',
+        'cp.balance-memos' => 'finance',
         'cp.clients' => 'finance',
         'cp.client-services' => 'finance',
         'cp.client-goods-takes' => 'finance',

@@ -53,7 +53,7 @@
     </div>
     <div>
         <label class="text-sm">التاريخ *</label>
-        <input type="date" name="charge_date" value="{{ old('charge_date', optional($charge->charge_date)->format('Y-m-d') ?? date('Y-m-d')) }}" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
+        @include('cp.partials.date-field', ['name' => 'charge_date', 'value' => old('charge_date', optional($charge->charge_date)->format('Y-m-d') ?? date('Y-m-d')), 'required' => true])
     </div>
     <div>
         <label class="text-sm">ملاحظات</label>

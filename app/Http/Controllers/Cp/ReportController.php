@@ -78,8 +78,9 @@ class ReportController extends Controller
                         $billed = $client->billedAmount($currency->id, $from, $to);
                         $paid = $client->paidAmount($currency->id, $from, $to);
                         $goods = $client->goodsTakenAmount($currency->id, $from, $to);
-                        $due = Money::sub(Money::sub(Money::add($opening, $billed), $paid), $goods);
-                        if (Money::isZero($opening) && Money::isZero($billed) && Money::isZero($paid) && Money::isZero($goods)) {
+                        $memos = $client->memoDelta($currency->id, $from, $to);
+                        $due = Money::add(Money::sub(Money::sub(Money::add($opening, $billed), $paid), $goods), $memos);
+                        if (Money::isZero($opening) && Money::isZero($billed) && Money::isZero($paid) && Money::isZero($goods) && Money::isZero($memos)) {
                             continue;
                         }
                         $rows[] = compact('currency', 'opening', 'billed', 'paid', 'goods', 'due');
@@ -100,10 +101,11 @@ class ReportController extends Controller
                     foreach ($filteredCurrencies as $currency) {
                         $in = $person->incomingAmount($currency->id, $from, $to);
                         $out = $person->outgoingAmount($currency->id, $from, $to);
-                        if (Money::isZero($in) && Money::isZero($out)) {
+                        $net = $person->netAmount($currency->id, $from, $to);
+                        if (Money::isZero($in) && Money::isZero($out) && Money::isZero($net)) {
                             continue;
                         }
-                        $rows[] = compact('currency', 'in', 'out');
+                        $rows[] = compact('currency', 'in', 'out', 'net');
                     }
 
                     return ['member' => $person, 'rows' => $rows];
@@ -190,6 +192,7 @@ class ReportController extends Controller
         $query = CashPayment::query()
             ->{$direction}()
             ->active()
+            ->withoutArchivedParties()
             ->tap(fn ($q) => DateRange::constrain($q, 'occurred_on', $from, $to))
             ->when($request->filled('currency_id'), fn ($q) => $q->where('currency_id', $request->currency_id))
             ->when($request->filled('fund_id'), fn ($q) => $q->where('fund_id', $request->fund_id))

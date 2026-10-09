@@ -33,6 +33,7 @@
                     <td class="px-3 py-3 whitespace-nowrap">{{ format_date($p->occurred_on) }}</td>
                     <td class="px-3 py-3">
                         {{ $p->name }}
+                        @includeWhen($p->party && $p->party->is_active === false, 'cp.partials.archived-badge')
                         @include('cp.partials.note-line', ['notes' => $p->notes])
                     </td>
                     <td class="px-3 py-3">{{ $p->fund->name }}</td>

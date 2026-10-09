@@ -73,13 +73,23 @@ class DateRangeTest extends TestCase
     public function test_label_for_full_range(): void
     {
         $this->assertSame('طوال المدة', DateRange::label(null, null));
-        $this->assertSame('من 08/01/2026 إلى 08/28/2026', DateRange::label('2026-08-01', '2026-08-28'));
+        $this->assertSame('من 01\\08\\2026 إلى 28\\08\\2026', DateRange::label('2026-08-01', '2026-08-28'));
     }
 
-    public function test_display_uses_month_day_year(): void
+    public function test_display_uses_day_month_year(): void
     {
-        $this->assertSame('09/15/2026', DateRange::display('2026-09-15'));
-        $this->assertSame('09/15/2026 15:30', DateRange::display('2026-09-15 15:30:00', true));
+        $this->assertSame('15\\09\\2026', DateRange::display('2026-09-15'));
+        $this->assertSame('15\\09\\2026 15:30', DateRange::display('2026-09-15 15:30:00', true));
         $this->assertSame('', DateRange::display(null));
+    }
+
+    public function test_display_dates_normalize_to_storage(): void
+    {
+        $this->assertSame('2026-09-15', DateRange::toStorageDate('15\\09\\2026'));
+        $this->assertSame('2026-09-15', DateRange::toStorageDate('15/09/2026'));
+        $this->assertSame('15\\09\\2026', DateRange::inputValue('2026-09-15'));
+        $this->assertSame('2026-09-15', DateRange::normalize('15\\09\\2026'));
+        $this->assertNull(DateRange::toStorageDate('32\\13\\2026'));
+        $this->assertNull(DateRange::normalize('32\\13\\2026'));
     }
 }

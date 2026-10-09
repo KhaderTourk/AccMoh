@@ -144,6 +144,16 @@
                     <h1 class="text-lg font-bold text-slate-800 dark:text-white truncate">@yield('title', 'لوحة التحكم')</h1>
                 </div>
                 <div class="flex items-center gap-2">
+                    <form action="{{ route('cp.archive-visibility') }}" method="post">
+                        @csrf
+                        <button type="submit"
+                                class="inline-flex items-center gap-1 px-3 py-2 rounded-xl border text-sm font-medium transition-colors {{ \App\Support\ArchiveVisibility::showing() ? 'bg-amber-100 border-amber-300 text-amber-900 dark:bg-amber-900/30 dark:border-amber-700 dark:text-amber-200' : 'border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700' }}"
+                                title="إظهار أو إخفاء الزبائن والمستخدمين والحركات والموظفين والموردين والأشخاص المؤرشفين">
+                            <span class="material-symbols-outlined text-lg">{{ \App\Support\ArchiveVisibility::showing() ? 'visibility_off' : 'inventory_2' }}</span>
+                            <span class="sm:hidden">المؤرشف</span>
+                            <span class="hidden sm:inline">إظهار/إخفاء المؤرشف</span>
+                        </button>
+                    </form>
                     <span id="cp-net-status" class="hidden sm:inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500">
                         <span class="material-symbols-outlined text-sm">wifi</span>
                         <span>متصل</span>
@@ -313,8 +323,17 @@
         })();
     </script>
     <script>
-        document.querySelectorAll('input[type="date"]').forEach(function (el) {
-            el.setAttribute('lang', 'en-US');
+        document.addEventListener('input', function (event) {
+            var el = event.target;
+            if (!el || !el.matches || !el.matches('[data-date-display]')) return;
+            var digits = String(el.value || '').replace(/\D/g, '').slice(0, 8);
+            var next = digits.slice(0, 2);
+            if (digits.length > 2) next += '\\' + digits.slice(2, 4);
+            if (digits.length > 4) next += '\\' + digits.slice(4, 8);
+            if (el.value !== next) {
+                el.value = next;
+                el.dispatchEvent(new Event('input', { bubbles: true }));
+            }
         });
     </script>
     <script src="{{ asset('assets/js/cp-table-sort.js') }}?v={{ @filemtime(public_path('assets/js/cp-table-sort.js')) ?: time() }}"></script>

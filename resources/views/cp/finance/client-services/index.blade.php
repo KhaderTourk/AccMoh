@@ -44,7 +44,10 @@
             <tbody class="divide-y dark:divide-slate-700">
             @forelse($services as $s)
                 <tr>
-                    <td class="px-3 py-3"><a href="{{ route('cp.clients.show', $s->client) }}" class="text-primary font-medium">{{ $s->client->personName() }}</a></td>
+                    <td class="px-3 py-3">
+                        <a href="{{ route('cp.clients.show', $s->client) }}" class="text-primary font-medium">{{ $s->client->personName() }}</a>
+                        @includeWhen($s->client && ! $s->client->is_active, 'cp.partials.archived-badge')
+                    </td>
                     <td class="px-3 py-3">{{ $s->serviceType?->name ?: '—' }}</td>
                     <td class="px-3 py-3">
                         {{ $s->title }}

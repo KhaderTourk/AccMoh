@@ -10,6 +10,7 @@ use App\Models\Client;
 use App\Models\FundTransfer;
 use App\Models\Vendor;
 use App\Models\VendorCharge;
+use App\Support\ArchiveVisibility;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -75,6 +76,32 @@ class LedgerEntry extends Model
      * Hide the original movement and its reversal for deleted or edited payments.
      * The replacement payment keeps its own ledger lines.
      */
+    public function scopeWithoutArchivedParties(Builder $query): Builder
+    {
+        if (ArchiveVisibility::showing()) {
+            return $query;
+        }
+
+        $morphs = array_values(array_unique([
+            (new CashPayment)->getMorphClass(),
+            CashPayment::class,
+        ]));
+        $table = $query->getModel()->getTable();
+
+        return $query->where(function (Builder $outer) use ($morphs, $table) {
+            $outer->where(function (Builder $inner) use ($morphs, $table) {
+                $inner->whereNotIn("{$table}.related_type", $morphs)
+                    ->orWhereNull("{$table}.related_type");
+            })->orWhere(function (Builder $inner) use ($morphs, $table) {
+                $inner->whereIn("{$table}.related_type", $morphs)
+                    ->whereIn(
+                        "{$table}.related_id",
+                        CashPayment::query()->withoutArchivedParties()->select('id')
+                    );
+            });
+        });
+    }
+
     public function scopeWithoutReversedPayments(Builder $query): Builder
     {
         $morph = (new CashPayment)->getMorphClass();

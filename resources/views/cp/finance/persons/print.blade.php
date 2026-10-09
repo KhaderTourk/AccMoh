@@ -13,18 +13,55 @@
         @php
             $in = $member->incomingAmount($c->id);
             $out = $member->outgoingAmount($c->id);
+            $goods = $member->goodsTakenAmount($c->id);
+            $memos = $member->memoDelta($c->id);
             $net = $member->netAmount($c->id);
         @endphp
-        @if(!\App\Support\Money::isZero($in) || !\App\Support\Money::isZero($out))
+        @if(!\App\Support\Money::isZero($in) || !\App\Support\Money::isZero($out) || !\App\Support\Money::isZero($goods) || !\App\Support\Money::isZero($memos))
         <td>
             <div class="kpi-label">{{ $c->name }}</div>
+            <div class="sub">رصيد مرحّل: {{ $c->format($memos) }}</div>
             <div class="sub">وارد: {{ $c->format($in) }}</div>
             <div class="sub">صادر: {{ $c->format($out) }}</div>
-            <div class="kpi-value {{ \App\Support\Money::isNegative($net) ? 'neg' : '' }}">الصافي {{ $c->format($net) }}</div>
+            <div class="sub">خصم/أخرى: {{ $c->format($goods) }}</div>
+            <div class="kpi-value {{ \App\Support\Money::isNegative($net) ? 'neg' : '' }}">الموقف {{ $c->format($net) }}{{ \App\Support\Money::isPositive($net) ? ' عليه' : (\App\Support\Money::isNegative($net) ? ' له' : '') }}</div>
         </td>
         @endif
     @endforeach
     </tr>
+</table>
+
+<h2>رصيد مرحّل</h2>
+<table class="data">
+    <thead><tr><th>البيان</th><th>الاتجاه</th><th>المبلغ</th><th>التاريخ</th></tr></thead>
+    <tbody>
+    @forelse($member->balanceMemos as $memo)
+        <tr>
+            <td>{{ $memo->statementTitle() }}@if(filled($memo->notes))<div class="sub" style="white-space: pre-line;">{{ $memo->notes }}</div>@endif</td>
+            <td>{{ $memo->direction->label() }}</td>
+            <td>{{ $memo->currency->format($memo->amount) }}</td>
+            <td>{{ format_date($memo->memo_date) }}</td>
+        </tr>
+    @empty
+        <tr><td colspan="4" class="empty">لا يوجد رصيد مرحّل.</td></tr>
+    @endforelse
+    </tbody>
+</table>
+
+<h2>خصم/أخرى</h2>
+<table class="data">
+    <thead><tr><th>التصنيف</th><th>السعر</th><th>التاريخ</th></tr></thead>
+    <tbody>
+    @forelse($member->goodsTakes as $take)
+        <tr>
+            <td>{{ $take->title }}</td>
+            <td>{{ $take->currency->format($take->amount) }}</td>
+            <td>{{ format_date($take->taken_on) }}</td>
+        </tr>
+    @empty
+        <tr><td colspan="3" class="empty">لا توجد سجلات.</td></tr>
+    @endforelse
+    </tbody>
 </table>
 
 <h2>الدفعات</h2>

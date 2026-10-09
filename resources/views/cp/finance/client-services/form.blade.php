@@ -15,9 +15,10 @@
     @csrf
     @if($service->exists) @method('PUT') @endif
     <div>
-        <label class="text-sm">الزبون *</label>
+        <label class="text-sm">الجهة *</label>
         <select name="client_id" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700" @disabled($service->exists)>
-            @foreach($clients as $c)<option value="{{ $c->id }}" @selected(old('client_id', $service->client_id)==$c->id)>{{ $c->personName() }}</option>@endforeach
+            <option value="">اختر الجهة</option>
+            @foreach($clients as $c)<option value="{{ $c->id }}" @selected(old('client_id', $service->client_id)==$c->id)>{{ $c->directoryLabel() }}</option>@endforeach
         </select>
         @if($service->exists)<input type="hidden" name="client_id" value="{{ $service->client_id }}">@endif
     </div>
@@ -62,7 +63,7 @@
     </div>
     <div>
         <label class="text-sm">التاريخ *</label>
-        <input type="date" name="service_date" value="{{ old('service_date', optional($service->service_date)->format('Y-m-d') ?? date('Y-m-d')) }}" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
+        @include('cp.partials.date-field', ['name' => 'service_date', 'value' => old('service_date', optional($service->service_date)->format('Y-m-d') ?? date('Y-m-d')), 'required' => true])
     </div>
     <div>
         <label class="text-sm">ملاحظات</label>

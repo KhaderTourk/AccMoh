@@ -43,6 +43,11 @@ class DateRange
         }
 
         try {
+            $stored = self::toStorageDate($raw);
+            if ($stored) {
+                return $stored;
+            }
+
             if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $raw)) {
                 $date = Carbon::createFromFormat('!Y-m-d', $raw);
                 if (! $date || $date->format('Y-m-d') !== $raw) {
@@ -52,10 +57,57 @@ class DateRange
                 return $date->toDateString();
             }
 
+            if (preg_match('/^\d{1,2}[\\\\\\/]\d{1,2}[\\\\\\/]\d{4}$/', $raw)) {
+                return null;
+            }
+
             return Carbon::parse($raw)->toDateString();
         } catch (\Throwable) {
             return null;
         }
+    }
+
+    /**
+     * Convert a day\month\year (or day/month/year) value to Y-m-d.
+     * Returns null when the value is not in that display shape.
+     */
+    public static function toStorageDate(mixed $value): ?string
+    {
+        if (! is_string($value) && ! is_numeric($value)) {
+            return null;
+        }
+
+        $raw = trim((string) $value);
+        if (! preg_match('/^(\d{1,2})[\\\\\\/](\d{1,2})[\\\\\\/](\d{4})$/', $raw, $match)) {
+            return null;
+        }
+
+        $day = (int) $match[1];
+        $month = (int) $match[2];
+        $year = (int) $match[3];
+        if (! checkdate($month, $day, $year)) {
+            return null;
+        }
+
+        return sprintf('%04d-%02d-%02d', $year, $month, $day);
+    }
+
+    public static function inputValue(mixed $value): string
+    {
+        if ($value === null || $value === '') {
+            return '';
+        }
+
+        $raw = trim((string) $value);
+        if (preg_match('/^\d{1,2}[\\\\\\/]\d{1,2}[\\\\\\/]\d{4}$/', $raw)) {
+            $stored = self::toStorageDate($raw);
+
+            return $stored ? self::display($stored) : $raw;
+        }
+
+        $displayed = self::display($raw);
+
+        return $displayed !== '' ? $displayed : $raw;
     }
 
     public static function constrain(Builder $query, string $column, ?string $from, ?string $to): Builder
@@ -100,7 +152,8 @@ class DateRange
         try {
             $date = $value instanceof Carbon ? $value : Carbon::parse($value);
 
-            return $date->format($withTime ? 'm/d/Y H:i' : 'm/d/Y');
+            // Four backslashes: date() needs "\\" to emit one "\".
+            return $date->format($withTime ? 'd\\\\m\\\\Y H:i' : 'd\\\\m\\\\Y');
         } catch (\Throwable) {
             return '';
         }

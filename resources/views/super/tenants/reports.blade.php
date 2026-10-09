@@ -41,7 +41,7 @@
         </div>
         @endif
         <div class="rounded-2xl border p-4 bg-white">
-            <h3 class="font-bold mb-2">صافي دفعات الأشخاص</h3>
+            <h3 class="font-bold mb-2">موقف الأشخاص (عليه / له)</h3>
             @foreach($snapshot['currencies'] as $c)
                 @php $net = $personNet[$c->id] ?? '0'; @endphp
                 <p class="{{ \App\Support\Money::isNegative($net) ? 'text-rose-600' : 'text-emerald-600' }}">{{ $c->format($net) }}</p>

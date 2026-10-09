@@ -19,6 +19,7 @@ class DashboardController extends Controller
         $personNet = $balances->personNet();
 
         $recent = LedgerEntry::query()
+            ->withoutArchivedParties()
             ->with(['fund', 'paymentMethod', 'currency', 'related'])
             ->orderByDesc('occurred_on')
             ->orderByDesc('id')
@@ -85,7 +86,12 @@ class DashboardController extends Controller
                 'clients' => tenantBusinessEnabled() ? Client::query()->active()->count() : 0,
                 'persons' => Person::query()->active()->count(),
                 'open_services' => tenantBusinessEnabled()
-                    ? ClientService::query()->billable()->count()
+                    ? ClientService::query()
+                        ->billable()
+                        ->when(! \App\Support\ArchiveVisibility::showing(), function ($q) {
+                            $q->whereHas('client', fn ($client) => $client->where('is_active', true));
+                        })
+                        ->count()
                     : 0,
             ],
         ]);

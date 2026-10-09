@@ -35,6 +35,10 @@ class ClientStatementService
                 ->tap(fn ($qq) => DateRange::constrain($qq, 'taken_on', $from, $to))
                 ->orderBy('taken_on')
                 ->orderBy('id'),
+            'balanceMemos' => fn ($q) => $q->with('currency')
+                ->tap(fn ($qq) => DateRange::constrain($qq, 'memo_date', $from, $to))
+                ->orderBy('memo_date')
+                ->orderBy('id'),
         ]);
 
         $currencies = Currency::query()->active()->get();
@@ -46,6 +50,7 @@ class ClientStatementService
             $periodBilled = $client->billedAmount($currency->id, $from, $to);
             $periodPaid = $client->paidAmount($currency->id, $from, $to);
             $periodGoods = $client->goodsTakenAmount($currency->id, $from, $to);
+            $periodMemos = $client->memoDelta($currency->id, $from, $to);
 
             $opening = $computedOpening;
             $openingOverridden = false;
@@ -55,7 +60,10 @@ class ClientStatementService
                 $openingOverridden = Money::cmp($opening, $computedOpening) !== 0;
             }
 
-            $closing = Money::sub(Money::sub(Money::add($opening, $periodBilled), $periodPaid), $periodGoods);
+            $closing = Money::add(
+                Money::sub(Money::sub(Money::add($opening, $periodBilled), $periodPaid), $periodGoods),
+                $periodMemos
+            );
             $lifetimeDue = $client->outstandingAmount($currency->id);
 
             if (
@@ -63,6 +71,7 @@ class ClientStatementService
                 && Money::isZero($periodBilled)
                 && Money::isZero($periodPaid)
                 && Money::isZero($periodGoods)
+                && Money::isZero($periodMemos)
                 && Money::isZero($lifetimeDue)
                 && ! $openingOverridden
             ) {
@@ -77,6 +86,7 @@ class ClientStatementService
                 'billed' => $periodBilled,
                 'paid' => $periodPaid,
                 'goods' => $periodGoods,
+                'memos' => $periodMemos,
                 'closing' => $closing,
                 'lifetime_due' => $lifetimeDue,
             ];
@@ -85,6 +95,7 @@ class ClientStatementService
         $payments = $client->payments;
         $services = $client->services;
         $goodsTakes = $client->goodsTakes;
+        $balanceMemos = $client->balanceMemos;
 
         $timeline = collect();
         foreach ($services as $service) {
@@ -111,6 +122,19 @@ class ClientStatementService
                 'delta' => Money::neg($payment->amount),
                 'currency' => $payment->currency,
                 'notes' => $payment->notes,
+            ]);
+        }
+        foreach ($balanceMemos as $memo) {
+            $timeline->push([
+                'id' => $memo->id,
+                'sort_at' => $memo->created_at?->getTimestamp() ?? $memo->id,
+                'date' => $memo->memo_date,
+                'type' => 'memo',
+                'title' => $memo->statementTitle(),
+                'amount' => $memo->amount,
+                'delta' => $memo->owedToUsDelta(),
+                'currency' => $memo->currency,
+                'notes' => $memo->notes,
             ]);
         }
         foreach ($goodsTakes as $take) {
@@ -140,9 +164,10 @@ class ClientStatementService
             'serviceGroups' => $this->groupServices($services),
             'paymentGroups' => $this->groupPayments($payments),
             'goodsTakes' => $goodsTakes->sortByDesc(fn ($t) => $t->taken_on->format('Y-m-d').sprintf('%010d', $t->id))->values(),
+            'balanceMemos' => $balanceMemos->sortByDesc(fn ($m) => $m->memo_date->format('Y-m-d').sprintf('%010d', $m->id))->values(),
             'goodsTotals' => $this->totalsByCurrency($goodsTakes),
             'timeline' => $timeline,
-            'movementCount' => $services->count() + $payments->where('is_reversed', false)->count() + $goodsTakes->count(),
+            'movementCount' => $services->count() + $payments->where('is_reversed', false)->count() + $goodsTakes->count() + $balanceMemos->count(),
             'exportedAt' => format_date(now(), true),
             'title' => $client->personName(),
             'subtitle' => trim(implode(' · ', array_filter([$client->organization(), $client->phone]))),

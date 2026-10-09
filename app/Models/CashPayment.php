@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\PaymentDirection;
 use App\Models\Concerns\BelongsToTenant;
 use App\Models\Concerns\HasIlsExchange;
+use App\Support\ArchiveVisibility;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -74,6 +75,42 @@ class CashPayment extends Model
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_reversed', false);
+    }
+
+    /**
+     * Hide movements that belong to an archived client, person, employee, or supplier.
+     */
+    public function scopeWithoutArchivedParties(Builder $query): Builder
+    {
+        if (ArchiveVisibility::showing()) {
+            return $query;
+        }
+
+        $table = $query->getModel()->getTable();
+
+        return $query->where(function (Builder $outer) use ($table) {
+            $outer->whereNull("{$table}.party_type")
+                ->orWhere(function (Builder $inner) use ($table) {
+                    $inner->whereIn("{$table}.party_type", ['client', Client::class])
+                        ->whereIn("{$table}.party_id", Client::query()->where('is_active', true)->select('id'));
+                })
+                ->orWhere(function (Builder $inner) use ($table) {
+                    $inner->whereIn("{$table}.party_type", ['person', Person::class])
+                        ->whereIn("{$table}.party_id", Person::query()->where('is_active', true)->select('id'));
+                })
+                ->orWhere(function (Builder $inner) use ($table) {
+                    $inner->whereIn("{$table}.party_type", ['vendor', Vendor::class])
+                        ->whereIn("{$table}.party_id", Vendor::query()->where('is_active', true)->select('id'));
+                })
+                ->orWhere(function (Builder $inner) use ($table) {
+                    $inner->whereNotNull("{$table}.party_type")
+                        ->whereNotIn("{$table}.party_type", [
+                            'client', Client::class,
+                            'person', Person::class,
+                            'vendor', Vendor::class,
+                        ]);
+                });
+        });
     }
 
     public function scopeIncoming(Builder $query): Builder

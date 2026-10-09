@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\VendorType;
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\Concerns\HasBalanceMemos;
 use App\Support\DateRange;
 use App\Support\Money;
 use Illuminate\Database\Eloquent\Builder;
@@ -15,6 +16,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Vendor extends Model
 {
     use BelongsToTenant;
+    use HasBalanceMemos;
     use SoftDeletes;
 
     protected $fillable = ['name', 'type', 'phone', 'job_title', 'work_description', 'notes', 'is_active'];
@@ -47,14 +49,23 @@ class Vendor extends Model
         return $this->morphMany(CashPayment::class, 'party');
     }
 
+    public function goodsTakes(): MorphMany
+    {
+        return $this->morphMany(ClientGoodsTake::class, 'party');
+    }
+
     public function hasFinancialHistory(): bool
     {
-        return $this->cashPayments()->exists() || $this->charges()->exists() || $this->expenses()->exists();
+        return $this->cashPayments()->exists() || $this->charges()->exists() || $this->expenses()->exists() || $this->goodsTakes()->exists() || $this->balanceMemos()->exists();
     }
 
     public function scopeActive(Builder $query): Builder
     {
-        return $query->where('is_active', true);
+        if (\App\Support\ArchiveVisibility::showing()) {
+            return $query;
+        }
+
+        return $query->where($query->qualifyColumn('is_active'), true);
     }
 
     public function scopeOfType(Builder $query, VendorType $type): Builder
@@ -84,8 +95,24 @@ class Vendor extends Model
         );
     }
 
+    public function goodsTakenAmount(int $currencyId, ?string $from = null, ?string $to = null): string
+    {
+        return Money::of(
+            $this->goodsTakes()
+                ->where('currency_id', $currencyId)
+                ->tap(fn ($q) => DateRange::constrain($q, 'taken_on', $from, $to))
+                ->sum('amount')
+        );
+    }
+
     public function outstandingAmount(int $currencyId): string
     {
-        return Money::sub($this->billedAmount($currencyId), $this->paidAmount($currencyId));
+        return Money::sub(
+            Money::sub(
+                Money::sub($this->billedAmount($currencyId), $this->paidAmount($currencyId)),
+                $this->goodsTakenAmount($currencyId)
+            ),
+            $this->memoDelta($currencyId)
+        );
     }
 }

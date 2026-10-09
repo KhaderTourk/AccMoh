@@ -17,7 +17,7 @@ class ClientGoodsTakeService
 
         return DB::transaction(function () use ($data, $resolved) {
             $row = ClientGoodsTake::query()->create([
-                'client_id' => $data['client_id'],
+                ...$this->partyAttributes($data),
                 'title' => $data['title'],
                 'amount' => $resolved['amount'],
                 'source_amount' => $resolved['source_amount'],
@@ -39,6 +39,7 @@ class ClientGoodsTakeService
         $resolved = $this->resolvePricing($data);
 
         $row->update([
+            ...$this->partyAttributes($data, $row),
             'title' => $data['title'],
             'amount' => $resolved['amount'],
             'source_amount' => $resolved['source_amount'],
@@ -58,6 +59,22 @@ class ClientGoodsTakeService
     {
         $row->delete();
         FinancialAuditLog::record('deleted', $row);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array{party_type: string, party_id: mixed, client_id: mixed}
+     */
+    protected function partyAttributes(array $data, ?ClientGoodsTake $existing = null): array
+    {
+        $type = (string) ($data['party_type'] ?? $existing?->party_type ?? 'client');
+        $id = $data['party_id'] ?? $existing?->party_id ?? $data['client_id'] ?? $existing?->client_id;
+
+        return [
+            'party_type' => $type,
+            'party_id' => $id,
+            'client_id' => $type === 'client' ? $id : null,
+        ];
     }
 
     /**

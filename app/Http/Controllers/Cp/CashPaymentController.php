@@ -51,7 +51,7 @@ class CashPaymentController extends Controller
                 'direction' => $dir,
                 'occurred_on' => now()->toDateString(),
                 'fund_id' => $fundId,
-                'name' => $party instanceof Client ? $party->personName() : $party?->name,
+                'name' => $party instanceof Client ? $party->directoryLabel() : $party?->name,
                 'party_type' => $partyType,
                 'party_id' => $party?->id,
             ]),
@@ -129,6 +129,7 @@ class CashPaymentController extends Controller
                 ->with(['party', 'fund', 'currency', 'fxCurrency', 'paymentMethod'])
                 ->where('direction', $direction)
                 ->active()
+                ->withoutArchivedParties()
                 ->when($request->fund_id, fn ($q, $id) => $q->where('fund_id', $id))
                 ->when($request->currency_id, fn ($q, $id) => $q->where('currency_id', $id))
                 ->when($request->payment_method_id, fn ($q, $id) => $q->where('payment_method_id', $id))
@@ -184,7 +185,7 @@ class CashPaymentController extends Controller
             'account_holder_name' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],
         ], [
-            'party_key.required' => 'اختر اسماً من قائمة الزبائن أو الأشخاص أو الموظفين أو الموردين.',
+            'party_key.required' => 'اختر جهة من الزبائن أو الأشخاص أو الموظفين أو الموردين.',
         ]);
 
         $party = match ($data['party_type']) {
@@ -195,10 +196,10 @@ class CashPaymentController extends Controller
         };
         if (! $party) {
             throw \Illuminate\Validation\ValidationException::withMessages([
-                'party_key' => 'اختر اسماً من قائمة الزبائن أو الأشخاص أو الموظفين أو الموردين.',
+                'party_key' => 'اختر جهة من الزبائن أو الأشخاص أو الموظفين أو الموردين.',
             ]);
         }
-        $data['name'] = $party instanceof Client ? $party->personName() : $party->name;
+        $data['name'] = $party instanceof Client ? $party->directoryLabel() : $party->name;
         unset($data['party_key']);
 
         if ($data['party_type'] === 'person') {

@@ -13,6 +13,8 @@
         </div>
         <div class="flex flex-wrap gap-2">
             <a href="{{ route('cp.vendor-charges.create', ['vendor_id' => $vendor->id]) }}" class="cp-btn cp-btn-primary"><span class="material-symbols-outlined">add</span> {{ $type->chargeAction() }}</a>
+            <a href="{{ route('cp.client-goods-takes.create', ['vendor_id' => $vendor->id]) }}" class="cp-btn cp-btn-ghost"><span class="material-symbols-outlined">shopping_bag</span> خصم/أخرى</a>
+            <a href="{{ route('cp.balance-memos.create', ['vendor_id' => $vendor->id]) }}" class="cp-btn cp-btn-ghost"><span class="material-symbols-outlined">account_balance</span> رصيد مرحّل</a>
             <a href="{{ route('cp.payments.create', ['outgoing', 'vendor_id' => $vendor->id]) }}" class="cp-btn cp-btn-out"><span class="material-symbols-outlined">north_east</span> دفعة صادرة</a>
             <a href="{{ route('cp.'.$type->routePrefix().'.export-pdf', $vendor) }}" class="cp-btn cp-btn-ghost"><span class="material-symbols-outlined">picture_as_pdf</span> تصدير PDF</a>
             <a href="{{ route('cp.'.$type->routePrefix().'.edit', $vendor) }}" class="cp-btn cp-btn-ghost"><span class="material-symbols-outlined">edit</span> تعديل</a>
@@ -29,14 +31,18 @@
             @php
                 $billed = $vendor->billedAmount($currency->id);
                 $paid = $vendor->paidAmount($currency->id);
+                $goods = $vendor->goodsTakenAmount($currency->id);
+                $memos = $vendor->memoDelta($currency->id);
                 $due = $vendor->outstandingAmount($currency->id);
             @endphp
-            @if(!\App\Support\Money::isZero($billed) || !\App\Support\Money::isZero($paid))
+            @if(!\App\Support\Money::isZero($billed) || !\App\Support\Money::isZero($paid) || !\App\Support\Money::isZero($goods) || !\App\Support\Money::isZero($memos))
             <div class="rounded-2xl border bg-white dark:bg-slate-800 p-5">
                 <h3 class="font-bold mb-3">{{ $currency->name }}</h3>
                 <div class="space-y-1 text-sm">
                     <p>{{ $type->billedLabel() }}: <strong>{{ $currency->format($billed) }}</strong></p>
                     <p>المدفوع: <strong class="text-emerald-600">{{ $currency->format($paid) }}</strong></p>
+                    <p>خصم/أخرى: <strong class="text-amber-700 dark:text-amber-300">{{ $currency->format($goods) }}</strong></p>
+                    <p>رصيد مرحّل: <strong>{{ $currency->format($memos) }}</strong></p>
                     @if(\App\Support\Money::isNegative($due))
                         <p>مدفوع مقدماً: <strong class="text-emerald-600">{{ $currency->format(\App\Support\Money::abs($due)) }}</strong></p>
                     @else
@@ -76,6 +82,54 @@
                             <div class="flex items-center gap-1 justify-end">
                                 <a href="{{ route('cp.vendor-charges.edit', $charge) }}" class="p-1" title="تعديل"><span class="material-symbols-outlined text-base">edit</span></a>
                                 <form method="post" action="{{ route('cp.vendor-charges.destroy', $charge) }}" onsubmit="return confirm('حذف هذا السجل؟')">
+                                    @csrf @method('DELETE')
+                                    <button type="submit" class="p-1 text-rose-600" title="حذف"><span class="material-symbols-outlined text-base">delete</span></button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                @empty
+                    <tr><td colspan="4" class="p-8 text-center text-slate-500">لا توجد سجلات.</td></tr>
+                @endforelse
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    @include('cp.partials.balance-memos-section', [
+        'memos' => $vendor->balanceMemos,
+        'createUrl' => route('cp.balance-memos.create', ['vendor_id' => $vendor->id]),
+        'transferUrl' => route('cp.balance-memos.transfer', ['vendor_id' => $vendor->id]),
+    ])
+
+    <section class="space-y-3">
+        <div class="flex items-center justify-between gap-3">
+            <h3 class="font-bold text-lg">خصم/أخرى</h3>
+            <a href="{{ route('cp.client-goods-takes.create', ['vendor_id' => $vendor->id]) }}" class="text-sm text-primary">إضافة</a>
+        </div>
+        <div class="rounded-2xl border bg-white dark:bg-slate-800 overflow-hidden">
+            <table class="w-full text-sm text-right">
+                <thead class="bg-slate-50 dark:bg-slate-700/40"><tr>
+                    <th class="px-3 py-2">التصنيف</th><th class="px-3 py-2">السعر</th><th class="px-3 py-2">التاريخ</th><th class="px-3 py-2"></th>
+                </tr></thead>
+                <tbody class="divide-y dark:divide-slate-700">
+                @forelse($vendor->goodsTakes as $take)
+                    <tr>
+                        <td class="px-3 py-2">
+                            {{ $take->title }}
+                            @include('cp.partials.note-line', ['notes' => $take->notes])
+                        </td>
+                        <td class="px-3 py-2">
+                            {{ $take->currency->format($take->amount) }}
+                            @if($take->isFx())
+                                <div class="text-xs text-slate-500">{{ $take->fxCurrency?->format($take->source_amount) }} × {{ $take->formattedExchangeRate() }}</div>
+                            @endif
+                        </td>
+                        <td class="px-3 py-2 whitespace-nowrap">{{ format_date($take->taken_on) }}</td>
+                        <td class="px-3 py-2">
+                            <div class="flex items-center gap-1 justify-end">
+                                <a href="{{ route('cp.client-goods-takes.edit', $take) }}" class="p-1" title="تعديل"><span class="material-symbols-outlined text-base">edit</span></a>
+                                <form method="post" action="{{ route('cp.client-goods-takes.destroy', $take) }}" onsubmit="return confirm('حذف هذا السجل؟')">
                                     @csrf @method('DELETE')
                                     <button type="submit" class="p-1 text-rose-600" title="حذف"><span class="material-symbols-outlined text-base">delete</span></button>
                                 </form>

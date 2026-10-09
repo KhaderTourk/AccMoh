@@ -18,7 +18,7 @@
         </div>
         <div>
             <label class="text-sm">التاريخ *</label>
-            <input type="date" name="transfer_date" value="{{ date('Y-m-d') }}" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
+            @include('cp.partials.date-field', ['name' => 'transfer_date', 'value' => old('transfer_date', date('Y-m-d')), 'required' => true])
         </div>
         <div>
             <label class="text-sm">من طريقة دفع *</label>

@@ -82,6 +82,12 @@ class VendorController extends Controller
             'cashPayments' => fn ($q) => $q->active()->with(['currency', 'fxCurrency', 'paymentMethod', 'fund'])
                 ->orderByDesc('occurred_on')
                 ->orderByDesc('id'),
+            'goodsTakes' => fn ($q) => $q->with(['currency', 'fxCurrency'])
+                ->orderByDesc('taken_on')
+                ->orderByDesc('id'),
+            'balanceMemos' => fn ($q) => $q->with('currency')
+                ->orderByDesc('memo_date')
+                ->orderByDesc('id'),
         ]);
         $currencies = Currency::query()->active()->get();
 
@@ -97,6 +103,12 @@ class VendorController extends Controller
                 ->orderBy('id'),
             'cashPayments' => fn ($q) => $q->active()->with(['currency', 'fxCurrency', 'paymentMethod', 'fund'])
                 ->orderByDesc('occurred_on')
+                ->orderByDesc('id'),
+            'goodsTakes' => fn ($q) => $q->with(['currency', 'fxCurrency'])
+                ->orderByDesc('taken_on')
+                ->orderByDesc('id'),
+            'balanceMemos' => fn ($q) => $q->with('currency')
+                ->orderByDesc('memo_date')
                 ->orderByDesc('id'),
         ]);
 

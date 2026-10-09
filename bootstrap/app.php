@@ -14,6 +14,9 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->append(\App\Http\Middleware\CompressResponse::class);
+        $middleware->web(append: [
+            \App\Http\Middleware\NormalizeDisplayDates::class,
+        ]);
         $middleware->alias([
             'cp.auth' => \App\Http\Middleware\EnsureCpAuth::class,
             'cp.permission' => \App\Http\Middleware\CheckPermission::class,

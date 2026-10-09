@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\Concerns\HasBalanceMemos;
 use App\Support\DateRange;
 use App\Support\Money;
 use Illuminate\Database\Eloquent\Builder;
@@ -14,6 +15,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Client extends Model
 {
     use BelongsToTenant;
+    use HasBalanceMemos;
     use SoftDeletes;
 
     protected $fillable = ['name', 'contact_name', 'phone', 'email', 'company_name', 'notes', 'is_active'];
@@ -55,7 +57,11 @@ class Client extends Model
 
     public function scopeActive(Builder $query): Builder
     {
-        return $query->where('is_active', true);
+        if (\App\Support\ArchiveVisibility::showing()) {
+            return $query;
+        }
+
+        return $query->where($query->qualifyColumn('is_active'), true);
     }
 
     public function hasFinancialHistory(): bool
@@ -63,6 +69,7 @@ class Client extends Model
         return $this->services()->exists()
             || $this->cashPayments()->exists()
             || $this->goodsTakes()->exists()
+            || $this->balanceMemos()->exists()
             || $this->legacyPayments()->exists();
     }
 
@@ -127,15 +134,26 @@ class Client extends Model
                 ->sum('amount')
         );
 
-        return Money::sub(Money::sub($billed, $paid), $goods);
+        return Money::add(
+            Money::sub(Money::sub($billed, $paid), $goods),
+            $this->memoDelta($currencyId, $from, null, true)
+        );
     }
 
     public function outstandingAmount(int $currencyId): string
     {
-        return Money::sub(
-            Money::sub($this->billedAmount($currencyId), $this->paidAmount($currencyId)),
-            $this->goodsTakenAmount($currencyId)
+        return Money::add(
+            Money::sub(
+                Money::sub($this->billedAmount($currencyId), $this->paidAmount($currencyId)),
+                $this->goodsTakenAmount($currencyId)
+            ),
+            $this->memoDelta($currencyId)
         );
+    }
+
+    public function directoryLabel(): string
+    {
+        return $this->organization() ?: $this->personName();
     }
 
     public function personName(): string

@@ -19,6 +19,7 @@
                 <tr>
                     <td class="px-3 py-2">
                         <a href="{{ route('cp.persons.show', $m) }}" class="text-primary font-medium">{{ $m->name }}</a>
+                        @includeWhen(! $m->is_active, 'cp.partials.archived-badge')
                         @include('cp.partials.note-line', ['notes' => $m->notes])
                     </td>
                     <td class="px-3 py-2">{{ $m->relationship ?: '—' }}</td>

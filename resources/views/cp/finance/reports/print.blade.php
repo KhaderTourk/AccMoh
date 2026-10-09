@@ -74,7 +74,7 @@
         </td>
         @endif
         <td>
-            <div class="kpi-label">صافي دفعات الأشخاص</div>
+            <div class="kpi-label">موقف الأشخاص (عليه / له)</div>
             @foreach($snapshot['currencies'] as $c)
                 @php $net = $personNet[$c->id] ?? '0'; @endphp
                 <div class="kpi-value {{ \App\Support\Money::isNegative($net) ? 'neg' : '' }}">{{ $c->format($net) }}</div>
@@ -182,7 +182,7 @@
 @if($personSummary->isNotEmpty())
 <h2>تقرير الأشخاص</h2>
 <table class="data">
-    <thead><tr><th>الشخص</th><th>العملة</th><th>وارد</th><th>صادر</th></tr></thead>
+    <thead><tr><th>الشخص</th><th>العملة</th><th>وارد</th><th>صادر</th><th>الموقف</th></tr></thead>
     <tbody>
     @foreach($personSummary as $row)
         @foreach($row['rows'] as $r)
@@ -191,6 +191,7 @@
             <td>{{ $r['currency']->name }}</td>
             <td>{{ $r['currency']->format($r['in']) }}</td>
             <td>{{ $r['currency']->format($r['out']) }}</td>
+            <td>{{ $r['currency']->format($r['net']) }}{{ \App\Support\Money::isPositive($r['net']) ? ' عليه' : (\App\Support\Money::isNegative($r['net']) ? ' له' : '') }}</td>
         </tr>
         @endforeach
     @endforeach

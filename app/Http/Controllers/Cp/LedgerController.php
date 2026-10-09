@@ -48,6 +48,7 @@ class LedgerController extends Controller
         $entries = TableSort::paginate(
             LedgerEntry::query()
                 ->withoutReversedPayments()
+                ->withoutArchivedParties()
                 ->with([
                     'fund',
                     'paymentMethod',
@@ -78,6 +79,7 @@ class LedgerController extends Controller
 
         $totals = LedgerEntry::query()
             ->withoutReversedPayments()
+            ->withoutArchivedParties()
             ->tap($apply)
             ->selectRaw('currency_id, SUM(amount) as total')
             ->groupBy('currency_id')

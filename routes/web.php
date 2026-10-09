@@ -8,6 +8,7 @@ use App\Http\Controllers\Cp\ClientImportController;
 use App\Http\Controllers\Cp\ClientGoodsTakeController;
 use App\Http\Controllers\Cp\ClientServiceController;
 use App\Http\Controllers\Cp\CashPaymentController;
+use App\Http\Controllers\Cp\PartyBalanceMemoController;
 use App\Http\Controllers\Cp\PersonController;
 use App\Http\Controllers\Cp\VendorController;
 use App\Http\Controllers\Cp\VendorChargeController;
@@ -42,6 +43,11 @@ Route::prefix('super')->name('super.')->middleware(['super.auth'])->group(functi
 
 Route::prefix('cp')->name('cp.')->middleware(['cp.auth', 'cp.check'])->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+    Route::post('/archive-visibility', function () {
+        \App\Support\ArchiveVisibility::toggle();
+
+        return back();
+    })->name('archive-visibility');
     Route::get('/offline', [OfflineController::class, 'index'])->name('offline');
 
     Route::prefix('api/v1')->group(function () {
@@ -57,6 +63,10 @@ Route::prefix('cp')->name('cp.')->middleware(['cp.auth', 'cp.check'])->group(fun
 
     Route::get('/balances', [BalanceController::class, 'index'])->name('balances.index');
     Route::post('/balances/opening', [BalanceController::class, 'storeOpening'])->name('balances.opening');
+
+    Route::get('/balance-memos/transfer', [PartyBalanceMemoController::class, 'transferCreate'])->name('balance-memos.transfer');
+    Route::post('/balance-memos/transfer', [PartyBalanceMemoController::class, 'transferStore'])->name('balance-memos.transfer.store');
+    Route::resource('balance-memos', PartyBalanceMemoController::class)->except(['index', 'show']);
 
     Route::get('/persons/{person}/export-pdf', [PersonController::class, 'exportPdf'])->name('persons.export-pdf');
     Route::resource('persons', PersonController::class);

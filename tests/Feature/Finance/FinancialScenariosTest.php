@@ -131,7 +131,7 @@ class FinancialScenariosTest extends TestCase
 
         $this->assertSame('600.00', $balances->cash($this->family->id, $this->cash->id, $this->ils->id));
         $this->assertSame('0.00', $balances->cash($this->family->id, $this->bank->id, $this->ils->id));
-        $this->assertSame('600.00', $ahmed->fresh()->netAmount($this->ils->id));
+        $this->assertSame('-600.00', $ahmed->fresh()->netAmount($this->ils->id));
     }
 
     public function test_scenario_3_client_service_creates_receivable_not_cash(): void

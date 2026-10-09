@@ -26,6 +26,9 @@ class ClientServiceController extends Controller
         $services = TableSort::paginate(
             ClientService::query()
                 ->with(['client', 'currency', 'fxCurrency', 'serviceType'])
+                ->when(! \App\Support\ArchiveVisibility::showing(), function ($q) {
+                    $q->whereHas('client', fn ($client) => $client->where('is_active', true));
+                })
                 ->when($request->client_id, fn ($q, $id) => $q->where('client_id', $id))
                 ->when($request->currency_id, fn ($q, $id) => $q->where('currency_id', $id))
                 ->tap(fn ($q) => DateRange::constrain($q, 'service_date', $from, $to))

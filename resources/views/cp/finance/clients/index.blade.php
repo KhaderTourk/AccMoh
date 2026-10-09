@@ -47,7 +47,10 @@
                         <a href="{{ route('cp.clients.show', array_merge(['client' => $client], $periodQuery)) }}" class="font-medium text-primary">{{ $client->organization() ?: '—' }}</a>
                         @include('cp.partials.note-line', ['notes' => $client->notes])
                     </td>
-                    <td class="px-4 py-3">{{ $client->personName() }}</td>
+                    <td class="px-4 py-3">
+                        {{ $client->personName() }}
+                        @includeWhen(! $client->is_active, 'cp.partials.archived-badge')
+                    </td>
                     <td class="px-4 py-3">{{ $client->phone ?: '—' }}</td>
                     <td class="px-4 py-3">
                         @foreach($currencies as $currency)

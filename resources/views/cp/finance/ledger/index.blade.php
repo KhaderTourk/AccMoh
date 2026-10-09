@@ -84,7 +84,10 @@
                         @if($e->is_reversal)<span class="text-xs text-rose-600"> (إلغاء)</span>@endif
                         @include('cp.partials.note-line', ['notes' => $e->notes])
                     </td>
-                    <td class="px-3 py-3 text-slate-600 dark:text-slate-300">{{ $e->counterpartyLabel() ?: '—' }}</td>
+                    <td class="px-3 py-3 text-slate-600 dark:text-slate-300">
+                        {{ $e->counterpartyLabel() ?: '—' }}
+                        @includeWhen(($e->related instanceof \App\Models\CashPayment) && $e->related->party && $e->related->party->is_active === false, 'cp.partials.archived-badge')
+                    </td>
                     <td class="px-3 py-3">{{ $e->fund->name }}</td>
                     <td class="px-3 py-3">{{ $e->paymentMethod->name }}</td>
                     <td class="px-3 py-3 font-bold {{ \App\Support\Money::isNegative($e->amount) ? 'text-rose-600' : 'text-emerald-600' }}">{{ $e->currency->format($e->amount) }}</td>

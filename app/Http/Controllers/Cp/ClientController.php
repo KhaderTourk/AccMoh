@@ -39,7 +39,8 @@ class ClientController extends Controller
                     $q->where(function ($qq) use ($from, $to) {
                         $qq->whereHas('services', fn ($s) => DateRange::constrain($s, 'service_date', $from, $to))
                             ->orWhereHas('cashPayments', fn ($p) => DateRange::constrain($p->active(), 'occurred_on', $from, $to))
-                            ->orWhereHas('goodsTakes', fn ($g) => DateRange::constrain($g, 'taken_on', $from, $to));
+                            ->orWhereHas('goodsTakes', fn ($g) => DateRange::constrain($g, 'taken_on', $from, $to))
+                            ->orWhereHas('balanceMemos', fn ($m) => DateRange::constrain($m, 'memo_date', $from, $to));
                     });
                 }),
             [

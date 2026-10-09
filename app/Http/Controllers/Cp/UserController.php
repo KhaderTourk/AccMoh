@@ -27,7 +27,9 @@ class UserController extends Controller
     public function index()
     {
         $users = TableSort::paginate(
-            User::with('role')->where('tenant_id', auth()->user()->tenant_id),
+            User::with('role')
+                ->where('tenant_id', auth()->user()->tenant_id)
+                ->when(! \App\Support\ArchiveVisibility::showing(), fn ($q) => $q->where('is_active', true)),
             [
                 'name' => ['column' => 'name'],
                 'email' => ['column' => 'email'],

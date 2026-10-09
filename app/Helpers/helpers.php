@@ -147,7 +147,7 @@ if (!function_exists('money_format_currency')) {
 
 if (! function_exists('format_date')) {
     /**
-     * Display a date as month/day/year (e.g. 09/15/2026).
+     * Display a date as day\month\year (e.g. 15\09\2026).
      */
     function format_date(mixed $value, bool $withTime = false): string
     {

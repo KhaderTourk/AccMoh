@@ -40,7 +40,7 @@
                                 <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{{ $u->role?->name ?? '—' }}</td>
                                 <td class="px-4 py-3">
                                     <span class="inline-flex px-2 py-0.5 rounded text-xs font-medium {{ $u->is_active ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400' : 'bg-slate-200 dark:bg-slate-600 text-slate-600 dark:text-slate-300' }}">
-                                        {{ $u->is_active ? 'نشط' : 'معطّل' }}
+                                        {{ $u->is_active ? 'نشط' : 'مؤرشف' }}
                                     </span>
                                 </td>
                                 <td class="px-4 py-3 flex gap-1">

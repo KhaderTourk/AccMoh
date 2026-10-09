@@ -8,6 +8,10 @@
             <p class="text-slate-500 text-sm">{{ $member->relationship }} {{ $member->phone }}</p>
         </div>
         <div class="flex gap-2 flex-wrap">
+            @if(tenantBusinessEnabled())
+                <a href="{{ route('cp.client-goods-takes.create', ['person_id' => $member->id]) }}" class="cp-btn cp-btn-ghost"><span class="material-symbols-outlined">shopping_bag</span> خصم/أخرى</a>
+            @endif
+            <a href="{{ route('cp.balance-memos.create', ['person_id' => $member->id]) }}" class="cp-btn cp-btn-ghost"><span class="material-symbols-outlined">account_balance</span> رصيد مرحّل</a>
             <a href="{{ route('cp.payments.create', ['incoming', 'person_id' => $member->id]) }}" class="cp-btn cp-btn-in"><span class="material-symbols-outlined">south_west</span> دفعة واردة</a>
             <a href="{{ route('cp.payments.create', ['outgoing', 'person_id' => $member->id]) }}" class="cp-btn cp-btn-out"><span class="material-symbols-outlined">north_east</span> دفعة صادرة</a>
             <a href="{{ route('cp.persons.export-pdf', $member) }}" class="cp-btn cp-btn-ghost"><span class="material-symbols-outlined">picture_as_pdf</span> تصدير PDF</a>
@@ -21,18 +25,62 @@
             @php
                 $in = $member->incomingAmount($c->id);
                 $out = $member->outgoingAmount($c->id);
+                $goods = $member->goodsTakenAmount($c->id);
+                $memos = $member->memoDelta($c->id);
                 $net = $member->netAmount($c->id);
             @endphp
-            @if(!\App\Support\Money::isZero($in) || !\App\Support\Money::isZero($out))
+            @if(!\App\Support\Money::isZero($in) || !\App\Support\Money::isZero($out) || !\App\Support\Money::isZero($goods) || !\App\Support\Money::isZero($memos))
             <div class="rounded-2xl border bg-white dark:bg-slate-800 p-5">
                 <h3 class="font-bold mb-2">{{ $c->name }}</h3>
+                <p class="text-sm">رصيد مرحّل: <strong>{{ $c->format($memos) }}</strong></p>
                 <p class="text-sm">وارد: <strong class="text-emerald-600">{{ $c->format($in) }}</strong></p>
                 <p class="text-sm">صادر: <strong class="text-rose-600">{{ $c->format($out) }}</strong></p>
-                <p class="text-sm mt-2">الصافي: <strong class="{{ \App\Support\Money::isNegative($net) ? 'text-rose-600' : 'text-emerald-600' }}">{{ $c->format($net) }}</strong></p>
+                <p class="text-sm">خصم/أخرى: <strong class="text-amber-700 dark:text-amber-300">{{ $c->format($goods) }}</strong></p>
+                <p class="text-sm mt-2">الموقف: <strong class="{{ \App\Support\Money::isNegative($net) ? 'text-rose-600' : 'text-emerald-600' }}">{{ $c->format($net) }}{{ \App\Support\Money::isPositive($net) ? ' عليه' : (\App\Support\Money::isNegative($net) ? ' له' : '') }}</strong></p>
             </div>
             @endif
         @endforeach
     </div>
+
+    @include('cp.partials.balance-memos-section', [
+        'memos' => $member->balanceMemos,
+        'createUrl' => route('cp.balance-memos.create', ['person_id' => $member->id]),
+        'transferUrl' => route('cp.balance-memos.transfer', ['person_id' => $member->id]),
+    ])
+
+    @if(tenantBusinessEnabled())
+    <section class="rounded-2xl border bg-white dark:bg-slate-800 overflow-hidden">
+        <div class="px-4 py-3 border-b font-bold flex items-center justify-between">
+            <span>خصم/أخرى</span>
+            <a href="{{ route('cp.client-goods-takes.create', ['person_id' => $member->id]) }}" class="text-sm text-primary font-normal">إضافة</a>
+        </div>
+        <table class="w-full text-sm text-right">
+            <thead class="bg-slate-50 dark:bg-slate-700/40"><tr>
+                <th class="px-3 py-2">التصنيف</th><th class="px-3 py-2">السعر</th><th class="px-3 py-2">التاريخ</th><th class="px-3 py-2"></th>
+            </tr></thead>
+            <tbody class="divide-y dark:divide-slate-700">
+            @forelse($member->goodsTakes as $take)
+                <tr>
+                    <td class="px-3 py-2">{{ $take->title }} @include('cp.partials.note-line', ['notes' => $take->notes])</td>
+                    <td class="px-3 py-2">{{ $take->currency->format($take->amount) }}</td>
+                    <td class="px-3 py-2 whitespace-nowrap">{{ format_date($take->taken_on) }}</td>
+                    <td class="px-3 py-2">
+                        <div class="flex items-center gap-1 justify-end">
+                            <a href="{{ route('cp.client-goods-takes.edit', $take) }}" class="p-1" title="تعديل"><span class="material-symbols-outlined text-base">edit</span></a>
+                            <form method="post" action="{{ route('cp.client-goods-takes.destroy', $take) }}" onsubmit="return confirm('حذف هذا السجل؟')">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="p-1 text-rose-600" title="حذف"><span class="material-symbols-outlined text-base">delete</span></button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            @empty
+                <tr><td colspan="4" class="p-8 text-center text-slate-500">لا توجد سجلات.</td></tr>
+            @endforelse
+            </tbody>
+        </table>
+    </section>
+    @endif
 
     <section class="rounded-2xl border bg-white dark:bg-slate-800 overflow-hidden">
         <div class="px-4 py-3 border-b font-bold">الدفعات</div>

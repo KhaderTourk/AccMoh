@@ -156,7 +156,7 @@
         </div>
         @endif
         <div class="rounded-2xl border p-4 bg-white dark:bg-slate-800">
-            <h3 class="font-bold mb-2">صافي دفعات الأشخاص</h3>
+            <h3 class="font-bold mb-2">موقف الأشخاص (عليه / له)</h3>
             @foreach($snapshot['currencies'] as $c)
                 @php $net = $personNet[$c->id] ?? '0'; @endphp
                 <p class="{{ \App\Support\Money::isNegative($net) ? 'text-rose-600' : 'text-emerald-600' }}">{{ $c->format($net) }}</p>
@@ -242,7 +242,7 @@
         <h2 class="font-bold text-lg mb-3">تقرير الأشخاص{{ $from || $to ? ' — '.$periodLabel : '' }}</h2>
         <div class="rounded-2xl border bg-white dark:bg-slate-800 overflow-hidden">
             <table class="w-full text-sm text-right">
-                <thead class="bg-slate-50 dark:bg-slate-700/50"><tr><th class="px-3 py-2">الشخص</th><th class="px-3 py-2">العملة</th><th class="px-3 py-2">وارد</th><th class="px-3 py-2">صادر</th></tr></thead>
+                <thead class="bg-slate-50 dark:bg-slate-700/50"><tr><th class="px-3 py-2">الشخص</th><th class="px-3 py-2">العملة</th><th class="px-3 py-2">وارد</th><th class="px-3 py-2">صادر</th><th class="px-3 py-2">الموقف</th></tr></thead>
                 <tbody class="divide-y dark:divide-slate-700">
                 @forelse($personSummary as $row)
                     @foreach($row['rows'] as $r)
@@ -251,10 +251,11 @@
                         <td class="px-3 py-2">{{ $r['currency']->name }}</td>
                         <td class="px-3 py-2 text-emerald-600">{{ $r['currency']->format($r['in']) }}</td>
                         <td class="px-3 py-2 text-rose-600">{{ $r['currency']->format($r['out']) }}</td>
+                        <td class="px-3 py-2 font-semibold">{{ $r['currency']->format($r['net']) }}{{ \App\Support\Money::isPositive($r['net']) ? ' عليه' : (\App\Support\Money::isNegative($r['net']) ? ' له' : '') }}</td>
                     </tr>
                     @endforeach
                 @empty
-                    <tr><td colspan="4" class="p-6 text-center text-slate-500">لا بيانات مطابقة للتصفية.</td></tr>
+                    <tr><td colspan="5" class="p-6 text-center text-slate-500">لا بيانات مطابقة للتصفية.</td></tr>
                 @endforelse
                 </tbody>
             </table>
