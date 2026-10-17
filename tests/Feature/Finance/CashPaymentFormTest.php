@@ -140,4 +140,44 @@ class CashPaymentFormTest extends TestCase
             ])
             ->assertSessionHasErrors('party_key');
     }
+
+    public function test_payment_date_field_accepts_display_formats_and_rejects_bad_dates(): void
+    {
+        TenantContext::set((int) $this->user->tenant_id);
+        $person = Person::query()->create(['name' => 'أحمد', 'is_active' => true]);
+        TenantContext::clear();
+
+        $family = Fund::withoutGlobalScopes()
+            ->where('tenant_id', $this->user->tenant_id)
+            ->where('slug', 'family')
+            ->firstOrFail();
+        $payload = [
+            'fund_id' => $family->id,
+            'payment_method_id' => PaymentMethod::query()->where('slug', 'cash')->firstOrFail()->id,
+            'currency_id' => Currency::query()->where('code', 'ILS')->firstOrFail()->id,
+            'amount' => 100,
+            'party_key' => 'person:'.$person->id,
+        ];
+        $createUrl = '/cp/payments/incoming/create?fund_id='.$family->id;
+
+        foreach (['31\\02\\2026', '17\\10\\0226', '17\\10\\20', 'abc'] as $bad) {
+            $this->actingAs($this->user)
+                ->from($createUrl)
+                ->post(route('cp.payments.store', 'incoming'), $payload + ['occurred_on' => $bad])
+                ->assertSessionHasErrors('occurred_on');
+        }
+        $this->assertSame(0, CashPayment::query()->count());
+
+        $this->actingAs($this->user)
+            ->post(route('cp.payments.store', 'incoming'), $payload + ['occurred_on' => '١٧\\١٠\\٢٠٢٦'])
+            ->assertSessionHasNoErrors();
+
+        $payment = CashPayment::query()->firstOrFail();
+        $this->assertSame('2026-10-17', $payment->occurred_on->toDateString());
+
+        $this->actingAs($this->user)
+            ->get(route('cp.payments.edit', $payment))
+            ->assertOk()
+            ->assertSee('value="17\\10\\2026"', false);
+    }
 }

@@ -171,7 +171,7 @@ class CashPaymentController extends Controller
         }
 
         $data = $request->validate([
-            'occurred_on' => ['required', 'date'],
+            'occurred_on' => DateRange::inputRules(),
             'party_key' => ['required', 'string'],
             'party_type' => ['required', Rule::in(['client', 'person', 'vendor'])],
             'party_id' => ['required', 'integer'],

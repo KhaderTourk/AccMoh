@@ -122,7 +122,7 @@ class ClientServiceController extends Controller
             'source_amount' => [$isFx ? 'required' : 'nullable', 'numeric', 'gt:0'],
             'exchange_rate' => [$isFx ? 'required' : 'nullable', 'numeric', 'gt:0'],
             'currency_id' => ['required', 'exists:currencies,id'],
-            'service_date' => ['required', 'date'],
+            'service_date' => DateRange::inputRules(),
             'notes' => ['nullable', 'string'],
         ]);
 

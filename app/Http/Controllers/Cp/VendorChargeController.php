@@ -9,6 +9,7 @@ use App\Models\Currency;
 use App\Models\Vendor;
 use App\Models\VendorCharge;
 use App\Services\Finance\VendorChargeService;
+use App\Support\DateRange;
 use Illuminate\Http\Request;
 
 class VendorChargeController extends Controller
@@ -109,7 +110,7 @@ class VendorChargeController extends Controller
             'source_amount' => [$isFx ? 'required' : 'nullable', 'numeric', 'gt:0'],
             'exchange_rate' => [$isFx ? 'required' : 'nullable', 'numeric', 'gt:0'],
             'currency_id' => ['required', 'exists:currencies,id'],
-            'charge_date' => ['required', 'date'],
+            'charge_date' => DateRange::inputRules(),
             'notes' => ['nullable', 'string'],
         ]);
 

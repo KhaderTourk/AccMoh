@@ -92,4 +92,32 @@ class DateRangeTest extends TestCase
         $this->assertNull(DateRange::toStorageDate('32\\13\\2026'));
         $this->assertNull(DateRange::normalize('32\\13\\2026'));
     }
+
+    public function test_storage_date_accepts_arabic_digits_and_common_separators(): void
+    {
+        $this->assertSame('2026-10-17', DateRange::toStorageDate('١٧\\١٠\\٢٠٢٦'));
+        $this->assertSame('2026-10-17', DateRange::toStorageDate('۱۷/۱۰/۲۰۲۶'));
+        $this->assertSame('2026-05-01', DateRange::toStorageDate('1-5-2026'));
+        $this->assertSame('2026-05-01', DateRange::toStorageDate('1.5.2026'));
+        $this->assertNull(DateRange::toStorageDate('2026-05-01'));
+    }
+
+    public function test_valid_date_enforces_calendar_and_year_range(): void
+    {
+        $this->assertSame('2026-10-17', DateRange::toValidDate('2026-10-17'));
+        $this->assertSame('2026-10-17', DateRange::toValidDate('17\\10\\2026'));
+        $this->assertNull(DateRange::toValidDate('2026-02-29'));
+        $this->assertNull(DateRange::toValidDate('0226-10-17'));
+        $this->assertNull(DateRange::toValidDate('2026-10-17 10:00:00'));
+        $this->assertNull(DateRange::toValidDate(null));
+    }
+
+    public function test_input_value_does_not_reinterpret_invalid_text(): void
+    {
+        $this->assertSame('1710', DateRange::inputValue('1710'));
+        $this->assertSame('31\\02\\2026', DateRange::inputValue('31\\02\\2026'));
+        $this->assertSame('01\\05\\2026', DateRange::inputValue('1\\5\\2026'));
+        $this->assertSame('17\\10\\2026', DateRange::inputValue(now()->setDate(2026, 10, 17)));
+        $this->assertSame('', DateRange::inputValue(null));
+    }
 }

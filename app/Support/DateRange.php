@@ -8,6 +8,61 @@ use Illuminate\Database\Eloquent\Builder;
 
 class DateRange
 {
+    public const MIN_YEAR = 1900;
+
+    public const MAX_YEAR = 2100;
+
+    /**
+     * Validation rules for a day\month\year form field (already normalized to Y-m-d by middleware).
+     *
+     * @return array<int, mixed>
+     */
+    public static function inputRules(bool $required = true): array
+    {
+        return [
+            $required ? 'required' : 'nullable',
+            function (string $attribute, mixed $value, \Closure $fail): void {
+                if (self::toValidDate($value) === null) {
+                    $fail('التاريخ غير صحيح، أدخله بالصيغة يوم\\شهر\\سنة بين '.self::MIN_YEAR.' و'.self::MAX_YEAR.'.');
+                }
+            },
+        ];
+    }
+
+    /**
+     * Strict Y-m-d (or day\month\year) value within the supported year range, else null.
+     */
+    public static function toValidDate(mixed $value): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $raw = self::asciiDigits(trim($value));
+        $stored = self::toStorageDate($raw);
+        if ($stored === null && preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $raw, $match)
+            && checkdate((int) $match[2], (int) $match[3], (int) $match[1])) {
+            $stored = $raw;
+        }
+        if ($stored === null) {
+            return null;
+        }
+
+        $year = (int) substr($stored, 0, 4);
+
+        return $year >= self::MIN_YEAR && $year <= self::MAX_YEAR ? $stored : null;
+    }
+
+    public static function asciiDigits(string $value): string
+    {
+        return strtr($value, [
+            '٠' => '0', '١' => '1', '٢' => '2', '٣' => '3', '٤' => '4',
+            '٥' => '5', '٦' => '6', '٧' => '7', '٨' => '8', '٩' => '9',
+            '۰' => '0', '۱' => '1', '۲' => '2', '۳' => '3', '۴' => '4',
+            '۵' => '5', '۶' => '6', '۷' => '7', '۸' => '8', '۹' => '9',
+        ]);
+    }
+
     /**
      * @return array{0: ?string, 1: ?string}
      */
@@ -68,7 +123,7 @@ class DateRange
     }
 
     /**
-     * Convert a day\month\year (or day/month/year) value to Y-m-d.
+     * Convert a day\month\year value (also / . - separators, Arabic-Indic digits) to Y-m-d.
      * Returns null when the value is not in that display shape.
      */
     public static function toStorageDate(mixed $value): ?string
@@ -77,8 +132,8 @@ class DateRange
             return null;
         }
 
-        $raw = trim((string) $value);
-        if (! preg_match('/^(\d{1,2})[\\\\\\/](\d{1,2})[\\\\\\/](\d{4})$/', $raw, $match)) {
+        $raw = self::asciiDigits(trim((string) $value));
+        if (! preg_match('/^(\d{1,2})[\\\\\\/.\-](\d{1,2})[\\\\\\/.\-](\d{4})$/', $raw, $match)) {
             return null;
         }
 
@@ -98,16 +153,22 @@ class DateRange
             return '';
         }
 
-        $raw = trim((string) $value);
-        if (preg_match('/^\d{1,2}[\\\\\\/]\d{1,2}[\\\\\\/]\d{4}$/', $raw)) {
-            $stored = self::toStorageDate($raw);
-
-            return $stored ? self::display($stored) : $raw;
+        if ($value instanceof \DateTimeInterface) {
+            return self::display(Carbon::instance($value));
         }
 
-        $displayed = self::display($raw);
+        $raw = trim((string) $value);
+        $stored = self::toStorageDate($raw);
+        if ($stored !== null) {
+            return self::display($stored);
+        }
 
-        return $displayed !== '' ? $displayed : $raw;
+        if (preg_match('/^(\d{4})-(\d{2})-(\d{2})(?:[ T]\d{2}:\d{2}(?::\d{2})?)?$/', $raw, $match)
+            && checkdate((int) $match[2], (int) $match[3], (int) $match[1])) {
+            return self::display($raw);
+        }
+
+        return $raw;
     }
 
     public static function constrain(Builder $query, string $column, ?string $from, ?string $to): Builder

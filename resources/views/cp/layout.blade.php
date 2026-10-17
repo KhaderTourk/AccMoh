@@ -323,18 +323,159 @@
         })();
     </script>
     <script>
-        document.addEventListener('input', function (event) {
-            var el = event.target;
-            if (!el || !el.matches || !el.matches('[data-date-display]')) return;
-            var digits = String(el.value || '').replace(/\D/g, '').slice(0, 8);
-            var next = digits.slice(0, 2);
-            if (digits.length > 2) next += '\\' + digits.slice(2, 4);
-            if (digits.length > 4) next += '\\' + digits.slice(4, 8);
-            if (el.value !== next) {
+        (function () {
+            var SEP = '\\';
+            var MAX = [2, 2, 4];
+            var MIN_YEAR = {{ \App\Support\DateRange::MIN_YEAR }};
+            var MAX_YEAR = {{ \App\Support\DateRange::MAX_YEAR }};
+            var INVALID = 'أدخل تاريخاً صحيحاً بالصيغة يوم\\شهر\\سنة (مثال: 17\\10\\2026).';
+            var SEP_RE = /[\\\/.\-\s]/;
+
+            function isDateField(el) {
+                return el && el.matches && el.matches('[data-date-display]');
+            }
+
+            function asciiDigits(value) {
+                return String(value || '').replace(/[\u0660-\u0669\u06F0-\u06F9]/g, function (ch) {
+                    var code = ch.charCodeAt(0);
+                    return String(code - (code >= 0x06F0 ? 0x06F0 : 0x0660));
+                });
+            }
+
+            function countDigits(value) {
+                return value.replace(/\D/g, '').length;
+            }
+
+            // Overflowing digits carry into the next part only while typing straight through;
+            // when a separator follows (editing inside an existing date) they are dropped instead.
+            function format(raw, digitsOnly, caret) {
+                var value = asciiDigits(raw);
+                var iso = value.match(/^\s*(\d{4})[\\\/.\-](\d{1,2})[\\\/.\-](\d{1,2})\s*$/);
+                if (iso) {
+                    value = iso[3] + SEP + iso[2] + SEP + iso[1];
+                    caret = null;
+                } else if (digitsOnly) {
+                    value = value.replace(/\D/g, '');
+                    caret = null;
+                }
+                var parts = ['', '', ''];
+                var index = 0;
+                var pos = null;
+                for (var i = 0; i < value.length; i++) {
+                    if (i === caret) pos = parts[0].length + parts[1].length + parts[2].length + index;
+                    var ch = value.charAt(i);
+                    if (/\d/.test(ch)) {
+                        if (parts[index].length === MAX[index]) {
+                            if (index === 2 || SEP_RE.test(value.slice(i + 1))) continue;
+                            index++;
+                        }
+                        parts[index] += ch;
+                    } else if (SEP_RE.test(ch) && index < 2 && parts[index] !== '') {
+                        index++;
+                    }
+                }
+                var out = parts.slice(0, index + 1).join(SEP);
+                return { value: out, caret: pos === null ? out.length : pos };
+            }
+
+            function pad(value) {
+                var m = value.match(/^(\d{1,2})\\(\d{1,2})\\(\d{4})$/);
+                return m ? ('0' + m[1]).slice(-2) + SEP + ('0' + m[2]).slice(-2) + SEP + m[3] : value;
+            }
+
+            function isValid(value) {
+                var m = value.match(/^(\d{1,2})\\(\d{1,2})\\(\d{4})$/);
+                if (!m) return false;
+                var d = +m[1], mo = +m[2], y = +m[3];
+                if (y < MIN_YEAR || y > MAX_YEAR) return false;
+                var date = new Date(y, mo - 1, d);
+                return date.getFullYear() === y && date.getMonth() === mo - 1 && date.getDate() === d;
+            }
+
+            function syncValidity(el) {
+                el.setCustomValidity(el.value === '' || isValid(el.value) ? '' : INVALID);
+            }
+
+            function setValue(el, next, caret) {
+                if (el.value === next) return;
                 el.value = next;
+                if (caret !== null && document.activeElement === el) {
+                    el.setSelectionRange(caret, caret);
+                }
                 el.dispatchEvent(new Event('input', { bubbles: true }));
             }
-        });
+
+            document.addEventListener('input', function (event) {
+                var el = event.target;
+                if (!isDateField(el)) return;
+                var type = event.inputType || '';
+                // Deletions are left untouched so backspace never fights the mask; blur tidies up.
+                if (type.indexOf('delete') !== 0) {
+                    var value = el.value;
+                    var caret = el.selectionStart === null ? value.length : el.selectionStart;
+                    var pasted = type === 'insertFromPaste' && !/^\s*\S+[\\\/.\-]\S+[\\\/.\-]\S+\s*$/.test(value);
+                    var result = format(value, pasted, caret);
+                    setValue(el, result.value, result.caret);
+                }
+                syncValidity(el);
+            });
+
+            document.addEventListener('focusout', function (event) {
+                var el = event.target;
+                if (!isDateField(el) || el.value === '') return;
+                var value = asciiDigits(el.value);
+                var next = format(value, false, null).value;
+                if (!isValid(next) && countDigits(value) === 8) {
+                    next = format(value, true, null).value;
+                }
+                setValue(el, pad(next), null);
+                syncValidity(el);
+            });
+
+            function textFieldFor(picker) {
+                var wrap = picker.closest('[data-date-wrap]');
+                return wrap ? wrap.querySelector('[data-date-display]') : null;
+            }
+
+            document.addEventListener('click', function (event) {
+                var picker = event.target;
+                if (!picker || !picker.matches || !picker.matches('[data-date-picker]')) return;
+                var field = textFieldFor(picker);
+                if (!field || field.disabled || field.readOnly) {
+                    event.preventDefault();
+                    return;
+                }
+                var value = pad(format(field.value, false, null).value);
+                var m = isValid(value) ? value.match(/^(\d{2})\\(\d{2})\\(\d{4})$/) : null;
+                picker.value = m ? m[3] + '-' + m[2] + '-' + m[1] : '';
+                if (typeof picker.showPicker === 'function') {
+                    try { picker.showPicker(); } catch (e) {}
+                }
+            });
+
+            function applyPicked(event) {
+                var picker = event.target;
+                if (!picker || !picker.matches || !picker.matches('[data-date-picker]') || !picker.value) return;
+                var field = textFieldFor(picker);
+                if (!field) return;
+                var parts = picker.value.split('-');
+                setValue(field, parts[2] + SEP + parts[1] + SEP + parts[0], null);
+                syncValidity(field);
+            }
+
+            document.addEventListener('change', applyPicked);
+            document.addEventListener('input', applyPicked);
+
+            function initAll() {
+                document.querySelectorAll('[data-date-display]').forEach(syncValidity);
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initAll);
+            } else {
+                initAll();
+            }
+        })();
     </script>
     <script src="{{ asset('assets/js/cp-table-sort.js') }}?v={{ @filemtime(public_path('assets/js/cp-table-sort.js')) ?: time() }}"></script>
     @stack('scripts')

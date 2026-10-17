@@ -11,6 +11,7 @@ use App\Models\PartyBalanceMemo;
 use App\Models\Person;
 use App\Models\Vendor;
 use App\Services\Finance\PartyBalanceMemoService;
+use App\Support\DateRange;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -171,7 +172,7 @@ class PartyBalanceMemoController extends Controller
             'direction' => ['required', Rule::enum(BalanceMemoDirection::class)],
             'amount' => ['required', 'numeric', 'gt:0'],
             'currency_id' => ['required', 'exists:currencies,id'],
-            'memo_date' => ['required', 'date'],
+            'memo_date' => DateRange::inputRules(),
             'notes' => ['nullable', 'string'],
         ];
     }

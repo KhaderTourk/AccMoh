@@ -64,7 +64,10 @@
         <div class="grid md:grid-cols-2 gap-3">
             <div>
                 <label class="text-xs">التاريخ *</label>
-                <input type="text" data-date-display x-model="form.occurred_on" inputmode="numeric" placeholder="يوم\شهر\سنة" dir="ltr" maxlength="10" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700 text-left">
+                <div class="relative" data-date-wrap>
+                    <input type="text" data-date-display x-model="form.occurred_on" inputmode="numeric" placeholder="يوم\شهر\سنة" dir="ltr" maxlength="10" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700 text-left" style="padding-right: 2.75rem">
+                    @include('cp.partials.date-picker-button')
+                </div>
             </div>
             <div>
                 <label class="text-xs">الاسم *</label>
@@ -159,8 +162,8 @@
 <script src="{{ asset('assets/js/cp-offline.js') }}"></script>
 <script>
 function offlineWorkspace() {
-    const isoToday = new Date().toISOString().slice(0, 10).split('-');
-    const today = isoToday[2] + '\\' + isoToday[1] + '\\' + isoToday[0];
+    const now = new Date();
+    const today = String(now.getDate()).padStart(2, '0') + '\\' + String(now.getMonth() + 1).padStart(2, '0') + '\\' + now.getFullYear();
     return {
         online: navigator.onLine,
         busy: false,

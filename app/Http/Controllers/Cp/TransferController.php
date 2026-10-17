@@ -10,6 +10,7 @@ use App\Models\FundTransfer;
 use App\Models\PaymentMethod;
 use App\Services\Finance\FundTransferService;
 use App\Services\Finance\ReversalService;
+use App\Support\DateRange;
 use App\Support\TableSort;
 use Illuminate\Http\Request;
 
@@ -59,7 +60,7 @@ class TransferController extends Controller
             'to_amount' => ['nullable', 'numeric', 'gt:0'],
             'exchange_rate' => ['nullable', 'numeric', 'gt:0'],
             'fee_amount' => ['nullable', 'numeric', 'gte:0'],
-            'transfer_date' => ['required', 'date'],
+            'transfer_date' => DateRange::inputRules(),
             'notes' => ['nullable', 'string'],
         ]);
 

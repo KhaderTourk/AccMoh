@@ -9,6 +9,7 @@ use App\Models\Client;
 use App\Models\Currency;
 use App\Services\Finance\AdjustmentService;
 use App\Services\Finance\BalanceService;
+use App\Support\DateRange;
 use Illuminate\Http\Request;
 
 class BalanceController extends Controller
@@ -29,7 +30,7 @@ class BalanceController extends Controller
             'payment_method_id' => ['required', 'exists:payment_methods,id'],
             'currency_id' => ['required', 'exists:currencies,id'],
             'amount' => ['required', 'numeric', 'gt:0'],
-            'occurred_on' => ['required', 'date'],
+            'occurred_on' => DateRange::inputRules(),
             'description' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],
         ]);

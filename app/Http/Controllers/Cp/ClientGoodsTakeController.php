@@ -12,6 +12,7 @@ use App\Models\Currency;
 use App\Models\Person;
 use App\Models\Vendor;
 use App\Services\Finance\ClientGoodsTakeService;
+use App\Support\DateRange;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -105,7 +106,7 @@ class ClientGoodsTakeController extends Controller
             'source_amount' => [$isFx ? 'required' : 'nullable', 'numeric', 'gt:0'],
             'exchange_rate' => [$isFx ? 'required' : 'nullable', 'numeric', 'gt:0'],
             'currency_id' => ['required', 'exists:currencies,id'],
-            'taken_on' => ['required', 'date'],
+            'taken_on' => DateRange::inputRules(),
             'notes' => ['nullable', 'string'],
         ], [
             'party_key.required' => 'اختر جهة من الزبائن أو الأشخاص أو الموظفين أو الموردين.',
