@@ -9,13 +9,13 @@
            name="{{ $fieldName }}"
            value="{{ $fieldValue }}"
            @if($isRequired) required @endif
-           inputmode="numeric"
-           placeholder="يوم\شهر\سنة"
+           inputmode="none"
+           placeholder="اختر التاريخ"
            autocomplete="off"
            dir="ltr"
            maxlength="10"
            data-date-display
-           class="{{ $fieldClass }}"
+           class="{{ $fieldClass }} cursor-pointer caret-transparent"
            style="padding-right: 2.75rem">
     @include('cp.partials.date-picker-button')
 </div>

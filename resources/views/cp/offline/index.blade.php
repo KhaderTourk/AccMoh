@@ -65,7 +65,7 @@
             <div>
                 <label class="text-xs">التاريخ *</label>
                 <div class="relative" data-date-wrap>
-                    <input type="text" data-date-display x-model="form.occurred_on" inputmode="numeric" placeholder="يوم\شهر\سنة" dir="ltr" maxlength="10" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700 text-left" style="padding-right: 2.75rem">
+                    <input type="text" data-date-display x-model="form.occurred_on" inputmode="none" placeholder="اختر التاريخ" autocomplete="off" dir="ltr" maxlength="10" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700 text-left cursor-pointer caret-transparent" style="padding-right: 2.75rem">
                     @include('cp.partials.date-picker-button')
                 </div>
             </div>

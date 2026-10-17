@@ -328,7 +328,7 @@
             var MAX = [2, 2, 4];
             var MIN_YEAR = {{ \App\Support\DateRange::MIN_YEAR }};
             var MAX_YEAR = {{ \App\Support\DateRange::MAX_YEAR }};
-            var INVALID = 'أدخل تاريخاً صحيحاً بالصيغة يوم\\شهر\\سنة (مثال: 17\\10\\2026).';
+            var INVALID = 'اختر تاريخاً صحيحاً من التقويم.';
             var SEP_RE = /[\\\/.\-\s]/;
 
             function isDateField(el) {
@@ -437,27 +437,66 @@
                 return wrap ? wrap.querySelector('[data-date-display]') : null;
             }
 
-            document.addEventListener('click', function (event) {
-                var picker = event.target;
-                if (!picker || !picker.matches || !picker.matches('[data-date-picker]')) return;
+            function pickerFor(field) {
+                var wrap = field.closest('[data-date-wrap]');
+                return wrap ? wrap.querySelector('[data-date-picker]') : null;
+            }
+
+            function openPicker(picker) {
                 var field = textFieldFor(picker);
-                if (!field || field.disabled || field.readOnly) {
-                    event.preventDefault();
-                    return;
-                }
+                if (!field || field.disabled || field.readOnly) return false;
                 var value = pad(format(field.value, false, null).value);
                 var m = isValid(value) ? value.match(/^(\d{2})\\(\d{2})\\(\d{4})$/) : null;
                 picker.value = m ? m[3] + '-' + m[2] + '-' + m[1] : '';
                 if (typeof picker.showPicker === 'function') {
                     try { picker.showPicker(); } catch (e) {}
                 }
+                return true;
+            }
+
+            document.addEventListener('click', function (event) {
+                var picker = event.target;
+                if (!picker || !picker.matches || !picker.matches('[data-date-picker]')) return;
+                if (!openPicker(picker)) event.preventDefault();
+            });
+
+            // Dates come from the calendar only; the text field just shows the chosen day.
+            document.addEventListener('keydown', function (event) {
+                var el = event.target;
+                if (!isDateField(el) || event.ctrlKey || event.metaKey || event.altKey) return;
+                var key = event.key;
+                if (key === 'Tab' || key === 'Escape') return;
+                if (key === 'Enter' && el.form) return;
+                event.preventDefault();
+                if ((key === 'Backspace' || key === 'Delete') && !el.required) {
+                    setValue(el, '', null);
+                    syncValidity(el);
+                    return;
+                }
+                if (key === ' ' || key === 'Enter' || key === 'ArrowDown') {
+                    var picker = pickerFor(el);
+                    if (picker) openPicker(picker);
+                }
+            });
+
+            ['paste', 'drop', 'cut'].forEach(function (type) {
+                document.addEventListener(type, function (event) {
+                    if (isDateField(event.target)) event.preventDefault();
+                });
             });
 
             function applyPicked(event) {
                 var picker = event.target;
-                if (!picker || !picker.matches || !picker.matches('[data-date-picker]') || !picker.value) return;
+                if (!picker || !picker.matches || !picker.matches('[data-date-picker]')) return;
                 var field = textFieldFor(picker);
                 if (!field) return;
+                if (!picker.value) {
+                    if (event.type === 'change' && !field.required) {
+                        setValue(field, '', null);
+                        syncValidity(field);
+                    }
+                    return;
+                }
                 var parts = picker.value.split('-');
                 setValue(field, parts[2] + SEP + parts[1] + SEP + parts[0], null);
                 syncValidity(field);

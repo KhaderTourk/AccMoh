@@ -6,4 +6,4 @@
        min="{{ \App\Support\DateRange::MIN_YEAR }}-01-01"
        max="{{ \App\Support\DateRange::MAX_YEAR }}-12-31"
        data-date-picker
-       class="absolute right-0 top-0 h-full w-11 cursor-pointer opacity-0">
+       class="absolute inset-0 h-full w-full cursor-pointer opacity-0">
