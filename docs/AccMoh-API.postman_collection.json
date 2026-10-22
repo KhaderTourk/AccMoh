@@ -1,0 +1,3527 @@
+{
+  "info": {
+    "_postman_id": "b172f16f-9fb7-4c20-a3b0-db5528738bb0",
+    "name": "AccMoh API v1",
+    "description": "واجهة برمجية كاملة لنظام AccMoh بنفس قدرات لوحة التحكم، بدون أي عمليات حذف.\n\n1) عدّل base_url و email و password من متغيرات المجموعة.\n2) نفّذ «تسجيل الدخول» فيُحفظ التوكن تلقائياً.\n3) نفّذ «قوائم الاختيار» لمعرفة أرقام العملات والصناديق وطرق الدفع.\n\nالتواريخ تقبل Y-m-d أو d\\m\\Y. أخطاء التحقق ترجع 422 مع errors. القوائم مقسّمة لصفحات (page).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost/AccMoh/public",
+      "description": "رابط المشروع (بدون /api/v1)"
+    },
+    {
+      "key": "email",
+      "value": "admin@example.com",
+      "description": "بريد الدخول"
+    },
+    {
+      "key": "password",
+      "value": "password",
+      "description": "كلمة المرور"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "description": "يُملأ تلقائياً بعد تسجيل الدخول"
+    },
+    {
+      "key": "currency_id",
+      "value": "1",
+      "description": "العملة (1 = شيكل عادة، راجع lookups)"
+    },
+    {
+      "key": "fund_id",
+      "value": "2",
+      "description": "الصندوق (راجع lookups)"
+    },
+    {
+      "key": "payment_method_id",
+      "value": "1",
+      "description": "طريقة الدفع"
+    },
+    {
+      "key": "to_payment_method_id",
+      "value": "2",
+      "description": "طريقة الدفع الهدف في التحويل"
+    },
+    {
+      "key": "service_type_id",
+      "value": "1",
+      "description": ""
+    },
+    {
+      "key": "client_id",
+      "value": "1",
+      "description": "يُملأ تلقائياً عند الإضافة"
+    },
+    {
+      "key": "client_service_id",
+      "value": "",
+      "description": ""
+    },
+    {
+      "key": "goods_take_id",
+      "value": "",
+      "description": ""
+    },
+    {
+      "key": "worker_id",
+      "value": "",
+      "description": ""
+    },
+    {
+      "key": "supplier_id",
+      "value": "",
+      "description": ""
+    },
+    {
+      "key": "vendor_charge_id",
+      "value": "",
+      "description": ""
+    },
+    {
+      "key": "person_id",
+      "value": "",
+      "description": ""
+    },
+    {
+      "key": "payment_id",
+      "value": "",
+      "description": ""
+    },
+    {
+      "key": "transfer_id",
+      "value": "",
+      "description": ""
+    },
+    {
+      "key": "balance_memo_id",
+      "value": "",
+      "description": ""
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "description": ""
+    },
+    {
+      "key": "role_id",
+      "value": "1",
+      "description": ""
+    },
+    {
+      "key": "import_token",
+      "value": "",
+      "description": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1. المصادقة",
+      "item": [
+        {
+          "name": "تسجيل الدخول",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ],
+              "query": []
+            },
+            "description": "يحفظ التوكن تلقائياً في المتغير token. باقي الطلبات ترسل Authorization: Bearer {{token}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\",\n  \"device_name\": \"postman\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code < 300) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.token !== undefined) pm.collectionVariables.set('token', json.token);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "المستخدم الحالي",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "me"
+              ],
+              "query": []
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "تسجيل الخروج (إلغاء التوكن)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/logout",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "logout"
+              ],
+              "query": []
+            },
+            "description": ""
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. عام",
+      "item": [
+        {
+          "name": "قوائم الاختيار (lookups)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/lookups",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "lookups"
+              ],
+              "query": []
+            },
+            "description": "العملات، طرق الدفع، الصناديق، أنواع الخدمات، الجهات (زبائن/أشخاص/موظفين/موردين)، القيم الثابتة (enums) وصلاحيات المستخدم. استخدمها لملء القوائم."
+          }
+        },
+        {
+          "name": "لوحة البداية",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/dashboard",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "dashboard"
+              ],
+              "query": []
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "الأرصدة (ملخص)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/balances",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "balances"
+              ],
+              "query": []
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "الأرصدة (تفصيلي حسب الصندوق والطريقة)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/balances/snapshot",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "balances",
+                "snapshot"
+              ],
+              "query": []
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "رصيد افتتاحي للصندوق",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/balances/opening",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "balances",
+                "opening"
+              ],
+              "query": []
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fund_id\": \"{{fund_id}}\",\n  \"payment_method_id\": \"{{payment_method_id}}\",\n  \"currency_id\": \"{{currency_id}}\",\n  \"amount\": 1000,\n  \"occurred_on\": \"2026-10-01\",\n  \"description\": \"رصيد افتتاحي\",\n  \"notes\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. الزبائن",
+      "item": [
+        {
+          "name": "قائمة الزبائن",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/clients?from=2026-01-01&to=2026-12-31&page=1&show_archived=0",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "clients"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "",
+                  "description": "بحث بالاسم/الهاتف/الجهة",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "2026-01-01",
+                  "description": "من تاريخ Y-m-d أو d\\m\\Y",
+                  "disabled": false
+                },
+                {
+                  "key": "to",
+                  "value": "2026-12-31",
+                  "description": "إلى تاريخ",
+                  "disabled": false
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "رقم الصفحة",
+                  "disabled": false
+                },
+                {
+                  "key": "sort",
+                  "value": "",
+                  "description": "عمود الترتيب (حسب القسم)",
+                  "disabled": true
+                },
+                {
+                  "key": "dir",
+                  "value": "",
+                  "description": "asc أو desc",
+                  "disabled": true
+                },
+                {
+                  "key": "show_archived",
+                  "value": "0",
+                  "description": "1 لإظهار المؤرشف",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "sort: name, company, phone, due. كل زبون يحتوي outstanding لكل عملة."
+          }
+        },
+        {
+          "name": "إضافة زبون",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/clients",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "clients"
+              ],
+              "query": []
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"محمد أحمد\",\n  \"company_name\": \"شركة النور\",\n  \"phone\": \"0599123456\",\n  \"notes\": \"\",\n  \"is_active\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code < 300) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.data.id !== undefined) pm.collectionVariables.set('client_id', json.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "كشف حساب زبون",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/clients/{{client_id}}?from=2026-01-01&to=2026-12-31",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "clients",
+                "{{client_id}}"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2026-01-01",
+                  "description": "من تاريخ Y-m-d أو d\\m\\Y",
+                  "disabled": false
+                },
+                {
+                  "key": "to",
+                  "value": "2026-12-31",
+                  "description": "إلى تاريخ",
+                  "disabled": false
+                },
+                {
+                  "key": "opening[1]",
+                  "value": "",
+                  "description": "تعديل الرصيد الافتتاحي لعملة (المفتاح = currency_id)",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "تعديل زبون",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/clients/{{client_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "clients",
+                "{{client_id}}"
+              ],
+              "query": []
+            },
+            "description": "is_active=false يؤرشف الزبون (لا يحذفه). إن لم ترسل is_active تبقى الحالة كما هي.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"محمد أحمد\",\n  \"company_name\": \"شركة النور\",\n  \"phone\": \"0599123456\",\n  \"notes\": \"\",\n  \"is_active\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "الخدمات غير المدفوعة",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/clients/{{client_id}}/unpaid-services?currency_id={{currency_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "clients",
+                "{{client_id}}",
+                "unpaid-services"
+              ],
+              "query": [
+                {
+                  "key": "currency_id",
+                  "value": "{{currency_id}}",
+                  "description": "العملة",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "تصدير كشف الحساب PDF",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/clients/{{client_id}}/export-pdf?from=2026-01-01&to=2026-12-31",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "clients",
+                "{{client_id}}",
+                "export-pdf"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2026-01-01",
+                  "description": "من تاريخ Y-m-d أو d\\m\\Y",
+                  "disabled": false
+                },
+                {
+                  "key": "to",
+                  "value": "2026-12-31",
+                  "description": "إلى تاريخ",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "يرجع ملف PDF."
+          }
+        },
+        {
+          "name": "استيراد Excel: معاينة",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/clients/import/preview",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "clients",
+                "import",
+                "preview"
+              ],
+              "query": []
+            },
+            "description": "يرجع token وقائمة drafts. أرسل التوكن في خطوة التأكيد خلال ساعتين.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "files[]",
+                  "type": "file",
+                  "src": [],
+                  "description": "ملف xlsx/xls/ods، حتى 40 ملفاً"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code < 300) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.token !== undefined) pm.collectionVariables.set('import_token', json.token);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "استيراد Excel: تأكيد",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/clients/import",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "clients",
+                "import"
+              ],
+              "query": []
+            },
+            "description": "clients مرتبة بنفس ترتيب drafts. كل الحقول اختيارية.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{import_token}}\",\n  \"clients\": [\n    {\n      \"client_name\": \"\",\n      \"company_name\": \"\",\n      \"merge\": false,\n      \"skip\": false\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. خدمات الزبائن",
+      "item": [
+        {
+          "name": "قائمة الخدمات",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/client-services?from=2026-01-01&to=2026-12-31&page=1&show_archived=0",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "client-services"
+              ],
+              "query": [
+                {
+                  "key": "client_id",
+                  "value": "",
+                  "description": "",
+                  "disabled": true
+                },
+                {
+                  "key": "currency_id",
+                  "value": "",
+                  "description": "",
+                  "disabled": true
+                },
+                {
+                  "key": "q",
+                  "value": "",
+                  "description": "",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "2026-01-01",
+                  "description": "من تاريخ Y-m-d أو d\\m\\Y",
+                  "disabled": false
+                },
+                {
+                  "key": "to",
+                  "value": "2026-12-31",
+                  "description": "إلى تاريخ",
+                  "disabled": false
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "رقم الصفحة",
+                  "disabled": false
+                },
+                {
+                  "key": "sort",
+                  "value": "",
+                  "description": "عمود الترتيب (حسب القسم)",
+                  "disabled": true
+                },
+                {
+                  "key": "dir",
+                  "value": "",
+                  "description": "asc أو desc",
+                  "disabled": true
+                },
+                {
+                  "key": "show_archived",
+                  "value": "0",
+                  "description": "1 لإظهار المؤرشف",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "sort: client, type, details, amount, date"
+          }
+        },
+        {
+          "name": "تسجيل خدمة",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/client-services",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "client-services"
+              ],
+              "query": []
+            },
+            "description": "لعملة غير الشيكل: أرسل source_amount و exchange_rate بدل amount.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"client_id\": \"{{client_id}}\",\n  \"service_type_id\": \"{{service_type_id}}\",\n  \"description\": \"\",\n  \"amount\": 500,\n  \"currency_id\": \"{{currency_id}}\",\n  \"service_date\": \"2026-10-01\",\n  \"notes\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code < 300) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.data.id !== undefined) pm.collectionVariables.set('client_service_id', json.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "عرض خدمة",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/client-services/{{client_service_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "client-services",
+                "{{client_service_id}}"
+              ],
+              "query": []
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "تعديل خدمة",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/client-services/{{client_service_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "client-services",
+                "{{client_service_id}}"
+              ],
+              "query": []
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"client_id\": \"{{client_id}}\",\n  \"service_type_id\": \"{{service_type_id}}\",\n  \"description\": \"\",\n  \"amount\": 600,\n  \"currency_id\": \"{{currency_id}}\",\n  \"service_date\": \"2026-10-01\",\n  \"notes\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. المنتجات المأخوذة (خصم من الحساب)",
+      "item": [
+        {
+          "name": "قائمة المنتجات المأخوذة",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/client-goods-takes?per_page=20&from=2026-01-01&to=2026-12-31",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "client-goods-takes"
+              ],
+              "query": [
+                {
+                  "key": "party_type",
+                  "value": "",
+                  "description": "client / person / vendor",
+                  "disabled": true
+                },
+                {
+                  "key": "party_id",
+                  "value": "",
+                  "description": "",
+                  "disabled": true
+                },
+                {
+                  "key": "currency_id",
+                  "value": "",
+                  "description": "",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "20",
+                  "description": "",
+                  "disabled": false
+                },
+                {
+                  "key": "from",
+                  "value": "2026-01-01",
+                  "description": "من تاريخ Y-m-d أو d\\m\\Y",
+                  "disabled": false
+                },
+                {
+                  "key": "to",
+                  "value": "2026-12-31",
+                  "description": "إلى تاريخ",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "تسجيل منتج مأخوذ",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/client-goods-takes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "client-goods-takes"
+              ],
+              "query": []
+            },
+            "description": "category: discount, goods, service, other (other يتطلب title).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"party_type\": \"client\",\n  \"party_id\": \"{{client_id}}\",\n  \"category\": \"goods\",\n  \"title\": \"\",\n  \"amount\": 50,\n  \"currency_id\": \"{{currency_id}}\",\n  \"taken_on\": \"2026-10-03\",\n  \"notes\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code < 300) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.data.id !== undefined) pm.collectionVariables.set('goods_take_id', json.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "عرض منتج مأخوذ",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/client-goods-takes/{{goods_take_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "client-goods-takes",
+                "{{goods_take_id}}"
+              ],
+              "query": []
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "تعديل منتج مأخوذ",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/client-goods-takes/{{goods_take_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "client-goods-takes",
+                "{{goods_take_id}}"
+              ],
+              "query": []
+            },
+            "description": "الجهة لا تتغير بعد الإنشاء.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category\": \"other\",\n  \"title\": \"خصم خاص\",\n  \"amount\": 40,\n  \"currency_id\": \"{{currency_id}}\",\n  \"taken_on\": \"2026-10-03\",\n  \"notes\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. أنواع الخدمات",
+      "item": [
+        {
+          "name": "قائمة أنواع الخدمات",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/service-types?page=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "service-types"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "رقم الصفحة",
+                  "disabled": false
+                },
+                {
+                  "key": "sort",
+                  "value": "",
+                  "description": "عمود الترتيب (حسب القسم)",
+                  "disabled": true
+                },
+                {
+                  "key": "dir",
+                  "value": "",
+                  "description": "asc أو desc",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "إضافة نوع خدمة",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/service-types",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "service-types"
+              ],
+              "query": []
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"تصوير منتجات\",\n  \"description\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code < 300) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.data.id !== undefined) pm.collectionVariables.set('service_type_id', json.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "عرض نوع خدمة",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/service-types/{{service_type_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "service-types",
+                "{{service_type_id}}"
+              ],
+              "query": []
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "تعديل نوع خدمة",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/service-types/{{service_type_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "service-types",
+                "{{service_type_id}}"
+              ],
+              "query": []
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"تصوير منتجات\",\n  \"description\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. الموظفون والموردون",
+      "item": [
+        {
+          "name": "قائمة موظفين",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workers?page=1&show_archived=0",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workers"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "",
+                  "description": "",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "رقم الصفحة",
+                  "disabled": false
+                },
+                {
+                  "key": "sort",
+                  "value": "",
+                  "description": "عمود الترتيب (حسب القسم)",
+                  "disabled": true
+                },
+                {
+                  "key": "dir",
+                  "value": "",
+                  "description": "asc أو desc",
+                  "disabled": true
+                },
+                {
+                  "key": "show_archived",
+                  "value": "0",
+                  "description": "1 لإظهار المؤرشف",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "كل سجل يحتوي outstanding لكل عملة."
+          }
+        },
+        {
+          "name": "إضافة موظف",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workers",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workers"
+              ],
+              "query": []
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"سامي\",\n  \"phone\": \"\",\n  \"job_title\": \"مصمم\",\n  \"notes\": \"\",\n  \"is_active\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code < 300) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.data.id !== undefined) pm.collectionVariables.set('worker_id', json.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "عرض موظف مع الحركات",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workers/{{worker_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workers",
+                "{{worker_id}}"
+              ],
+              "query": []
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "تعديل موظف",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workers/{{worker_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workers",
+                "{{worker_id}}"
+              ],
+              "query": []
+            },
+            "description": "is_active=false للأرشفة.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"سامي خليل\",\n  \"phone\": \"\",\n  \"job_title\": \"مصمم\",\n  \"notes\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "تصدير موظف PDF",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/workers/{{worker_id}}/export-pdf",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "workers",
+                "{{worker_id}}",
+                "export-pdf"
+              ],
+              "query": []
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "قائمة الموردين",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/suppliers?page=1&show_archived=0",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "suppliers"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "",
+                  "description": "",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "رقم الصفحة",
+                  "disabled": false
+                },
+                {
+                  "key": "sort",
+                  "value": "",
+                  "description": "عمود الترتيب (حسب القسم)",
+                  "disabled": true
+                },
+                {
+                  "key": "dir",
+                  "value": "",
+                  "description": "asc أو desc",
+                  "disabled": true
+                },
+                {
+                  "key": "show_archived",
+                  "value": "0",
+                  "description": "1 لإظهار المؤرشف",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "كل سجل يحتوي outstanding لكل عملة."
+          }
+        },
+        {
+          "name": "إضافة مورد",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/suppliers",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "suppliers"
+              ],
+              "query": []
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"مطبعة الأمل\",\n  \"phone\": \"\",\n  \"work_description\": \"طباعة\",\n  \"notes\": \"\",\n  \"is_active\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code < 300) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.data.id !== undefined) pm.collectionVariables.set('supplier_id', json.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "عرض مورد مع الحركات",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/suppliers/{{supplier_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "suppliers",
+                "{{supplier_id}}"
+              ],
+              "query": []
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "تعديل مورد",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/suppliers/{{supplier_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "suppliers",
+                "{{supplier_id}}"
+              ],
+              "query": []
+            },
+            "description": "is_active=false للأرشفة.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"مطبعة الأمل\",\n  \"phone\": \"\",\n  \"work_description\": \"طباعة\",\n  \"notes\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "تصدير مورد PDF",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/suppliers/{{supplier_id}}/export-pdf",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "suppliers",
+                "{{supplier_id}}",
+                "export-pdf"
+              ],
+              "query": []
+            },
+            "description": ""
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. مستحقات الموظفين والموردين",
+      "item": [
+        {
+          "name": "قائمة المستحقات",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/vendor-charges?vendor_id={{supplier_id}}&per_page=20&from=2026-01-01&to=2026-12-31",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor-charges"
+              ],
+              "query": [
+                {
+                  "key": "vendor_id",
+                  "value": "{{supplier_id}}",
+                  "description": "",
+                  "disabled": false
+                },
+                {
+                  "key": "currency_id",
+                  "value": "",
+                  "description": "",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "20",
+                  "description": "",
+                  "disabled": false
+                },
+                {
+                  "key": "from",
+                  "value": "2026-01-01",
+                  "description": "من تاريخ Y-m-d أو d\\m\\Y",
+                  "disabled": false
+                },
+                {
+                  "key": "to",
+                  "value": "2026-12-31",
+                  "description": "إلى تاريخ",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "تسجيل مستحق",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/vendor-charges",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor-charges"
+              ],
+              "query": []
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vendor_id\": \"{{supplier_id}}\",\n  \"title\": \"طباعة بروشور\",\n  \"amount\": 300,\n  \"currency_id\": \"{{currency_id}}\",\n  \"charge_date\": \"2026-10-01\",\n  \"notes\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code < 300) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.data.id !== undefined) pm.collectionVariables.set('vendor_charge_id', json.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "عرض مستحق",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/vendor-charges/{{vendor_charge_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor-charges",
+                "{{vendor_charge_id}}"
+              ],
+              "query": []
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "تعديل مستحق",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/vendor-charges/{{vendor_charge_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor-charges",
+                "{{vendor_charge_id}}"
+              ],
+              "query": []
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"طباعة بروشور\",\n  \"amount\": 350,\n  \"currency_id\": \"{{currency_id}}\",\n  \"charge_date\": \"2026-10-01\",\n  \"notes\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. الأشخاص",
+      "item": [
+        {
+          "name": "قائمة الأشخاص",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/persons?page=1&show_archived=0",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "persons"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "",
+                  "description": "",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "رقم الصفحة",
+                  "disabled": false
+                },
+                {
+                  "key": "sort",
+                  "value": "",
+                  "description": "عمود الترتيب (حسب القسم)",
+                  "disabled": true
+                },
+                {
+                  "key": "dir",
+                  "value": "",
+                  "description": "asc أو desc",
+                  "disabled": true
+                },
+                {
+                  "key": "show_archived",
+                  "value": "0",
+                  "description": "1 لإظهار المؤرشف",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "كل شخص يحتوي net لكل عملة."
+          }
+        },
+        {
+          "name": "إضافة شخص",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/persons",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "persons"
+              ],
+              "query": []
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"خالد\",\n  \"relationship\": \"أخ\",\n  \"phone\": \"\",\n  \"notes\": \"\",\n  \"is_active\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code < 300) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.data.id !== undefined) pm.collectionVariables.set('person_id', json.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "عرض شخص مع الحركات",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/persons/{{person_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "persons",
+                "{{person_id}}"
+              ],
+              "query": []
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "تعديل شخص",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/persons/{{person_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "persons",
+                "{{person_id}}"
+              ],
+              "query": []
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"خالد\",\n  \"relationship\": \"أخ\",\n  \"phone\": \"\",\n  \"notes\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "تصدير شخص PDF",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/persons/{{person_id}}/export-pdf",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "persons",
+                "{{person_id}}",
+                "export-pdf"
+              ],
+              "query": []
+            },
+            "description": ""
+          }
+        }
+      ]
+    },
+    {
+      "name": "10. الدفعات",
+      "item": [
+        {
+          "name": "الدفعات الواردة",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/payments/incoming?from=2026-01-01&to=2026-12-31&page=1&show_archived=0",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "payments",
+                "incoming"
+              ],
+              "query": [
+                {
+                  "key": "fund_id",
+                  "value": "",
+                  "description": "",
+                  "disabled": true
+                },
+                {
+                  "key": "currency_id",
+                  "value": "",
+                  "description": "",
+                  "disabled": true
+                },
+                {
+                  "key": "payment_method_id",
+                  "value": "",
+                  "description": "",
+                  "disabled": true
+                },
+                {
+                  "key": "party_type",
+                  "value": "",
+                  "description": "",
+                  "disabled": true
+                },
+                {
+                  "key": "party_id",
+                  "value": "",
+                  "description": "",
+                  "disabled": true
+                },
+                {
+                  "key": "q",
+                  "value": "",
+                  "description": "",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "2026-01-01",
+                  "description": "من تاريخ Y-m-d أو d\\m\\Y",
+                  "disabled": false
+                },
+                {
+                  "key": "to",
+                  "value": "2026-12-31",
+                  "description": "إلى تاريخ",
+                  "disabled": false
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "رقم الصفحة",
+                  "disabled": false
+                },
+                {
+                  "key": "sort",
+                  "value": "",
+                  "description": "عمود الترتيب (حسب القسم)",
+                  "disabled": true
+                },
+                {
+                  "key": "dir",
+                  "value": "",
+                  "description": "asc أو desc",
+                  "disabled": true
+                },
+                {
+                  "key": "show_archived",
+                  "value": "0",
+                  "description": "1 لإظهار المؤرشف",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "sort: occurred_on, name, fund, method, amount"
+          }
+        },
+        {
+          "name": "الدفعات الصادرة",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/payments/outgoing?from=2026-01-01&to=2026-12-31&page=1&show_archived=0",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "payments",
+                "outgoing"
+              ],
+              "query": [
+                {
+                  "key": "fund_id",
+                  "value": "",
+                  "description": "",
+                  "disabled": true
+                },
+                {
+                  "key": "currency_id",
+                  "value": "",
+                  "description": "",
+                  "disabled": true
+                },
+                {
+                  "key": "payment_method_id",
+                  "value": "",
+                  "description": "",
+                  "disabled": true
+                },
+                {
+                  "key": "party_type",
+                  "value": "",
+                  "description": "",
+                  "disabled": true
+                },
+                {
+                  "key": "party_id",
+                  "value": "",
+                  "description": "",
+                  "disabled": true
+                },
+                {
+                  "key": "q",
+                  "value": "",
+                  "description": "",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "2026-01-01",
+                  "description": "من تاريخ Y-m-d أو d\\m\\Y",
+                  "disabled": false
+                },
+                {
+                  "key": "to",
+                  "value": "2026-12-31",
+                  "description": "إلى تاريخ",
+                  "disabled": false
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "رقم الصفحة",
+                  "disabled": false
+                },
+                {
+                  "key": "sort",
+                  "value": "",
+                  "description": "عمود الترتيب (حسب القسم)",
+                  "disabled": true
+                },
+                {
+                  "key": "dir",
+                  "value": "",
+                  "description": "asc أو desc",
+                  "disabled": true
+                },
+                {
+                  "key": "show_archived",
+                  "value": "0",
+                  "description": "1 لإظهار المؤرشف",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "تسجيل دفعة واردة",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/payments/incoming",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "payments",
+                "incoming"
+              ],
+              "query": []
+            },
+            "description": "الأشخاص (person) يقبلون الصندوق الشخصي فقط. لعملة غير الشيكل أرسل source_amount و exchange_rate.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"party_type\": \"client\",\n  \"party_id\": \"{{client_id}}\",\n  \"fund_id\": \"{{fund_id}}\",\n  \"payment_method_id\": \"{{payment_method_id}}\",\n  \"currency_id\": \"{{currency_id}}\",\n  \"amount\": 200,\n  \"account_holder_name\": \"\",\n  \"occurred_on\": \"2026-10-02\",\n  \"notes\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code < 300) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.data.id !== undefined) pm.collectionVariables.set('payment_id', json.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "تسجيل دفعة صادرة",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/payments/outgoing",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "payments",
+                "outgoing"
+              ],
+              "query": []
+            },
+            "description": "يرفض إذا كان رصيد الصندوق/الطريقة غير كافٍ (422).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"party_type\": \"vendor\",\n  \"party_id\": \"{{supplier_id}}\",\n  \"fund_id\": \"{{fund_id}}\",\n  \"payment_method_id\": \"{{payment_method_id}}\",\n  \"currency_id\": \"{{currency_id}}\",\n  \"amount\": 100,\n  \"account_holder_name\": \"\",\n  \"occurred_on\": \"2026-10-02\",\n  \"notes\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "عرض دفعة",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/payments/{{payment_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "payments",
+                "{{payment_id}}"
+              ],
+              "query": []
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "تعديل دفعة",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/payments/{{payment_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "payments",
+                "{{payment_id}}"
+              ],
+              "query": []
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"party_type\": \"client\",\n  \"party_id\": \"{{client_id}}\",\n  \"fund_id\": \"{{fund_id}}\",\n  \"payment_method_id\": \"{{payment_method_id}}\",\n  \"currency_id\": \"{{currency_id}}\",\n  \"amount\": 250,\n  \"account_holder_name\": \"\",\n  \"occurred_on\": \"2026-10-02\",\n  \"notes\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "11. التحويلات بين الطرق",
+      "item": [
+        {
+          "name": "قائمة التحويلات",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/transfers?active_only=1&page=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "transfers"
+              ],
+              "query": [
+                {
+                  "key": "fund_id",
+                  "value": "",
+                  "description": "",
+                  "disabled": true
+                },
+                {
+                  "key": "currency_id",
+                  "value": "",
+                  "description": "",
+                  "disabled": true
+                },
+                {
+                  "key": "q",
+                  "value": "",
+                  "description": "",
+                  "disabled": true
+                },
+                {
+                  "key": "active_only",
+                  "value": "1",
+                  "description": "0 لعرض الملغاة",
+                  "disabled": false
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "رقم الصفحة",
+                  "disabled": false
+                },
+                {
+                  "key": "sort",
+                  "value": "",
+                  "description": "عمود الترتيب (حسب القسم)",
+                  "disabled": true
+                },
+                {
+                  "key": "dir",
+                  "value": "",
+                  "description": "asc أو desc",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "تحويل",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/transfers",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "transfers"
+              ],
+              "query": []
+            },
+            "description": "عند اختلاف العملة أرسل to_amount أو exchange_rate.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fund_id\": \"{{fund_id}}\",\n  \"from_payment_method_id\": \"{{payment_method_id}}\",\n  \"to_payment_method_id\": \"{{to_payment_method_id}}\",\n  \"amount\": 400,\n  \"currency_id\": \"{{currency_id}}\",\n  \"to_currency_id\": null,\n  \"to_amount\": null,\n  \"exchange_rate\": null,\n  \"fee_amount\": 0,\n  \"transfer_date\": \"2026-10-02\",\n  \"notes\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code < 300) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.data.id !== undefined) pm.collectionVariables.set('transfer_id', json.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "عرض تحويل",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/transfers/{{transfer_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "transfers",
+                "{{transfer_id}}"
+              ],
+              "query": []
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "إلغاء تحويل (قيد عكسي)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/transfers/{{transfer_id}}/reverse",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "transfers",
+                "{{transfer_id}}",
+                "reverse"
+              ],
+              "query": []
+            },
+            "description": "لا يحذف التحويل، ينشئ قيداً عكسياً كما في اللوحة."
+          }
+        }
+      ]
+    },
+    {
+      "name": "12. الأرصدة المرحّلة",
+      "item": [
+        {
+          "name": "قائمة الأرصدة المرحّلة",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/balance-memos?per_page=20&from=2026-01-01&to=2026-12-31",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "balance-memos"
+              ],
+              "query": [
+                {
+                  "key": "party_type",
+                  "value": "",
+                  "description": "",
+                  "disabled": true
+                },
+                {
+                  "key": "party_id",
+                  "value": "",
+                  "description": "",
+                  "disabled": true
+                },
+                {
+                  "key": "currency_id",
+                  "value": "",
+                  "description": "",
+                  "disabled": true
+                },
+                {
+                  "key": "reason",
+                  "value": "",
+                  "description": "opening / year_rollover / account_transfer",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "20",
+                  "description": "",
+                  "disabled": false
+                },
+                {
+                  "key": "from",
+                  "value": "2026-01-01",
+                  "description": "من تاريخ Y-m-d أو d\\m\\Y",
+                  "disabled": false
+                },
+                {
+                  "key": "to",
+                  "value": "2026-12-31",
+                  "description": "إلى تاريخ",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "تسجيل رصيد مرحّل",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/balance-memos",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "balance-memos"
+              ],
+              "query": []
+            },
+            "description": "direction: owed_to_us (لنا) أو owed_by_us (علينا). لا يحرّك الصندوق.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"party_type\": \"client\",\n  \"party_id\": \"{{client_id}}\",\n  \"reason\": \"opening\",\n  \"direction\": \"owed_to_us\",\n  \"amount\": 100,\n  \"currency_id\": \"{{currency_id}}\",\n  \"memo_date\": \"2026-01-01\",\n  \"notes\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code < 300) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.data.id !== undefined) pm.collectionVariables.set('balance_memo_id', json.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "ترحيل رصيد بين حسابين",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/balance-memos/transfer",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "balance-memos",
+                "transfer"
+              ],
+              "query": []
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"party_type\": \"client\",\n  \"party_id\": \"{{client_id}}\",\n  \"target_party_type\": \"person\",\n  \"target_party_id\": \"{{person_id}}\",\n  \"direction\": \"owed_to_us\",\n  \"amount\": 10,\n  \"currency_id\": \"{{currency_id}}\",\n  \"memo_date\": \"2026-10-01\",\n  \"notes\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "عرض رصيد مرحّل",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/balance-memos/{{balance_memo_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "balance-memos",
+                "{{balance_memo_id}}"
+              ],
+              "query": []
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "تعديل رصيد مرحّل",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/balance-memos/{{balance_memo_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "balance-memos",
+                "{{balance_memo_id}}"
+              ],
+              "query": []
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"opening\",\n  \"direction\": \"owed_to_us\",\n  \"amount\": 90,\n  \"currency_id\": \"{{currency_id}}\",\n  \"memo_date\": \"2026-01-01\",\n  \"notes\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "13. القيود والتقارير",
+      "item": [
+        {
+          "name": "دفتر القيود",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/ledger?from=2026-01-01&to=2026-12-31&page=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ledger"
+              ],
+              "query": [
+                {
+                  "key": "fund_id",
+                  "value": "",
+                  "description": "",
+                  "disabled": true
+                },
+                {
+                  "key": "currency_id",
+                  "value": "",
+                  "description": "",
+                  "disabled": true
+                },
+                {
+                  "key": "payment_method_id",
+                  "value": "",
+                  "description": "",
+                  "disabled": true
+                },
+                {
+                  "key": "transaction_type",
+                  "value": "",
+                  "description": "",
+                  "disabled": true
+                },
+                {
+                  "key": "q",
+                  "value": "",
+                  "description": "",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "2026-01-01",
+                  "description": "من تاريخ Y-m-d أو d\\m\\Y",
+                  "disabled": false
+                },
+                {
+                  "key": "to",
+                  "value": "2026-12-31",
+                  "description": "إلى تاريخ",
+                  "disabled": false
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "رقم الصفحة",
+                  "disabled": false
+                },
+                {
+                  "key": "sort",
+                  "value": "",
+                  "description": "عمود الترتيب (حسب القسم)",
+                  "disabled": true
+                },
+                {
+                  "key": "dir",
+                  "value": "",
+                  "description": "asc أو desc",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "التقارير",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/reports?from=2026-01-01&to=2026-12-31",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reports"
+              ],
+              "query": [
+                {
+                  "key": "currency_id",
+                  "value": "",
+                  "description": "",
+                  "disabled": true
+                },
+                {
+                  "key": "fund_id",
+                  "value": "",
+                  "description": "",
+                  "disabled": true
+                },
+                {
+                  "key": "payment_method_id",
+                  "value": "",
+                  "description": "",
+                  "disabled": true
+                },
+                {
+                  "key": "party_type",
+                  "value": "",
+                  "description": "client / person / worker / supplier",
+                  "disabled": true
+                },
+                {
+                  "key": "client_id",
+                  "value": "",
+                  "description": "",
+                  "disabled": true
+                },
+                {
+                  "key": "person_id",
+                  "value": "",
+                  "description": "",
+                  "disabled": true
+                },
+                {
+                  "key": "q",
+                  "value": "",
+                  "description": "",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "2026-01-01",
+                  "description": "من تاريخ Y-m-d أو d\\m\\Y",
+                  "disabled": false
+                },
+                {
+                  "key": "to",
+                  "value": "2026-12-31",
+                  "description": "إلى تاريخ",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "تصدير التقارير PDF",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/reports/export-pdf?from=2026-01-01&to=2026-12-31",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reports",
+                "export-pdf"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2026-01-01",
+                  "description": "من تاريخ Y-m-d أو d\\m\\Y",
+                  "disabled": false
+                },
+                {
+                  "key": "to",
+                  "value": "2026-12-31",
+                  "description": "إلى تاريخ",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": ""
+          }
+        }
+      ]
+    },
+    {
+      "name": "14. المستخدمون والأدوار (صلاحية users)",
+      "item": [
+        {
+          "name": "قائمة المستخدمين",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users?page=1&show_archived=0",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "رقم الصفحة",
+                  "disabled": false
+                },
+                {
+                  "key": "sort",
+                  "value": "",
+                  "description": "عمود الترتيب (حسب القسم)",
+                  "disabled": true
+                },
+                {
+                  "key": "dir",
+                  "value": "",
+                  "description": "asc أو desc",
+                  "disabled": true
+                },
+                {
+                  "key": "show_archived",
+                  "value": "0",
+                  "description": "1 لإظهار المؤرشف",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "إضافة مستخدم",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users"
+              ],
+              "query": []
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"محاسب\",\n  \"email\": \"accountant@example.com\",\n  \"password\": \"secret123\",\n  \"password_confirmation\": \"secret123\",\n  \"role_id\": \"{{role_id}}\",\n  \"is_active\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code < 300) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.data.id !== undefined) pm.collectionVariables.set('user_id', json.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "عرض مستخدم",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users/{{user_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "{{user_id}}"
+              ],
+              "query": []
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "تعديل مستخدم",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users/{{user_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "{{user_id}}"
+              ],
+              "query": []
+            },
+            "description": "اترك password فارغاً لعدم تغييرها.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"محاسب\",\n  \"email\": \"accountant@example.com\",\n  \"password\": \"\",\n  \"password_confirmation\": \"\",\n  \"role_id\": \"{{role_id}}\",\n  \"is_active\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "قائمة الصلاحيات",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/permissions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "permissions"
+              ],
+              "query": []
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "قائمة الأدوار",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/roles",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "roles"
+              ],
+              "query": []
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "إضافة دور",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/roles",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "roles"
+              ],
+              "query": []
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"مدقق\",\n  \"slug\": \"auditor\",\n  \"description\": \"\",\n  \"permissions\": [\n    1\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code < 300) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.data.id !== undefined) pm.collectionVariables.set('role_id', json.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "عرض دور",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/roles/{{role_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "roles",
+                "{{role_id}}"
+              ],
+              "query": []
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "تعديل دور",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/roles/{{role_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "roles",
+                "{{role_id}}"
+              ],
+              "query": []
+            },
+            "description": "أرسل قائمة permissions كاملة؛ القائمة الفارغة تزيل كل الصلاحيات.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"مدقق\",\n  \"slug\": \"auditor\",\n  \"description\": \"\",\n  \"permissions\": [\n    1\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "15. تطبيق الموبايل (وضع عدم الاتصال)",
+      "item": [
+        {
+          "name": "تحميل البيانات (bootstrap)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/bootstrap",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bootstrap"
+              ],
+              "query": []
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "دفعة بدون اتصال (idempotent)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/cash-payments",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "cash-payments"
+              ],
+              "query": []
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"operation_id\": \"{{$guid}}\",\n  \"direction\": \"incoming\",\n  \"name\": \"محمد\",\n  \"party_type\": \"client\",\n  \"party_id\": \"{{client_id}}\",\n  \"fund_id\": \"{{fund_id}}\",\n  \"payment_method_id\": \"{{payment_method_id}}\",\n  \"currency_id\": \"{{currency_id}}\",\n  \"amount\": 200,\n  \"occurred_on\": \"2026-10-02\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "مزامنة دفعة عمليات",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/sync/push",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sync",
+                "push"
+              ],
+              "query": []
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": \"postman\",\n  \"operations\": [\n    {\n      \"operation_id\": \"{{$guid}}\",\n      \"type\": \"incoming_payment\",\n      \"payload\": {\n        \"name\": \"محمد\",\n        \"party_type\": \"client\",\n        \"party_id\": \"{{client_id}}\",\n        \"fund_id\": \"{{fund_id}}\",\n        \"payment_method_id\": \"{{payment_method_id}}\",\n        \"currency_id\": \"{{currency_id}}\",\n        \"amount\": 50,\n        \"occurred_on\": \"2026-10-02\"\n      }\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -17,11 +17,21 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             \App\Http\Middleware\NormalizeDisplayDates::class,
         ]);
+        $middleware->api(append: [
+            \App\Http\Middleware\NormalizeDisplayDates::class,
+        ]);
+        // Bind the tenant before route-model binding so {client}, {payment}... resolve inside the tenant only.
+        $middleware->prependToPriorityList(
+            before: \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            prepend: \App\Http\Middleware\EnsureApiTenant::class,
+        );
         $middleware->alias([
             'cp.auth' => \App\Http\Middleware\EnsureCpAuth::class,
             'cp.permission' => \App\Http\Middleware\CheckPermission::class,
             'cp.check' => \App\Http\Middleware\CheckCpPermission::class,
             'cp.business' => \App\Http\Middleware\EnsureBusinessModule::class,
+            'api.tenant' => \App\Http\Middleware\EnsureApiTenant::class,
+            'api.permission' => \App\Http\Middleware\ApiPermission::class,
             'super.auth' => \App\Http\Middleware\EnsurePlatformAdmin::class,
             'locale' => \App\Http\Middleware\SetLocale::class,
             'locale.from.url' => \App\Http\Middleware\SetLocaleFromUrl::class,
