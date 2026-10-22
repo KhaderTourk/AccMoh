@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\Concerns\RespondsWithJson;
 use App\Http\Controllers\Cp\RoleController as CpRoleController;
 use App\Models\Permission;
 use App\Models\Role;
+use App\Services\Api\ApiJournal;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -38,6 +39,7 @@ class RoleController extends CpRoleController
             'slug' => $validated['slug'],
             'description' => $validated['description'] ?? null,
         ]);
+        $this->watchPermissions($role);
         $role->permissions()->sync($validated['permissions'] ?? []);
 
         return $this->created($role->load('permissions'), 'تم إضافة الدور بنجاح.');
@@ -64,8 +66,15 @@ class RoleController extends CpRoleController
             'description' => $validated['description'] ?? null,
         ]);
         // Like the CP form: omitted permissions means "none". Send the full list.
+        $this->watchPermissions($role);
         $role->permissions()->sync($validated['permissions'] ?? []);
 
         return $this->ok($role->fresh('permissions'), 'تم تحديث الدور بنجاح.');
+    }
+
+    protected function watchPermissions(Role $role): void
+    {
+        // belongsToMany::sync() fires no model events, so snapshot the pivot for the API log / undo.
+        app(ApiJournal::class)->watchPivot('role_permission', 'role_id', (int) $role->id, 'permission_id');
     }
 }

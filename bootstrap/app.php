@@ -32,6 +32,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'cp.business' => \App\Http\Middleware\EnsureBusinessModule::class,
             'api.tenant' => \App\Http\Middleware\EnsureApiTenant::class,
             'api.permission' => \App\Http\Middleware\ApiPermission::class,
+            'api.journal' => \App\Http\Middleware\RecordApiOperation::class,
             'super.auth' => \App\Http\Middleware\EnsurePlatformAdmin::class,
             'locale' => \App\Http\Middleware\SetLocale::class,
             'locale.from.url' => \App\Http\Middleware\SetLocaleFromUrl::class,

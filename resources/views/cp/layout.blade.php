@@ -7,6 +7,17 @@
     <meta name="theme-color" content="#08A46D">
     <link rel="manifest" href="{{ asset('manifest.webmanifest') }}">
     <title>@yield('title', 'لوحة التحكم') — AccMa</title>
+    <script>
+        // الثيم يُطبق قبل الرسم حتى لا يظهر وميض أبيض في الوضع الليلي
+        (function () {
+            try {
+                var t = localStorage.getItem('cp-theme');
+                if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                    document.documentElement.classList.add('dark');
+                }
+            } catch (e) {}
+        })();
+    </script>
     <link rel="dns-prefetch" href="https://fonts.googleapis.com">
     <link rel="dns-prefetch" href="https://fonts.gstatic.com">
     <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
@@ -14,13 +25,13 @@
     <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
     {{-- Non-blocking fonts: don't stall first paint on slow networks --}}
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block" onload="this.onload=null;this.rel='stylesheet'">
     <noscript>
         <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
-        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block" rel="stylesheet">
     </noscript>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -97,8 +108,8 @@
                                 <span>الأشخاص</span>
                             </a>
                         </li>
-                        <li class="cp-nav-section pt-2 mt-2 {{ request()->routeIs('cp.payments.*', 'cp.transfers.*', 'cp.ledger.*', 'cp.reports.*') ? '' : 'cp-collapsed' }}" data-section="ops">
-                            <button type="button" class="cp-section-toggle" aria-expanded="{{ request()->routeIs('cp.payments.*', 'cp.transfers.*', 'cp.ledger.*', 'cp.reports.*') ? 'true' : 'false' }}">
+                        <li class="cp-nav-section pt-2 mt-2 {{ request()->routeIs('cp.payments.*', 'cp.transfers.*', 'cp.ledger.*', 'cp.reports.*', 'cp.api-operations.*') ? '' : 'cp-collapsed' }}" data-section="ops">
+                            <button type="button" class="cp-section-toggle" aria-expanded="{{ request()->routeIs('cp.payments.*', 'cp.transfers.*', 'cp.ledger.*', 'cp.reports.*', 'cp.api-operations.*') ? 'true' : 'false' }}">
                                 <span>العمليات والتقارير</span>
                                 <span class="material-symbols-outlined cp-chevron">expand_more</span>
                             </button>
@@ -108,6 +119,8 @@
                                 <li><a href="{{ route('cp.transfers.index') }}" class="cp-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary transition-colors {{ request()->routeIs('cp.transfers.*') ? 'bg-primary/10 text-primary dark:bg-primary/20' : '' }}"><span class="material-symbols-outlined text-xl">swap_horiz</span><span>التحويلات</span></a></li>
                                 <li><a href="{{ route('cp.ledger.index') }}" class="cp-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary transition-colors {{ request()->routeIs('cp.ledger.*') ? 'bg-primary/10 text-primary dark:bg-primary/20' : '' }}"><span class="material-symbols-outlined text-xl">menu_book</span><span>سجل الحركات</span></a></li>
                                 <li><a href="{{ route('cp.reports.index') }}" class="cp-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary transition-colors {{ request()->routeIs('cp.reports.*') ? 'bg-primary/10 text-primary dark:bg-primary/20' : '' }}"><span class="material-symbols-outlined text-xl">analytics</span><span>التقارير</span></a></li>
+                                @php($apiPending = \App\Models\ApiOperation::query()->pending()->where('created_at', '>=', now()->subDay())->count())
+                                <li><a href="{{ route('cp.api-operations.index') }}" class="cp-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary transition-colors {{ request()->routeIs('cp.api-operations.*') ? 'bg-primary/10 text-primary dark:bg-primary/20' : '' }}"><span class="material-symbols-outlined text-xl">api</span><span>عمليات الـ API</span>@if($apiPending)<span class="mr-auto rounded-full bg-indigo-600 text-white text-[10px] px-1.5 py-0.5" title="عمليات آخر 24 ساعة">{{ $apiPending }}</span>@endif</a></li>
                             </ul>
                         </li>
                         @endif
@@ -134,16 +147,22 @@
                 </div>
             </div>
         </aside>
+        <div id="cp-backdrop" class="cp-backdrop" aria-hidden="true"></div>
 
         <div class="cp-main flex-1 flex flex-col min-w-0">
             <header class="cp-header sticky top-0 z-20 flex items-center justify-between gap-4 px-4 py-3 bg-white/80 dark:bg-slate-800/80 backdrop-blur border-b border-slate-200 dark:border-slate-700">
                 <div class="flex items-center gap-3">
-                    <button type="button" id="cp-sidebar-open" class="lg:hidden p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700" aria-label="فتح القائمة">
+                    <button type="button" id="cp-sidebar-open" class="cp-icon-btn lg:hidden p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700" aria-label="فتح القائمة">
                         <span class="material-symbols-outlined text-2xl">menu</span>
                     </button>
                     <h1 class="text-lg font-bold text-slate-800 dark:text-white truncate">@yield('title', 'لوحة التحكم')</h1>
                 </div>
                 <div class="flex items-center gap-2">
+                    <button type="button" class="cp-search-trigger" data-cp-palette title="بحث سريع (Ctrl+K)" aria-label="بحث سريع">
+                        <span class="material-symbols-outlined text-xl">search</span>
+                        <span class="hidden md:inline">بحث سريع</span>
+                        <span class="cp-kbd hidden md:inline">Ctrl K</span>
+                    </button>
                     <form action="{{ route('cp.archive-visibility') }}" method="post">
                         @csrf
                         <button type="submit"
@@ -166,11 +185,11 @@
                     @endif
                     <form action="{{ route('cp.logout') }}" method="post" class="inline">
                         @csrf
-                        <button type="submit" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" title="تسجيل الخروج" aria-label="تسجيل الخروج">
+                        <button type="submit" class="cp-icon-btn p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" title="تسجيل الخروج" aria-label="تسجيل الخروج">
                             <span class="material-symbols-outlined text-xl">logout</span>
                         </button>
                     </form>
-                    <button type="button" id="cp-theme-toggle" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" aria-label="تبديل الوضع الليلي">
+                    <button type="button" id="cp-theme-toggle" class="cp-icon-btn p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" aria-label="تبديل الوضع الليلي">
                         <span class="material-symbols-outlined dark:hidden">dark_mode</span>
                         <span class="material-symbols-outlined hidden dark:inline text-amber-400">light_mode</span>
                     </button>
@@ -179,7 +198,7 @@
 
             <main class="flex-1 p-4 lg:p-8">
                 @if(session('success'))
-                    <div class="cp-flash cp-flash-success" role="alert" x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 5000)" x-transition>
+                    <div class="cp-flash cp-flash-success cp-flash-toast" role="status" aria-live="polite" x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 5000)" x-transition>
                         <span>{{ session('success') }}</span>
                         <button type="button" class="p-0.5 rounded-lg hover:bg-black/5" @click="show = false" aria-label="إغلاق">
                             <span class="material-symbols-outlined text-base">close</span>
@@ -208,6 +227,41 @@
         </div>
     </div>
 
+    <nav class="cp-bottom-nav lg:hidden" aria-label="تنقل سريع">
+        <a href="{{ route('cp.dashboard') }}" class="{{ request()->routeIs('cp.dashboard') ? 'is-active' : '' }}">
+            <span class="material-symbols-outlined">dashboard</span><span>الرئيسية</span>
+        </a>
+        @if(cpCan('finance'))
+        <a href="{{ route('cp.payments.create', ['incoming']) }}" class="{{ request()->routeIs('cp.payments.create') && request()->route('direction') === 'incoming' ? 'is-active' : '' }}">
+            <span class="material-symbols-outlined">south_west</span><span>واردة</span>
+        </a>
+        <a href="{{ route('cp.payments.create', ['outgoing']) }}" class="{{ request()->routeIs('cp.payments.create') && request()->route('direction') === 'outgoing' ? 'is-active' : '' }}">
+            <span class="material-symbols-outlined">north_east</span><span>صادرة</span>
+        </a>
+        @endif
+        <button type="button" data-cp-palette>
+            <span class="material-symbols-outlined">search</span><span>بحث</span>
+        </button>
+        <button type="button" id="cp-sidebar-open-bottom">
+            <span class="material-symbols-outlined">menu</span><span>القائمة</span>
+        </button>
+    </nav>
+
+    <?php
+        $cpQuickActions = [];
+        if (cpCan('finance')) {
+            $cpQuickActions[] = ['label' => 'دفعة واردة جديدة', 'icon' => 'south_west', 'url' => route('cp.payments.create', ['incoming'])];
+            $cpQuickActions[] = ['label' => 'دفعة صادرة جديدة', 'icon' => 'north_east', 'url' => route('cp.payments.create', ['outgoing'])];
+            $cpQuickActions[] = ['label' => 'تحويل جديد', 'icon' => 'swap_horiz', 'url' => route('cp.transfers.create')];
+            $cpQuickActions[] = ['label' => 'شخص جديد', 'icon' => 'group_add', 'url' => route('cp.persons.create')];
+            if (tenantBusinessEnabled()) {
+                $cpQuickActions[] = ['label' => 'زبون جديد', 'icon' => 'person_add', 'url' => route('cp.clients.create')];
+                $cpQuickActions[] = ['label' => 'خدمة زبون جديدة', 'icon' => 'work', 'url' => route('cp.client-services.create')];
+            }
+        }
+    ?>
+    <script type="application/json" id="cp-quick-actions">@json($cpQuickActions)</script>
+
     <script>
         (function() {
             const sidebar = document.getElementById('cp-sidebar');
@@ -215,9 +269,12 @@
             const closeBtn = document.getElementById('cp-sidebar-close');
             const themeToggle = document.getElementById('cp-theme-toggle');
 
+            const backdrop = document.getElementById('cp-backdrop');
+
             function openSidebar() {
                 sidebar.classList.remove('translate-x-full');
                 sidebar.classList.add('translate-x-0');
+                backdrop?.classList.add('is-open');
                 document.body.classList.add('overflow-hidden');
             }
             function closeSidebar() {
@@ -225,15 +282,28 @@
                     sidebar.classList.add('translate-x-full');
                     sidebar.classList.remove('translate-x-0');
                 }
+                backdrop?.classList.remove('is-open');
                 document.body.classList.remove('overflow-hidden');
             }
 
             openBtn?.addEventListener('click', openSidebar);
             closeBtn?.addEventListener('click', closeSidebar);
+            backdrop?.addEventListener('click', closeSidebar);
+            document.getElementById('cp-sidebar-open-bottom')?.addEventListener('click', openSidebar);
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && backdrop?.classList.contains('is-open')) closeSidebar();
+            });
+            window.addEventListener('resize', function () {
+                if (window.innerWidth >= 1024) backdrop?.classList.remove('is-open');
+            });
 
             themeToggle?.addEventListener('click', function() {
-                document.documentElement.classList.toggle('dark');
-                localStorage.setItem('cp-theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+                const apply = function () {
+                    document.documentElement.classList.toggle('dark');
+                    localStorage.setItem('cp-theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+                };
+                if (document.startViewTransition && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) document.startViewTransition(apply);
+                else apply();
             });
 
             if (localStorage.getItem('cp-theme') === 'dark') document.documentElement.classList.add('dark');
@@ -516,6 +586,7 @@
             }
         })();
     </script>
+    <script src="{{ asset('assets/js/cp-ui.js') }}?v={{ @filemtime(public_path('assets/js/cp-ui.js')) ?: time() }}"></script>
     <script src="{{ asset('assets/js/cp-table-sort.js') }}?v={{ @filemtime(public_path('assets/js/cp-table-sort.js')) ?: time() }}"></script>
     @stack('scripts')
 </body>

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Api\V1\Concerns\RespondsWithJson;
 use App\Http\Controllers\Cp\PartyBalanceMemoController as CpPartyBalanceMemoController;
 use App\Models\PartyBalanceMemo;
+use App\Services\Api\ApiJournal;
 use App\Services\Finance\PartyBalanceMemoService;
 use App\Support\DateRange;
 use Illuminate\Http\JsonResponse;
@@ -60,6 +61,10 @@ class PartyBalanceMemoController extends CpPartyBalanceMemoController
             ? $this->validatedShared($request)
             : $this->validated($request, $balance_memo);
 
+        if ($balance_memo->group_id) {
+            // Both legs are changed with one query update, which fires no model events.
+            app(ApiJournal::class)->watch(...PartyBalanceMemo::query()->where('group_id', $balance_memo->group_id)->get()->all());
+        }
         $this->attempt(fn () => $service->update($balance_memo, $data));
 
         return $this->ok($balance_memo->fresh(['party', 'currency']), 'تم تحديث الرصيد المرحّل.');

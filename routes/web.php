@@ -17,6 +17,7 @@ use App\Http\Controllers\Cp\LedgerController;
 use App\Http\Controllers\Cp\ReportController;
 use App\Http\Controllers\Cp\ServiceTypeController;
 use App\Http\Controllers\Cp\OfflineController;
+use App\Http\Controllers\Cp\ApiOperationController;
 use App\Http\Controllers\Api\BootstrapController as ApiBootstrapController;
 use App\Http\Controllers\Api\BalanceController as ApiBalanceController;
 use App\Http\Controllers\Api\SyncController as ApiSyncController;
@@ -116,6 +117,10 @@ Route::prefix('cp')->name('cp.')->middleware(['cp.auth', 'cp.check'])->group(fun
     Route::get('/ledger', [LedgerController::class, 'index'])->name('ledger.index');
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/reports/pdf', [ReportController::class, 'exportPdf'])->name('reports.export-pdf');
+
+    Route::get('/api-operations', [ApiOperationController::class, 'index'])->name('api-operations.index');
+    Route::get('/api-operations/{apiOperation}', [ApiOperationController::class, 'show'])->name('api-operations.show');
+    Route::post('/api-operations/{apiOperation}/undo', [ApiOperationController::class, 'undo'])->name('api-operations.undo');
 
     Route::resource('users', \App\Http\Controllers\Cp\UserController::class)->names('users')->except(['show']);
     Route::resource('roles', \App\Http\Controllers\Cp\RoleController::class)->names('roles')->except(['show']);
