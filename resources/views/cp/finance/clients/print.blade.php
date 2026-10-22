@@ -1,34 +1,15 @@
 @extends('cp.print')
 @section('content')
-@if(!empty($summaries))
-<h2>ملخص الحساب{{ !empty($hasOpening) || !empty($from) || !empty($to) ? ' — '.$periodLabel : '' }}</h2>
-<table class="kpis">
-    <tr>
-    @foreach($summaries as $i => $row)
-        @if($i && $i % 3 === 0)</tr><tr>@endif
-        @php $currency = $row['currency']; @endphp
-        <td>
-            <div class="kpi-label">{{ $currency->name }}</div>
-            @if(!empty($hasOpening))
-                <div class="sub">رصيد سابق: {{ $currency->format($row['opening']) }}@if(!empty($row['opening_overridden'])) (معدّل للعرض)@endif</div>
-            @endif
-            <div class="sub">قيمة الخدمات: {{ $currency->format($row['billed']) }}</div>
-            <div class="sub">المدفوع: {{ $currency->format($row['paid']) }}</div>
-            <div class="sub">بضاعة مأخوذة: {{ $currency->format($row['goods'] ?? '0.00') }}</div>
-            <div class="sub">رصيد مرحّل: {{ $currency->format($row['memos'] ?? '0.00') }}</div>
-            @if(\App\Support\Money::isNegative($row['closing']))
-                <div class="kpi-value">عربون {{ $currency->format(\App\Support\Money::abs($row['closing'])) }}</div>
-            @else
-                <div class="kpi-value {{ \App\Support\Money::isZero($row['closing']) ? '' : 'neg' }}">المتبقي {{ $currency->format($row['closing']) }}</div>
-            @endif
-        </td>
-    @endforeach
-    </tr>
-</table>
-@if(!empty($hasOpening))
-<p class="muted">الرصيد السابق للعرض في هذا الكشف فقط، ولا يغيّر الأرصدة المسجّلة في النظام.</p>
-@endif
-@endif
+@php
+    // كشف حساب على نمط برامج المحاسبة: جدول واحد مرتب زمنياً لكل عملة مع مجاميع المدين والدائن.
+    $typeLabels = ['service' => 'خدمة', 'payment' => 'دفعة', 'memo' => 'رصيد مرحّل', 'goods' => 'بضاعة مأخوذة'];
+    $chronological = collect($timeline)
+        ->sortBy(fn ($item) => $item['date']->format('Y-m-d').sprintf('%010d', $item['sort_at'] ?? 0).sprintf('%010d', $item['id'] ?? 0))
+        ->values();
+    $byCurrency = $chronological->groupBy(fn ($item) => (int) $item['currency']->id);
+    $openings = collect($summaries ?? [])->mapWithKeys(fn ($row) => [(int) $row['currency']->id => $row['opening'] ?? '0.00']);
+    $multiCurrency = $byCurrency->count() > 1;
+@endphp
 
 @if(filled($client->notes))
 <div class="card">
@@ -37,161 +18,117 @@
 </div>
 @endif
 
-<h2>الخدمات</h2>
-@forelse($serviceGroups as $group)
-    <h3 style="font-size:12px;margin:12px 0 6px;color:#047857;">{{ $group['name'] }}
-        @if($group['totals']->isNotEmpty())
-            — @foreach($group['totals'] as $total){{ $total['formatted'] }}@if(! $loop->last) · @endif @endforeach
-        @endif
-    </h3>
-    <table class="data">
-        <thead><tr><th>تفاصيل الخدمة</th><th>السعر</th><th>التاريخ</th></tr></thead>
-        <tbody>
-        @foreach($group['services'] as $service)
-            <tr>
-                <td>
-                    {{ $service->title }}
-                    @if(filled($service->notes))
-                        <div class="sub" style="white-space: pre-line;">{{ $service->notes }}</div>
-                    @endif
-                </td>
-                <td>
-                    {{ $service->currency->format($service->amount) }}
-                    @if($service->isFx())
-                        <div class="sub">{{ $service->fxCurrency?->format($service->source_amount) }} × {{ $service->formattedExchangeRate() }}</div>
-                    @endif
-                </td>
-                <td>{{ format_date($service->service_date) }}</td>
-            </tr>
-        @endforeach
-        </tbody>
-    </table>
-@empty
-<table class="data">
-    <tbody><tr><td class="empty">لا توجد خدمات{{ !empty($from) || !empty($to) ? ' في هذه الفترة' : '' }}.</td></tr></tbody>
-</table>
-@endforelse
-
-<h2>الدفعات</h2>
-@forelse($paymentGroups as $group)
-    <h3 style="font-size:12px;margin:12px 0 6px;color:#047857;">{{ $group['name'] }}
-        — الإجمالي:
-        @forelse($group['totals'] as $total)
-            {{ $total['formatted'] }}@if(! $loop->last) · @endif
-        @empty
-            0
-        @endforelse
-    </h3>
-    <table class="data">
-        <thead><tr><th>المبلغ</th><th>الاسم</th><th>التاريخ</th></tr></thead>
-        <tbody>
-        @foreach($group['payments'] as $payment)
-            <tr>
-                <td>
-                    {{ $payment->currency->format($payment->amount) }}
-                    @if($payment->is_reversed) <span class="sub">(ملغاة)</span> @endif
-                    @if($payment->isFx())
-                        <div class="sub">{{ $payment->fxCurrency?->format($payment->source_amount) }} × {{ $payment->formattedExchangeRate() }}</div>
-                    @endif
-                </td>
-                <td>
-                    {{ $payment->name }}
-                    @if(filled($payment->notes))
-                        <div class="sub" style="white-space: pre-line;">{{ $payment->notes }}</div>
-                    @endif
-                </td>
-                <td>{{ format_date($payment->occurred_on) }}</td>
-            </tr>
-        @endforeach
-        </tbody>
-    </table>
-@empty
-<table class="data">
-    <tbody><tr><td class="empty">لا توجد دفعات{{ !empty($from) || !empty($to) ? ' في هذه الفترة' : '' }}.</td></tr></tbody>
-</table>
-@endforelse
-
-<h2>رصيد مرحّل</h2>
-@if(($balanceMemos ?? collect())->isNotEmpty())
-<table class="data">
-    <thead><tr><th>البيان</th><th>الاتجاه</th><th>المبلغ</th><th>التاريخ</th></tr></thead>
-    <tbody>
-    @foreach($balanceMemos as $memo)
-        <tr>
-            <td>{{ $memo->statementTitle() }}@if(filled($memo->notes))<div class="sub" style="white-space: pre-line;">{{ $memo->notes }}</div>@endif</td>
-            <td>{{ $memo->direction->label() }}</td>
-            <td>{{ $memo->currency->format($memo->amount) }}</td>
-            <td>{{ format_date($memo->memo_date) }}</td>
-        </tr>
-    @endforeach
-    </tbody>
-</table>
-@else
-<p class="muted">لا يوجد رصيد مرحّل{{ !empty($from) || !empty($to) ? ' في هذه الفترة' : '' }}.</p>
-@endif
-
-<h2>بضاعة مأخوذة</h2>
-@if(($goodsTakes ?? collect())->isNotEmpty())
-    <h3 style="font-size:12px;margin:12px 0 6px;color:#b45309;">خصم من حساب الزبون
-        @if(($goodsTotals ?? collect())->isNotEmpty())
-            — الإجمالي:
-            @foreach($goodsTotals as $total){{ $total['formatted'] }}@if(! $loop->last) · @endif @endforeach
-        @endif
-    </h3>
-    <table class="data">
-        <thead><tr><th>التصنيف</th><th>السعر</th><th>التاريخ</th></tr></thead>
-        <tbody>
-        @foreach($goodsTakes as $take)
-            <tr>
-                <td>
-                    {{ $take->title }}
-                    @if(filled($take->notes))
-                        <div class="sub" style="white-space: pre-line;">{{ $take->notes }}</div>
-                    @endif
-                </td>
-                <td>
-                    {{ $take->currency->format($take->amount) }}
-                    @if($take->isFx())
-                        <div class="sub">{{ $take->fxCurrency?->format($take->source_amount) }} × {{ $take->formattedExchangeRate() }}</div>
-                    @endif
-                </td>
-                <td>{{ format_date($take->taken_on) }}</td>
-            </tr>
-        @endforeach
-        </tbody>
-    </table>
-@else
-<table class="data">
-    <tbody><tr><td class="empty">لا توجد بضاعة مأخوذة{{ !empty($from) || !empty($to) ? ' في هذه الفترة' : '' }}.</td></tr></tbody>
-</table>
-@endif
-
 <h2>السجل الزمني</h2>
-<table class="data">
-    <thead><tr><th>التاريخ</th><th>الحركة</th><th>دائن</th><th>مدين</th><th>الرصيد بعد الحركة</th></tr></thead>
-    <tbody>
-    @forelse($timeline as $item)
-        @php
-            $delta = (string) ($item['delta'] ?? '0');
-            $isCredit = \App\Support\Money::isNegative($delta)
-                || (\App\Support\Money::isZero($delta) && in_array($item['type'] ?? '', ['payment', 'goods'], true));
-            $formattedAmount = $item['currency']->format($item['amount']);
-        @endphp
+
+@forelse($byCurrency as $currencyId => $items)
+    @php
+        $currency = $items->first()['currency'];
+        $opening = (string) ($openings[$currencyId] ?? '0.00');
+        $summaryRow = collect($summaries ?? [])->first(fn ($row) => (int) $row['currency']->id === (int) $currencyId);
+        $openingOverridden = ! empty($summaryRow['opening_overridden']);
+        $debitTotal = '0.00';
+        $creditTotal = '0.00';
+    @endphp
+    @if($multiCurrency)
+        <div class="cur-title"><span class="cur-chip">{{ $currency->name }}</span></div>
+    @endif
+    <table class="stmt">
+        <thead>
+            <tr>
+                <th style="width:22px;">م</th>
+                <th style="width:62px;">التاريخ</th>
+                <th style="width:70px;">نوع الحركة</th>
+                <th>البيان</th>
+                <th style="width:78px;">مدين</th>
+                <th style="width:78px;">دائن</th>
+                <th style="width:84px;">الرصيد</th>
+            </tr>
+        </thead>
+        <tbody>
+        @if(!empty($hasOpening) || ! \App\Support\Money::isZero($opening))
+            <tr class="opening">
+                <td class="num">—</td>
+                <td>{{ !empty($from) ? format_date($from) : '—' }}</td>
+                <td>—</td>
+                <td class="desc">رصيد سابق{{ $openingOverridden ? ' (معدّل للعرض)' : '' }}</td>
+                <td>—</td>
+                <td>—</td>
+                <td class="bal">{{ $currency->format($opening) }}</td>
+            </tr>
+        @endif
+        @foreach($items as $i => $item)
+            @php
+                $delta = (string) ($item['delta'] ?? '0');
+                $isCredit = \App\Support\Money::isNegative($delta)
+                    || (\App\Support\Money::isZero($delta) && in_array($item['type'] ?? '', ['payment', 'goods'], true));
+                $counts = ! \App\Support\Money::isZero($delta);
+                if (\App\Support\Money::isPositive($delta)) {
+                    $debitTotal = \App\Support\Money::add($debitTotal, $delta);
+                } elseif (\App\Support\Money::isNegative($delta)) {
+                    $creditTotal = \App\Support\Money::add($creditTotal, \App\Support\Money::abs($delta));
+                }
+                $formattedAmount = $item['currency']->format($item['amount']);
+                $type = $item['type'] ?? '';
+            @endphp
+            <tr class="{{ $i % 2 ? 'alt' : '' }}">
+                <td class="num">{{ $i + 1 }}</td>
+                <td>{{ format_date($item['date']) }}</td>
+                <td><span class="type-tag t-{{ $type }}">{{ $typeLabels[$type] ?? '—' }}</span></td>
+                <td class="desc">
+                    {{ $item['title'] }}
+                    @if(!$counts)
+                        <span class="sub">(لا تُحتسب في الرصيد)</span>
+                    @endif
+                    @if(!empty($item['notes']))
+                        <div class="sub" style="white-space: pre-line;">{{ $item['notes'] }}</div>
+                    @endif
+                </td>
+                <td class="{{ $isCredit ? '' : 'debit' }}">{{ $isCredit ? '' : $formattedAmount }}</td>
+                <td class="{{ $isCredit ? 'credit' : '' }}">{{ $isCredit ? $formattedAmount : '' }}</td>
+                <td class="bal">{{ $item['currency']->format($item['balance']) }}</td>
+            </tr>
+        @endforeach
+        </tbody>
+    </table>
+    @php
+        $net = \App\Support\Money::add($debitTotal, \App\Support\Money::neg($creditTotal));
+        $final = \App\Support\Money::add($opening, $net);
+    @endphp
+    <table class="stmt-foot">
         <tr>
-            <td>{{ format_date($item['date']) }}</td>
-            <td>
-                {{ $item['title'] }}
-                @if(!empty($item['notes']))
-                    <div class="sub" style="white-space: pre-line;">{{ $item['notes'] }}</div>
+            <td class="label">المجموع المدين</td>
+            <td class="val val-debit">{{ $currency->format($debitTotal) }}</td>
+            <td class="label">المجموع الدائن</td>
+            <td class="val val-credit">{{ $currency->format($creditTotal) }}</td>
+        </tr>
+        @if(! \App\Support\Money::isZero($opening))
+        <tr>
+            <td class="label">الرصيد السابق</td>
+            <td class="val">{{ $currency->format($opening) }}</td>
+            <td class="label">صافي الفترة</td>
+            <td class="val">{{ $currency->format($net) }}</td>
+        </tr>
+        @endif
+        <tr class="grand">
+            <td class="label">الإجمالي</td>
+            <td class="val" colspan="3">
+                @if(\App\Support\Money::isNegative($final))
+                    {{ $currency->format(\App\Support\Money::abs($final)) }} — عربون (له)
+                @elseif(\App\Support\Money::isZero($final))
+                    {{ $currency->format($final) }} — الحساب مسدّد
+                @else
+                    {{ $currency->format($final) }} — مستحق (عليه)
                 @endif
             </td>
-            <td class="amount">{{ $isCredit ? $formattedAmount : '—' }}</td>
-            <td class="amount">{{ $isCredit ? '—' : $formattedAmount }}</td>
-            <td class="amount">{{ $item['currency']->format($item['balance']) }}</td>
         </tr>
-    @empty
-        <tr><td colspan="5" class="empty">لا حركات{{ !empty($from) || !empty($to) ? ' في هذه الفترة' : '' }}.</td></tr>
-    @endforelse
-    </tbody>
-</table>
+    </table>
+@empty
+    <table class="data">
+        <tbody><tr><td class="empty">لا حركات{{ !empty($from) || !empty($to) ? ' في هذه الفترة' : '' }}.</td></tr></tbody>
+    </table>
+@endforelse
+
+@if(!empty($hasOpening))
+<p class="muted">الرصيد السابق للعرض في هذا الكشف فقط، ولا يغيّر الأرصدة المسجّلة في النظام.</p>
+@endif
 @endsection

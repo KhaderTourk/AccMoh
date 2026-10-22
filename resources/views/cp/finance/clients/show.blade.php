@@ -23,7 +23,7 @@
         </div>
     </div>
 
-    @component('cp.partials.filter-panel', ['count' => $filterCount, 'open' => true])
+    @component('cp.partials.filter-panel', ['count' => $filterCount, 'modal' => true])
         @slot('actions')
             @unless($hasOpening)
                 <a href="{{ route('cp.clients.export-pdf', array_merge(['client' => $client], $periodQuery)) }}" class="cp-btn cp-btn-ghost">
