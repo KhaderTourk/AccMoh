@@ -546,6 +546,28 @@ h3{margin:0 0 4px;font-size:1.15rem}
 @media (max-width:820px){#vParty .lrow,#vParty .lhead{grid-template-columns:66px 30px minmax(0,1fr) auto 28px}#vParty .noic .lrow,#vParty .noic .lhead{grid-template-columns:66px minmax(0,1fr) auto 28px}}
 .period-dd .dd-btn{background:var(--chip);border:0;border-radius:10px;padding:6px 12px;min-width:140px;font-size:.88rem}
 .period-dd{position:relative}.period-dd .menu{top:40px;left:0;right:auto}
+
+/* شريط التنقل على الموبايل */
+.tabbar,.more-sheet{display:none}
+@media (max-width:820px){
+  .tabbar{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;bottom:0;left:0;right:0;z-index:39;background:color-mix(in srgb,var(--surface) 88%,transparent);backdrop-filter:saturate(1.6) blur(18px);-webkit-backdrop-filter:saturate(1.6) blur(18px);border-top:1px solid var(--line);padding:6px 4px calc(6px + env(safe-area-inset-bottom));direction:rtl}
+  .tabbar button{font:inherit;border:0;background:none;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:3px;font-size:.68rem;padding:4px 0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .tabbar svg{width:23px;height:23px}
+  .tabbar button.on{color:var(--pink);font-weight:600}
+  .tabbar button:focus-visible{outline:2px solid var(--pink);outline-offset:-2px;border-radius:10px}
+  .app{padding-bottom:76px}
+  .toast{bottom:calc(84px + env(safe-area-inset-bottom))}
+  .more-sheet{position:fixed;inset:0;z-index:38;background:rgba(6,20,31,.45);align-items:flex-end}
+  .more-sheet:not([hidden]){display:flex}
+  .more-sheet>div{width:100%;background:var(--surface);border-radius:18px 18px 0 0;padding:8px 12px calc(84px + env(safe-area-inset-bottom));display:grid;gap:2px;animation:sheetUp .22s ease-out}
+  .more-sheet .grab{width:36px;height:5px;border-radius:3px;background:var(--line);margin:4px auto 10px}
+  .more-sheet button{font:inherit;border:0;background:none;color:var(--fg);text-align:right;padding:13px 10px;border-radius:12px;font-size:1rem;display:flex;align-items:center;gap:12px;cursor:pointer}
+  .more-sheet button:hover,.more-sheet button.on{background:var(--chip)}
+  .more-sheet button.on{color:var(--pink);font-weight:600}
+  .more-sheet svg{width:20px;height:20px;color:var(--muted)}
+}
+@keyframes sheetUp{from{transform:translateY(30px);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.more-sheet>div{animation:none}}
 </style>
 
 <div class="wrap">
@@ -577,6 +599,23 @@ h3{margin:0 0 4px;font-size:1.15rem}
         <div class="grp">النظام</div>
         <a href="#" data-v="vPanel">الإعدادات</a>
       </nav>
+
+      <nav class="tabbar" aria-label="التنقل">
+        <button class="on" data-v="vList"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.8c2 .6 3.2 2.4 3.5 5.2"/></svg>الزبائن</button>
+        <button data-v="vParties" data-pt="worker"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2.5"/><path d="M8.5 7V5.5A1.5 1.5 0 0 1 10 4h4a1.5 1.5 0 0 1 1.5 1.5V7M3 12.5h18"/></svg>الموظفون</button>
+        <button data-v="vParties" data-pt="supplier"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 4.6 4h14.8L21 9.5"/><path d="M3 9.5a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"/><path d="M4.5 12v8h15v-8M10 20v-4.5h4V20"/></svg>الموردون</button>
+        <button data-v="vParties" data-pt="person"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5c.8-4 3.8-6 7.5-6s6.7 2 7.5 6"/></svg>الأشخاص</button>
+        <button data-more><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="19" cy="12" r="1.6" fill="currentColor"/></svg>المزيد</button>
+      </nav>
+      <div class="more-sheet" id="moreSheet" hidden><div role="dialog" aria-label="المزيد">
+        <span class="grab"></span>
+        <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5M5.5 9.5V20h13V9.5"/></svg>لوحة التحكم</button>
+        <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M16 12.5h2M3 10h18"/></svg>الأدراج والأرصدة</button>
+        <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12M7 11l5 5 5-5M5 20h14"/></svg>دفعات واردة</button>
+        <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V8M7 13l5-5 5 5M5 4h14"/></svg>دفعات صادرة</button>
+        <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h14l-3.5-3.5M20 16H6l3.5 3.5"/></svg>التحويلات</button>
+        <button data-v="vPanel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>الإعدادات</button>
+      </div></div>
 
       <section class="main" id="vList">
         <div class="top">
@@ -1768,8 +1807,20 @@ const VIEWS=["vList","vClient","vPanel","vParties","vParty"];
 function showView(v){VIEWS.forEach(id=>$(id).hidden=id!==v);closeMenus();
   if(v==="vPanel")renderPanel();else if(v==="vParties")renderParties();else if(v==="vParty")renderParty();else if(v==="vList"){render();animIn(list)}
   animIn($(v),"view-in");window.scrollTo({top:0,behavior:"smooth"})}
-document.querySelector(".side").addEventListener("click",e=>{const a=e.target.closest("a");if(!a)return;e.preventDefault();e.stopImmediatePropagation();const v=a.dataset.v;if(!v)return toast("هالقسم مش ضمن هالصورة");
-  document.querySelectorAll(".side a").forEach(x=>x.classList.toggle("on",x===a));if(a.dataset.pt){ptType=a.dataset.pt;ptFilter="all"}showView(v)},true);
+let curNav=["vList",""];
+function navMark(v,pt){const same=x=>x.dataset.v===v&&(x.dataset.pt||"")===(pt||"");
+  document.querySelectorAll(".tabbar button").forEach(x=>x.classList.toggle("on",x.hasAttribute("data-more")?v==="vPanel":same(x)))}
+function navTo(v,pt){if(!v)return toast("هالقسم مش ضمن هالصورة");curNav=[v,pt||""];
+  const same=x=>x.dataset.v===v&&(x.dataset.pt||"")===(pt||"");
+  document.querySelectorAll(".side a").forEach(x=>x.classList.toggle("on",same(x)));
+  document.querySelectorAll(".tabbar button").forEach(x=>x.classList.toggle("on",x.hasAttribute("data-more")?v==="vPanel":same(x)));
+  document.querySelectorAll("#moreSheet button").forEach(x=>x.classList.toggle("on",same(x)));
+  if(pt){ptType=pt;ptFilter="all"}showView(v)}
+document.querySelector(".side").addEventListener("click",e=>{const a=e.target.closest("a");if(!a)return;e.preventDefault();e.stopImmediatePropagation();navTo(a.dataset.v,a.dataset.pt)},true);
+const moreSheet=$("moreSheet");
+document.querySelector(".tabbar").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
+  if(b.hasAttribute("data-more")){moreSheet.hidden=!moreSheet.hidden;if(moreSheet.hidden)navMark(...curNav);else document.querySelectorAll(".tabbar button").forEach(x=>x.classList.toggle("on",x===b));return}moreSheet.hidden=true;navTo(b.dataset.v,b.dataset.pt)});
+moreSheet.addEventListener("click",e=>{const b=e.target.closest("button");if(e.target!==moreSheet&&!b)return;moreSheet.hidden=true;if(b&&b.dataset.v)navTo(b.dataset.v);else{navMark(...curNav);if(b)toast("هالقسم مش ضمن هالصورة")}});
 animIn(list);
 render();countUp($("total"));
 </script>
