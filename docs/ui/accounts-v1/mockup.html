@@ -838,7 +838,7 @@ h3{margin:0 0 4px;font-size:1.15rem}
       <li><div><b>تنبيه التشابه</b><span>نفس الخدمة بنفس المبلغ خلال 3 أيام، أو اشتراك شغّال لنفس الخدمة. جرّب «إدارة صفحة» كاشتراك.</span></div></li>
       <li><div><b>العملة وسعر الصرف</b><span>سعر اليوم بينزل لحاله وبتعدّله، والمبلغ بالشيكل بيبين قبل الحفظ.</span></div></li>
       <li><div><b>كشف واحد</b><span>الأحدث فوق، مع الرصيد بعد كل حركة.</span></div></li>
-      <li><div><b>الموظفون والموردون والأشخاص</b><span>نفس تصميم الزبائن: قائمة ببحث لايف وتبويبات ورصيد ملوّن «الوردي = رصيد لازم ينسدّ، الأخضر = أخد مقدّماً»، وصفحة لكل واحد فيها رصيد وحركات وكشف حساب وPDF وفترة. الموظف: مستحق، دفعة، أخرى «سلفة، خصم، رصيد سابق»، وراتب شهري بتذكير أول الشهر، والسلف بتنزل من الراتب لحالها، وتأكيد كل الرواتب من القائمة مرة وحدة. المورد: خدمة/مورد، دفعة، أخرى «بضاعة أخدها منا، خصم، رصيد سابق». الشخص «حساب شخصي، الرصيد إله عندي أو بدي منه»: أعطيته، أخدت منه، أخرى «تحويل رصيد بين حسابه وحساب أي زبون أو شخص أو موظف أو مورد، بيتسجل على الحسابين، ورصيد سابق».</span></div></li>
+      <li><div><b>الموظفون والموردون والأشخاص</b><span>نفس تصميم الزبائن: قائمة ببحث لايف وتبويبات ورصيد ملوّن «الوردي = رصيد لازم ينسدّ، الأخضر = أخد مقدّماً»، وصفحة لكل واحد فيها رصيد وحركات وكشف حساب وPDF وفترة. الموظف: مستحق، دفعة، أخرى «سلفة، خصم، رصيد سابق»، وراتب شهري ثابت بدون تذكير: بتسجّله من «مستحق» والمبلغ بيطلع جاهز، والسلف بتنزل من رصيده. المورد: خدمة/مورد، دفعة، أخرى «بضاعة أخدها منا، خصم، رصيد سابق». الشخص «حساب شخصي، الرصيد إله عندي أو بدي منه»: أعطيته، أخدت منه، أخرى «تحويل رصيد بين حسابه وحساب أي زبون أو شخص أو موظف أو مورد، بيتسجل على الحسابين، ورصيد سابق».</span></div></li>
       <li><div><b>زر تصدير PDF</b><span>بيظهر بتاب «كشف حساب» بس، وردي وباسم واضح «تصدير الكشف PDF»، وانشال من تاب الحركات.</span></div></li>
       <li><div><b>الإعدادات «لوحة التحكم»</b><span>من القائمة الجانبية ← الإعدادات. تاب الخدمات: مجموعات وخدماتها، كل خدمة لمرة وحدة أو شهرية، كم مرة مستعملة عند كل الزبائن، مفتاح تشغيل/إطفاء، تعديل وحذف. تاب طرق الدفع بنفس الطريقة. تاب الاستيراد من إكسيل. المطفية بتختفي من أزرار الإضافة وبتضل بالكشوفات والفلاتر. الحذف بس للي ما إلها حركات، وتعديل الاسم بيتحدّث على الحركات القديمة. «أخرى» ثابتة بالنظام.</span></div></li>
       <li><div><b>تعديل وأرشفة الزبون</b><span>من ⋯ بالقائمة أو جنب اسم الزبون. التعديل بيفتح نفس نافذة الإضافة معبّاة، وبعد الحفظ بتضل بنفس الصفحة. الأرشفة بتطلب تأكيد وبتذكرك إذا عليه أو إله رصيد، والزبون بيروح لتاب «مؤرشف» مع كل حركاته، ومنه «استرجاع من الأرشيف».</span></div></li>
@@ -1582,7 +1582,6 @@ function renderParties(){
   const due=ptType==="worker"?P.filter(p=>!p.arch&&salDue(p)):[];
   el.innerHTML=`<div class="top"><h2>${T.nav}</h2><div class="sp"></div><button class="btn btn-primary" id="ptNew">${T.newL}</button></div>
     <div class="summary" id="ptSum"></div>
-    ${due.length?`<div class="remind"><div><b>رواتب شهر ${monthLabel(MONTH_NOW)} جاهزة للتأكيد</b><span>${due.length} ${due.length<=10?"موظفين":"موظف"} · ${ils(due.reduce((a,p)=>a+p.sal.amt,0))}</span><small>أول كل شهر بيذكّرك، وأي سلفة بتنزل من الراتب لحالها</small></div><button class="btn btn-primary" id="ptSalAll">راجع وأكّد</button></div>`:""}
     <div class="tools"><label class="search" for="ptQ"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="ptQ" type="search" autocomplete="off" placeholder="ابحث بالاسم أو ${T.subF} أو الهاتف"></label>
       <div class="seg" id="ptTabs" role="tablist">${T.tabs.map(([k,l])=>`<button class="${k===ptFilter?"on":""}" data-pf="${k}" role="tab">${l}</button>`).join("")}</div></div>
     <div class="legend">${ptType==="person"?`<span><i style="background:var(--pink)"></i>رصيد مفتوح، وتحته «إله عندي» أو «بدي منه»</span>`:`<span><i style="background:var(--pink)"></i>إله عندنا</span><span><i style="background:var(--credit)"></i>أخد مقدّماً</span>`}</div>
@@ -1590,7 +1589,6 @@ function renderParties(){
   $("ptQ").addEventListener("input",renderPList);
   $("ptTabs").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;ptFilter=b.dataset.pf;$("ptTabs").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b));renderPList();animIn($("ptList"))});
   $("ptNew").addEventListener("click",()=>openPF("party",{}));
-  $("ptSalAll")&&$("ptSalAll").addEventListener("click",()=>openPF("salmonth",{list:due}));
   renderPList();animIn($("ptList"));
 }
 function renderPList(){
@@ -1629,8 +1627,7 @@ function renderParty(){
       <div class="sp"></div>
       <div class="acts" role="group" aria-label="إضافة حركة">${T.acts.map((a,i)=>{const menu=a.pay?METHODS.filter(m=>!OFF.has(m)).map(m=>`<button type="button" data-kind="${a.pay}" data-m="${esc(m)}"><span>${esc(m)}</span></button>`).join("")+PANEL:a.oth?a.oth.map(k=>`<button type="button" data-kind="${k}"><span>${PK[k].l}</span></button>`).join(""):"";
         return `<div class="act-w"><button type="button" class="act ${a.cls}" ${a.k?`data-kind="${a.k}"`:`data-open="pm${i}"`}>${a.ic}${a.l}</button>${menu?`<div class="menu add-menu" id="pm${i}" hidden>${menu}</div>`:""}</div>`}).join("")}</div></div>
-    ${p.type==="worker"&&salDue(p)&&!p.arch?`<div class="remind"><div><b>راتب شهر ${monthLabel(MONTH_NOW)} جاهز للتأكيد</b><span>${ils(p.sal.amt)}${pbal(p)>0.004?` · عليه سلف ${ils(pbal(p))} بتنزل منه`:""}</span></div><button class="btn btn-primary" id="ppSal">راجع وأكّد</button></div>`:""}
-    <div class="c-top" ${p.type!=="worker"?'style="grid-template-columns:1fr"':""}><div class="bal" id="ppBal"></div>${p.type==="worker"?`<div class="subs"><div class="subs-head"><b>الراتب الشهري</b>${p.sal&&!p.sal.to?"":'<button type="button" class="linkish" id="ppSalSet">＋ راتب شهري</button>'}</div>${p.sal?`<div class="sub-row${p.sal.to?" off":""}"><div><b>${ils(p.sal.amt)} بالشهر</b><span>${p.sal.to?`${dayLabel(p.sal.from)} إلى ${dayLabel(p.sal.to)}`:`من ${dayLabel(p.sal.from)} · تذكير أول كل شهر`}</span></div><div></div>${p.sal.to?'<span class="chip off">موقوف</span>':'<button type="button" class="stop" id="ppSalEdit">تعديل</button>'}</div>`:`<p class="note" style="text-align:right;margin:4px 0">ما إله راتب ثابت. المستحقات بتنسجل من زر «مستحق».</p>`}</div>`:""}</div>
+    <div class="c-top" ${p.type!=="worker"?'style="grid-template-columns:1fr"':""}><div class="bal" id="ppBal"></div>${p.type==="worker"?`<div class="subs"><div class="subs-head"><b>الراتب الشهري</b>${p.sal&&!p.sal.to?"":'<button type="button" class="linkish" id="ppSalSet">＋ راتب شهري</button>'}</div>${p.sal?`<div class="sub-row${p.sal.to?" off":""}"><div><b>${ils(p.sal.amt)} بالشهر</b><span>${p.sal.to?`${dayLabel(p.sal.from)} إلى ${dayLabel(p.sal.to)}`:`من ${dayLabel(p.sal.from)}`}</span></div><div></div>${p.sal.to?'<span class="chip off">موقوف</span>':'<button type="button" class="stop" id="ppSalEdit">تعديل</button>'}</div>`:`<p class="note" style="text-align:right;margin:4px 0">ما إله راتب ثابت. المستحقات بتنسجل من زر «مستحق».</p>`}</div>`:""}</div>
     ${p.notes?`<div class="c-note"><b>ملاحظة:</b> ${esc(p.notes)}</div>`:""}
     <div class="vtabs" role="tablist" id="ppTabs"><button role="tab" class="${pView==="list"?"on":""}" data-v="list">الحركات</button><button role="tab" class="${pView==="stmt"?"on":""}" data-v="stmt">كشف حساب</button></div>
     <div class="tools"><div class="seg" id="ppSeg">${T.segs.map(([k,l])=>`<button class="${k===pSeg?"on":""}" data-s="${k}">${l}</button>`).join("")}</div>
@@ -1674,7 +1671,6 @@ $("vParty").addEventListener("click",e=>{
   const pm=t.closest("[data-pm]");if(pm){closeMenus();const k=pm.dataset.pm;if(k==="edit")openPF("party",{p});else if(k==="arch")askPArch(p);else{p.arch=false;renderParty();toast(`رجع «${p.name}»`)}return}
   const op=t.closest("[data-open]");if(op){e.stopPropagation();return toggleMenu($(op.dataset.open),e)}
   const kb=t.closest("[data-kind]");if(kb){e.stopPropagation();closeMenus();return openPF(kb.dataset.kind,{method:kb.dataset.m})}
-  if(t.closest("#ppSal"))return openPF("salmonth",{list:[p]});
   if(t.closest("#ppSalSet")||t.closest("#ppSalEdit"))return openPF("salset",{});
   if(t.closest("#ppPdf"))return partyPdf();
   const tb=t.closest("#ppTabs button");if(tb){pView=tb.dataset.v;$("ppTabs").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===tb));return renderPLedger()}
@@ -1702,7 +1698,7 @@ function openPF(kind,o){
   else if(kind==="salset"){title=p.sal?"تعديل الراتب الشهري":"راتب شهري";
     h=`<div class="group"><div class="field"><label for="yAmt">الراتب بالشهر</label><input id="yAmt" inputmode="decimal" dir="ltr" placeholder="0.00" value="${p.sal?p.sal.amt.toFixed(2):""}"></div>
       <div class="field"><label for="yDate">من تاريخ</label><input id="yDate" type="date" value="${p.sal?p.sal.from:"2026-11-01"}"></div></div>
-      <p class="sheet-hint">أول كل شهر بيذكّرك بالراتب وبتأكده إنت، وأي سلفة أخدها بتنزل منه لحالها.${p.sal?"":""}</p>
+      <p class="sheet-hint">بتسجّل الراتب كل شهر من زر «مستحق»، وبيطلعلك المبلغ جاهز. أي سلفة أخدها بتنزل من رصيده.</p>
       ${p.sal?'<p class="sheet-hint"><button type="button" class="linkish" id="ySalStop" style="color:var(--pink)">إيقاف الراتب</button></p>':""}`;}
   else if(kind==="salmonth"){const L0=o.list;title=`رواتب شهر ${monthLabel(MONTH_NOW)}`;
     h=`<div class="group">${L0.map(q=>{const v=pbal(q);return `<label class="chk sal"><input type="checkbox" checked data-pid="${q.id}"><div><b>${esc(q.name)}</b><span>${v>0.004?`عليه سلف ${ils(v)} بتنزل من الراتب`:v<-0.004?`إله من قبل ${ils(-v)}`:"ما عليه سلف"}</span></div><input type="number" step="0.01" value="${q.sal.amt}" data-samt="${q.id}" aria-label="راتب ${esc(q.name)}"></label>`}).join("")}</div><div class="sal-net" id="ySalNet"></div>
@@ -1719,15 +1715,16 @@ function openPF(kind,o){
       h+=`<div class="field"><label for="yOther">الحساب الثاني</label><select id="yOther">${opts}</select></div>`;}
     if(PF_TITLE[kind])h+=`<div class="field"><label for="yTitle">${PF_TITLE[kind][0]}</label><input id="yTitle" autocomplete="off" placeholder="${PF_TITLE[kind][1]}" ${PF_TITLE[kind][2]?'data-req="1"':""}></div>`;
     h+=kind==="xfer"?`<div class="field"><label for="yAmt">المبلغ بالشيكل</label><input id="yAmt" inputmode="decimal" dir="ltr" placeholder="0.00"></div>`:yMoney("المبلغ");
-    if(kind==="adv")h+=`<div class="field"><label for="yFrom">طلعت من</label><select id="yFrom">${METHODS.filter(m=>!OFF.has(m)).map(m=>`<option>${m}</option>`).join("")}</select><small class="hint">بتنزل من راتبه لما تأكد راتب الشهر</small></div>`;
+    if(kind==="adv")h+=`<div class="field"><label for="yFrom">طلعت من</label><select id="yFrom">${METHODS.filter(m=>!OFF.has(m)).map(m=>`<option>${m}</option>`).join("")}</select><small class="hint">بتنزل من رصيده</small></div>`;
     h+=`<div class="field"><label for="yDate">التاريخ</label><input id="yDate" type="date" value="${TODAY}"></div><div class="field"><label for="yNote">ملاحظات</label><input id="yNote" placeholder="اختياري"></div></div>`;}
   $("ptTitle").textContent=title;$("ptSub").textContent=sub;$("ptBody").innerHTML=h;
   $("ptBody").querySelectorAll("select").forEach(enhance);$("ptBody").querySelectorAll("input[type=date]").forEach(dateify);
   const q=id=>document.getElementById(id);
+  if(kind==="chg"&&!ed&&p.sal&&!p.sal.to&&q("yAmt")){q("yAmt").value=p.sal.amt.toFixed(2);if(q("yTitle"))q("yTitle").value="راتب شهر "+monthLabel(MONTH_NOW)}
   if(q("yCur"))q("yCur").addEventListener("change",()=>{const c=q("yCur").value;q("yRateF").hidden=c==="ILS";q("yRate").value=RATES[c];ptCheck()});
   $("ptBody").addEventListener("input",ptCheck);$("ptBody").addEventListener("change",ptCheck);
   q("yDir")&&q("yDir").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;ptForm.dir=+b.dataset.dir;q("yDir").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b));ptCheck()});
-  q("ySalStop")&&q("ySalStop").addEventListener("click",()=>{p.sal.to=TODAY;$("pt").hidden=true;renderParty();toast("وقف الراتب، وما رح يذكّرك فيه")});
+  q("ySalStop")&&q("ySalStop").addEventListener("click",()=>{p.sal.to=TODAY;$("pt").hidden=true;renderParty();toast("وقف الراتب")});
   if(ed&&kind!=="salrow"){ptForm.dir=ed.a>=0?1:-1;if(q("yDir"))q("yDir").querySelector(`[data-dir="${ptForm.dir}"]`)?.click();
     if(q("yTitle"))q("yTitle").value=ed.title===PK[kind].l?"":ed.title;
     if(ed.src){q("yCur").value=ed.src[1];q("yCur")._sync();q("yCur").dispatchEvent(new Event("change"));q("yAmt").value=ed.src[0];q("yRate").value=ed.src[2]}else q("yAmt").value=Math.abs(ed.a).toFixed(2);
@@ -1766,7 +1763,7 @@ $("ptForm").addEventListener("submit",e=>{
   if(f.kind==="party"){const rec={name:q("yName").value.trim(),sub:q("ySub").value.trim(),phone:q("yPhone").value.trim(),notes:q("yNote").value.trim()};
     if(f.p){Object.assign(f.p,rec);msg="انحفظ التعديل"}else{P.unshift(mkP(ptType,rec.name,rec.sub,rec.phone,[],{notes:rec.notes}));msg="انضاف "+PT[ptType].one.replace("ال","")}
     $("pt").hidden=true;if(!$("vParty").hidden)renderParty();else renderPList();return toast(msg)}
-  if(f.kind==="salset"){p.sal={amt:parseFloat(q("yAmt").value),from:q("yDate").value};msg="انحفظ الراتب، وبيذكّرك أول كل شهر"}
+  if(f.kind==="salset"){p.sal={amt:parseFloat(q("yAmt").value),from:q("yDate").value};msg="انحفظ الراتب"}
   else if(f.kind==="salrow"){const r=p.L[f.edit];r.a=-parseFloat(q("yAmt").value);r.note=q("yNote").value.trim();msg="انحفظ التعديل"}
   else if(f.kind==="salmonth"){const sel=[...document.querySelectorAll("#ptBody input[data-pid]:checked")];sel.forEach(c=>{const qq=P.find(x=>x.id===+c.dataset.pid);qq.L.push(S(MONTH_NOW+"-01",MONTH_NOW,parseFloat(document.querySelector(`[data-samt="${qq.id}"]`).value)||0))});msg=`انسجلت رواتب شهر ${monthLabel(MONTH_NOW)}`}
   else{const K=PK[f.kind],sign=K.s||f.dir,c=q("yCur")?q("yCur").value:"ILS",a=parseFloat(q("yAmt").value),v=yILS();
