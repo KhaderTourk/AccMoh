@@ -128,8 +128,9 @@ class ClientGoodsTakeTest extends TestCase
         $this->actingAs($this->user)
             ->get(route('cp.clients.show', $client))
             ->assertOk()
-            ->assertSee('خصم/أخرى')
-            ->assertSee(route('cp.client-goods-takes.create', ['client_id' => $client->id]), false);
+            ->assertSee('دفعة بضاعة')
+            ->assertSee('data-o="discount"', false)
+            ->assertSee(route('cp.client-goods-takes.store'), false);
 
         $this->actingAs($this->user)
             ->get(route('cp.client-goods-takes.create', ['client_id' => $client->id]))
@@ -162,7 +163,7 @@ class ClientGoodsTakeTest extends TestCase
             ->get(route('cp.clients.show', $client))
             ->assertOk()
             ->assertSee('علبة شوكولاتة')
-            ->assertSee('بضاعة مأخوذة');
+            ->assertSee('دفعة بضاعة');
 
         $this->assertSame(1, ClientGoodsTake::query()->count());
     }

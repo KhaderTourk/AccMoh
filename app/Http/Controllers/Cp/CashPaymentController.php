@@ -115,9 +115,14 @@ class CashPaymentController extends Controller
             return back()->with('error', $e->getMessage());
         }
 
-        $route = $payment->isIncoming() ? 'cp.payments.incoming' : 'cp.payments.outgoing';
+        // Deleting from a party's page goes back to that page; from the payments list, back to the list.
+        if (str_contains((string) url()->previous(), '/payments')) {
+            $route = $payment->isIncoming() ? 'cp.payments.incoming' : 'cp.payments.outgoing';
 
-        return redirect()->route($route)->with('success', 'تم حذف الدفعة وإلغاء أثرها المالي.');
+            return redirect()->route($route)->with('success', 'تم حذف الدفعة وإلغاء أثرها المالي.');
+        }
+
+        return redirect($this->afterSave($payment))->with('success', 'انحذفت الدفعة وانلغى أثرها المالي.');
     }
 
     protected function index(Request $request, PaymentDirection $direction)

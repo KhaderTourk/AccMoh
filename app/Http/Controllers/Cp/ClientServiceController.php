@@ -106,7 +106,7 @@ class ClientServiceController extends Controller
             return back()->with('error', $e->getMessage());
         }
 
-        return redirect()->route('cp.client-services.index')->with('success', 'تم حذف الخدمة.');
+        return redirect()->route('cp.clients.show', $clientService->client_id)->with('success', 'انحذفت الخدمة.');
     }
 
     protected function validated(Request $request): array

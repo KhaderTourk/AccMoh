@@ -170,7 +170,7 @@ class PartyBalanceMemoTest extends TestCase
         $this->actingAs($this->user)
             ->get(route('cp.clients.show', $client))
             ->assertOk()
-            ->assertSee('رصيد مرحّل')
+            ->assertSee('رصيد سابق')
             ->assertSee('ترحيل سنة');
         $this->actingAs($this->user)
             ->get(route('cp.suppliers.show', $vendor))
