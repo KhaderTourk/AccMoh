@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <meta name="theme-color" content="#08A46D">
+    <meta name="theme-color" content="#FB005B">
     <link rel="manifest" href="{{ asset('manifest.webmanifest') }}">
-    <title>@yield('title', 'لوحة التحكم') — AccMa</title>
+    <title>@yield('title', 'لوحة التحكم') — حسابات براند</title>
     <script>
         // الثيم يُطبق قبل الرسم حتى لا يظهر وميض أبيض في الوضع الليلي
         (function () {
@@ -39,8 +39,8 @@
                 extend: {
                     fontFamily: { sans: ['Tajawal', 'sans-serif'] },
                     colors: {
-                        primary: '#08A46D',
-                        'primary-dark': '#069660',
+                        primary: '#FB005B',
+                        'primary-dark': '#d6004e',
                     }
                 }
             }
@@ -55,10 +55,10 @@
             <div class="flex flex-col h-full">
                 <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
                     <a href="{{ route('cp.dashboard') }}" class="cp-brand">
-                        <span class="cp-brand-mark"><span class="material-symbols-outlined">account_balance_wallet</span></span>
+                        <span class="cp-brand-mark cp-brand-logo"><img src="{{ asset('assets/icons/brand-logo.png') }}" alt="براند" width="40" height="40"></span>
                         <span class="cp-brand-text">
-                            <strong>AccMa</strong>
-                            <span>إدارة مالية</span>
+                            <strong>حسابات براند</strong>
+                            <span>الإدارة المالية</span>
                         </span>
                     </a>
                     <button type="button" id="cp-sidebar-close" class="lg:hidden p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700" aria-label="إغلاق القائمة">
@@ -143,7 +143,7 @@
                     </ul>
                 </nav>
                 <div class="p-3 border-t border-slate-200 dark:border-slate-700 text-xs text-slate-400 px-4">
-                    AccMa — إدارة مالية شخصية
+                    حسابات براند المالية
                 </div>
             </div>
         </aside>

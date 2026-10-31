@@ -201,7 +201,7 @@ const revenue = @json($revenueByMonth);
 const expenses = @json($expenseByMonth);
 const methodDist = @json($methodDistribution);
 const currencyCodes = @json($snapshot['currencies']->pluck('code')->values());
-const chartColors = ['#08A46D', '#e11d48', '#0ea5e9', '#f59e0b', '#8b5cf6', '#14b8a6'];
+const chartColors = ['#FB005B', '#e11d48', '#0ea5e9', '#f59e0b', '#8b5cf6', '#14b8a6'];
 
 function cpChartTheme() {
     const dark = document.documentElement.classList.contains('dark');
@@ -276,7 +276,7 @@ if (window.Chart) {
             labels: Object.keys(methodDist),
             datasets: [{
                 data: Object.values(methodDist).map(v => v.ILS ?? 0),
-                backgroundColor: ['#08A46D', '#0ea5e9', '#8b5cf6', '#f59e0b'],
+                backgroundColor: ['#FB005B', '#0ea5e9', '#8b5cf6', '#f59e0b'],
                 borderWidth: 0,
                 hoverOffset: 10
             }]

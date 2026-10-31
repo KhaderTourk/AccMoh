@@ -50,7 +50,8 @@ return [
     |
     */
 
-    'expiration' => null,
+    // Days-long by default so a stolen token stops working; set SANCTUM_EXPIRATION=null to disable.
+    'expiration' => env('SANCTUM_EXPIRATION', 60 * 24 * 30),
 
     /*
     |--------------------------------------------------------------------------

@@ -4,7 +4,7 @@
 <form method="post" action="{{ $tenant->exists ? route('super.tenants.update', $tenant) : route('super.tenants.store') }}" class="max-w-2xl rounded-2xl bg-white border p-6 space-y-4">
     @csrf
     @if($tenant->exists) @method('PUT') @endif
-    <h1 class="text-xl font-extrabold">{{ $tenant->exists ? 'تعديل النسخة' : 'إنشاء نسخة AccMa' }}</h1>
+    <h1 class="text-xl font-extrabold">{{ $tenant->exists ? 'تعديل النسخة' : 'إنشاء نسخة جديدة' }}</h1>
     <div class="grid md:grid-cols-2 gap-3">
         <div class="md:col-span-2"><label class="text-sm">اسم النسخة *</label><input name="name" value="{{ old('name', $tenant->name) }}" required class="w-full rounded-xl border px-3 py-2"></div>
         <div><label class="text-sm">المعرّف (slug)</label><input name="slug" value="{{ old('slug', $tenant->slug) }}" class="w-full rounded-xl border px-3 py-2" placeholder="اختياري"></div>

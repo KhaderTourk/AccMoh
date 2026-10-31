@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#0b1220">
-    <title>دخول مدير المنصة — AccMa</title>
+    <title>دخول مدير المنصة — حسابات براند</title>
     <link href="https://fonts.googleapis.com" rel="preconnect">
     <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
@@ -24,7 +24,7 @@
             <div class="auth-head">
                 <div class="auth-logo"><span class="material-symbols-outlined">shield_person</span></div>
                 <h1 class="auth-title">مدير المنصة</h1>
-                <p class="auth-sub">إنشاء وإدارة نسخ AccMa للمستخدمين</p>
+                <p class="auth-sub">إنشاء وإدارة نسخ النظام</p>
             </div>
 
             @error('email')
@@ -54,7 +54,7 @@
             <label class="auth-remember"><input type="checkbox" name="remember" value="1"> <span>تذكرني</span></label>
             <button class="auth-submit"><span class="material-symbols-outlined">login</span><span>دخول</span></button>
         </form>
-        <p class="auth-foot">AccMa · لوحة المنصة</p>
+        <p class="auth-foot">حسابات براند · لوحة المنصة</p>
     </main>
 
     <script>
