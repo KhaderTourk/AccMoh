@@ -2224,3 +2224,13 @@ html.dark .cp-banner { color: #fff; }
 .sr-table tr.g td { background: #f8fafc; font-weight: 800; color: var(--cp-primary-900); }
 .sr-table tr.t td { font-weight: 800; border-top: 2px solid var(--cp-line); }
 .sr-wrap { overflow-x: auto; }
+
+/* client page fixes: row menu above later rows, date buttons */
+.cs-row:has(.cl-menu:not([hidden])) { z-index: 40; }
+.cs-table .cl-menu { z-index: 50; }
+.cs-date-in .cs-today { display: inline-flex; align-items: center; justify-content: center; color: var(--cp-primary-900, #0B2537); background: #fff; font-weight: 700; white-space: nowrap; }
+.cs-date-in .cs-today:hover { border-color: var(--cp-primary); color: var(--cp-primary); }
+.cl-field .cs-date-in label.cs-cal, .cs-date-in .cs-cal { display: flex; align-items: center; justify-content: center; margin: 0; padding: 0; background: #fff; }
+.cs-cal .material-symbols-outlined { font-size: 1.35rem; line-height: 1; display: block; }
+html.dark .cs-date-in .cs-today, html.dark .cs-date-in .cs-cal { background: #0f172a; border-color: #334155; color: #e2e8f0; }
+html.dark .cs-date-in .cs-cal { color: var(--cp-primary); }
