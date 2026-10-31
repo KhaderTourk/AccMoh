@@ -27,7 +27,6 @@
     @if($tab === 'services')
         <div class="st-bar">
             <p class="st-note">المستعملة ما بتنحذف، بتنطفى بس: بتختفي من أزرار الإضافة وبتضل بالكشوفات. وتعديل الاسم بيتحدّث على الحركات القديمة.</p>
-            <button type="button" class="cp-btn cp-btn-ghost" data-open="group">+ مجموعة</button>
             <button type="button" class="cp-btn cp-btn-primary" data-open="service">+ خدمة</button>
         </div>
 
@@ -40,7 +39,7 @@
                         <button type="button" class="cl-more" aria-label="خيارات المجموعة {{ $g['name'] }}">⋯</button>
                         <div class="cl-menu" hidden>
                             <button type="button" data-open="group" data-id="{{ $g['id'] }}" data-name="{{ $g['name'] }}" data-url="{{ $g['update'] }}">تعديل الاسم</button>
-                            @if(count($g['services']) === 0)
+                            @if($g['total'] === 0)
                                 <button type="button" class="danger" data-del="{{ $g['delete'] }}" data-what="المجموعة «{{ $g['name'] }}»">حذف</button>
                             @else
                                 <span class="st-off">الحذف بس للمجموعة الفاضية</span>
@@ -65,6 +64,15 @@
                     <p class="st-empty">ما في خدمات لسا.</p>
                 @endforelse
             </section>
+        @endif
+
+        @if($stopped->isNotEmpty())
+            <details class="st-card st-stopped">
+                <summary class="st-card-h"><h2>موقوفة</h2><span class="st-count">{{ $stopped->count() }} خدمة · ما بتطلع بأزرار الإضافة وبتضل بالكشوفات والتقارير</span></summary>
+                @foreach($stopped as $s)
+                    @include('cp.settings.partials.service-row', ['s' => $s])
+                @endforeach
+            </details>
         @endif
     @elseif($tab === 'methods')
         <div class="st-bar">
@@ -106,17 +114,22 @@
         <input type="hidden" name="_method" value="POST">
         <h2 id="stServiceT">خدمة جديدة</h2>
         <div class="cl-field">
-            <label for="sGroup">المجموعة</label>
-            <select id="sGroup" name="service_group_id" class="st-select">
-                <option value="">بدون مجموعة</option>
-                @foreach($groupOptions as $go)
-                    <option value="{{ $go['id'] }}">{{ $go['name'] }}</option>
-                @endforeach
-            </select>
+            <label for="sName">الاسم</label>
+            <input id="sName" name="name" maxlength="255" required autocomplete="off">
+            <p class="st-warn" id="sDup" hidden>في خدمة بنفس الاسم.</p>
+            <p class="st-hint" id="sRen" hidden></p>
         </div>
         <div class="cl-field">
-            <label for="sName">الاسم</label>
-            <input id="sName" name="name" maxlength="255" required>
+            <label>المجموعة</label>
+            <input type="hidden" name="service_group_id" id="sGroup" value="">
+            <div class="st-glist" id="sGroups" role="radiogroup" aria-label="المجموعة">
+                @foreach($groupOptions as $go)
+                    <button type="button" role="radio" data-g="{{ $go['id'] }}">{{ $go['name'] }}</button>
+                @endforeach
+                <button type="button" role="radio" data-g="">بدون مجموعة</button>
+                <button type="button" class="st-gnew" data-g="new">＋ مجموعة جديدة</button>
+            </div>
+            <input id="sNewGroup" name="new_group_name" maxlength="100" placeholder="اسم المجموعة الجديدة" hidden>
         </div>
         <div class="cl-field">
             <label>طريقة الفوترة</label>
@@ -125,6 +138,11 @@
                 <button type="button" data-b="monthly">شهرية</button>
             </div>
             <input type="hidden" name="billing" id="sBilling" value="once">
+        </div>
+        <label class="st-check"><input type="checkbox" name="has_phases" value="1" id="sPhases"> فيها تصميم وتنفيذ</label>
+        <div class="cl-field">
+            <label for="sPrice">السعر المعتاد</label>
+            <input id="sPrice" name="default_price" inputmode="decimal" placeholder="اختياري">
         </div>
         <label class="st-check"><input type="checkbox" name="is_active" value="1" id="sActive" checked> شغّالة</label>
         <div class="cl-actions">
@@ -172,6 +190,23 @@
         $('sBilling').value = v;
         document.querySelectorAll('.st-billing button').forEach((b) => b.classList.toggle('on', b.dataset.b === v));
     }
+    const names = @json($serviceNames);
+    let editingId = null, oldName = '', titled = 0;
+    function setGroup(v) {
+        $('sGroup').value = v === 'new' ? '' : v;
+        $('sNewGroup').hidden = v !== 'new';
+        if (v === 'new') setTimeout(() => $('sNewGroup').focus(), 20); else $('sNewGroup').value = '';
+        document.querySelectorAll('#sGroups [data-g]').forEach((b) => { const on = b.dataset.g === v; b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); });
+    }
+    $('sGroups').addEventListener('click', (e) => { const b = e.target.closest('[data-g]'); if (b) setGroup(b.dataset.g); });
+    function checkName() {
+        const v = $('sName').value.trim();
+        $('sDup').hidden = !v || !names.some((n) => n.name === v && n.id !== editingId);
+        const ren = editingId && titled > 0 && v && v !== oldName;
+        $('sRen').hidden = !ren;
+        if (ren) $('sRen').textContent = `الاسم الجديد بيطلع على ${titled} حركة قديمة كمان.`;
+    }
+    $('sName').addEventListener('input', checkName);
     document.querySelector('.st-billing').addEventListener('click', (e) => { const b = e.target.closest('[data-b]'); if (b) setBilling(b.dataset.b); });
 
     document.addEventListener('click', (e) => {
@@ -185,9 +220,13 @@
                 const edit = !!op.dataset.url;
                 $('stServiceT').textContent = edit ? 'تعديل الخدمة' : 'خدمة جديدة';
                 $('sName').value = op.dataset.name || '';
-                $('sGroup').value = op.dataset.group || '';
+                editingId = edit ? +op.dataset.id : null; oldName = op.dataset.name || ''; titled = +(op.dataset.titled || 0);
+                setGroup(op.dataset.group || '');
                 setBilling(op.dataset.billing || 'once');
+                $('sPhases').checked = op.dataset.phases === '1';
+                $('sPrice').value = op.dataset.price || '';
                 $('sActive').checked = op.dataset.active !== '0';
+                checkName();
                 show($('stService'), op.dataset.url || urls.service, edit);
             } else {
                 const edit = !!op.dataset.url;

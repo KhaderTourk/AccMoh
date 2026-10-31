@@ -377,7 +377,10 @@
             const t = L.serviceTypes.find((x) => x.id === opt.typeId);
             title = 'خدمة · ' + t.name;
             hid = hidden('client_id', D.client.id) + hidden('service_type_id', t.id);
-            fields = moneyFields(K.amtLabel) + dateField(K.date);
+            fields = (t.phases ? '<div class="cl-field"><label>نوع الشغل</label><div class="cl-seg cs-phase" id="xPhase">'
+                + [['design', 'تصميم'], ['execution', 'تنفيذ'], ['both', 'تصميم وتنفيذ']].map(([v, l]) => `<button type="button" data-p="${v}"${v === 'both' ? ' class="on"' : ''}>${l}</button>`).join('')
+                + '</div><input type="hidden" name="work_phase" id="xPhaseIn" value="both"><p class="st-hint">سعر واحد للشغلتين. إذا السعر مفصول، سجّلهم حركتين.</p></div>' : '')
+                + moneyFields(K.amtLabel) + dateField(K.date);
         } else if (kind === 'sub') {
             const t = L.serviceTypes.find((x) => x.id === opt.typeId);
             title = 'اشتراك شهري · ' + t.name;
@@ -423,11 +426,14 @@
         if ((tx.kind === 'service' || tx.kind === 'sub') && tx.opt.typeId) {
             const t = L.serviceTypes.find((x) => x.id === tx.opt.typeId);
             if (t.last) $('xHint').textContent = 'آخر سعر لهالزبون: ' + num(t.last);
+            else if (t.price) $('xHint').textContent = 'السعر المعتاد: ' + num(t.price);
         }
         if (tx.kind === 'payment') {
             const v = balanceBy('ILS');
             if (v > 0.005) $('xHint').innerHTML = `عليه ${num(v)} ₪ · <button type="button" class="cs-fill" id="xFill">عبّي الكل</button>`;
         }
+        const ph = $('xPhase');
+        if (ph) ph.addEventListener('click', (e) => { const b = e.target.closest('[data-p]'); if (!b) return; ph.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); $('xPhaseIn').value = b.dataset.p; });
         const dir = $('xDir');
         if (dir) dir.addEventListener('click', (e) => { const b = e.target.closest('[data-d]'); if (!b) return; dir.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); $('xDirIn').value = b.dataset.d; check(); });
         cur.addEventListener('change', () => {

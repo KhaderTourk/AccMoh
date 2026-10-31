@@ -75,6 +75,7 @@ class ServiceTypeController extends Controller
         return $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
+            'has_phases' => ['sometimes', 'boolean'],
         ]) + ['is_active' => true];
     }
 }

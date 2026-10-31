@@ -130,10 +130,17 @@ class ClientServiceController extends Controller
             'currency_id' => ['required', 'exists:currencies,id'],
             'service_date' => DateRange::inputRules(),
             'notes' => ['nullable', 'string'],
+            'work_phase' => ['nullable', \Illuminate\Validation\Rule::in(array_keys(ClientService::PHASES))],
         ]);
 
         $type = filled($data['service_type_id'] ?? null) ? ServiceType::query()->find($data['service_type_id']) : null;
         $data['service_type_id'] = $type?->id;
+        // نوع الشغل بس للخدمات اللي إلها شقين؛ غير هيك بينحفظ null.
+        if (! $type?->has_phases) {
+            $data['work_phase'] = null;
+        } elseif (! filled($data['work_phase'] ?? null)) {
+            unset($data['work_phase']); // التعديل بدون الحقل بيحافظ على القيمة القديمة
+        }
         $data['title'] = $type?->name ?: (trim((string) ($data['title'] ?? '')) ?: 'خدمة');
         $data['status'] = ClientServiceStatus::Completed->value;
 

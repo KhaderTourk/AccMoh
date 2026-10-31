@@ -20,6 +20,7 @@ class ClientWorkService
             $service = ClientService::query()->create([
                 'client_id' => $data['client_id'],
                 'service_type_id' => $data['service_type_id'] ?? null,
+                'work_phase' => $data['work_phase'] ?? null,
                 'title' => $data['title'],
                 'description' => $data['description'] ?? null,
                 'amount' => $resolved['amount'],
@@ -44,6 +45,7 @@ class ClientWorkService
 
         $service->update([
             'service_type_id' => array_key_exists('service_type_id', $data) ? $data['service_type_id'] : $service->service_type_id,
+            'work_phase' => array_key_exists('work_phase', $data) ? $data['work_phase'] : $service->work_phase,
             'title' => $data['title'],
             'description' => array_key_exists('description', $data) ? $data['description'] : $service->description,
             'amount' => $resolved['amount'],

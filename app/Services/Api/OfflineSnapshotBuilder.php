@@ -35,7 +35,7 @@ class OfflineSnapshotBuilder
                     ->orderBy('id')
                     ->get(['id', 'name', 'slug']),
                 'service_types' => tenantBusinessEnabled()
-                    ? ServiceType::query()->active()->get(['id', 'name', 'description'])
+                    ? ServiceType::query()->active()->get(['id', 'name', 'description', 'service_group_id', 'billing', 'has_phases'])
                     : collect(),
             ],
             'clients' => tenantBusinessEnabled() ? $this->clients($snapshot) : [],
@@ -154,13 +154,15 @@ class OfflineSnapshotBuilder
             ->with(['client:id,name', 'currency:id,code,symbol'])
             ->orderByDesc('service_date')
             ->limit(150)
-            ->get(['id', 'client_id', 'title', 'amount', 'currency_id', 'service_date', 'status']);
+            ->get(['id', 'client_id', 'service_type_id', 'work_phase', 'title', 'amount', 'currency_id', 'service_date', 'status']);
 
         return $services
             ->map(fn (ClientService $s) => [
                 'id' => $s->id,
                 'client_id' => $s->client_id,
                 'client_name' => $s->client?->name,
+                'service_type_id' => $s->service_type_id,
+                'work_phase' => $s->work_phase,
                 'title' => $s->title,
                 'amount' => (string) $s->amount,
                 'currency_id' => $s->currency_id,

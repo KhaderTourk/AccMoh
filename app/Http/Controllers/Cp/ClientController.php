@@ -151,7 +151,7 @@ class ClientController extends Controller
         })->values();
 
         $serviceTypes = \App\Models\ServiceType::query()->where('is_active', true)->with('group')->orderBy('name')
-            ->get(['id', 'name', 'service_group_id', 'billing'])
+            ->get(['id', 'name', 'service_group_id', 'billing', 'has_phases', 'default_price'])
             ->sortBy(fn ($t) => [$t->group ? 0 : 1, $t->group?->sort_order ?? 0, $t->group?->name ?? '', $t->name])->values();
         $lastPrices = $client->services
             ->sortByDesc(fn ($s) => $s->service_date->format('Y-m-d').sprintf('%010d', $s->id))
@@ -166,6 +166,8 @@ class ClientController extends Controller
                 'name' => $t->name,
                 'group' => $t->group?->name,
                 'monthly' => $t->isMonthly(),
+                'phases' => (bool) $t->has_phases,
+                'price' => $t->default_price !== null ? (float) $t->default_price : null,
                 'last' => $lastPrices[$t->id] ?? null,
             ])->values(),
             'methods' => \App\Models\PaymentMethod::query()->where('is_active', true)->orderBy('sort_order')->get(['id', 'name']),

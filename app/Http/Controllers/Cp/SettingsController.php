@@ -42,6 +42,12 @@ class SettingsController extends Controller
         $subUses = ClientSubscription::query()->whereNotNull('service_type_id')
             ->selectRaw('service_type_id, COUNT(*) as n')->groupBy('service_type_id')->pluck('n', 'service_type_id');
 
+        // عدد الحركات اللي بتحمل اسم الخدمة، عشان تنبيه «الاسم الجديد بيطلع على N حركة».
+        $titled = ClientService::query()->join('service_types', 'service_types.id', '=', 'client_services.service_type_id')
+            ->whereColumn('client_services.title', 'service_types.name')
+            ->selectRaw('client_services.service_type_id, COUNT(*) as n')->groupBy('client_services.service_type_id')
+            ->pluck('n', 'client_services.service_type_id');
+
         $groups = ServiceGroup::query()->orderBy('sort_order')->orderBy('name')->get();
         $types = ServiceType::query()->orderBy('name')->get();
         $toRow = fn (ServiceType $t) => [
@@ -49,7 +55,10 @@ class SettingsController extends Controller
             'name' => $t->name,
             'group' => $t->service_group_id,
             'billing' => $t->billing ?: 'once',
+            'phases' => (bool) $t->has_phases,
+            'price' => $t->default_price !== null ? rtrim(rtrim((string) $t->default_price, '0'), '.') : '',
             'active' => (bool) $t->is_active,
+            'titled' => (int) ($titled[$t->id] ?? 0),
             'uses' => (int) ($serviceUses[$t->id] ?? 0) + (int) ($subUses[$t->id] ?? 0),
             'update' => route('cp.settings.services.update', $t),
             'toggle' => route('cp.settings.services.toggle', $t),
@@ -61,9 +70,12 @@ class SettingsController extends Controller
             'name' => $g->name,
             'update' => route('cp.settings.groups.update', $g),
             'delete' => route('cp.settings.groups.destroy', $g),
-            'services' => $types->where('service_group_id', $g->id)->map($toRow)->values(),
+            'services' => $types->where('service_group_id', $g->id)->where('is_active', true)->map($toRow)->values(),
+            'total' => $types->where('service_group_id', $g->id)->count(),
         ])->values();
-        $ungrouped = $types->whereNull('service_group_id')->map($toRow)->values();
+        $ungrouped = $types->whereNull('service_group_id')->where('is_active', true)->map($toRow)->values();
+        $stopped = $types->where('is_active', false)->map($toRow)->values();
+        $serviceNames = $types->map(fn ($t) => ['id' => $t->id, 'name' => $t->name])->values();
 
         $methodUses = $this->methodUses();
         $methods = PaymentMethod::query()->orderBy('sort_order')->orderBy('name')->get()->map(fn (PaymentMethod $m) => [
@@ -76,7 +88,7 @@ class SettingsController extends Controller
             'delete' => route('cp.settings.methods.destroy', $m),
         ])->values();
 
-        return view('cp.settings.index', compact('tab', 'groupRows', 'ungrouped', 'methods'));
+        return view('cp.settings.index', compact('tab', 'groupRows', 'ungrouped', 'stopped', 'serviceNames', 'methods'));
     }
 
     /* ——— المجموعات ——— */
@@ -217,9 +229,21 @@ class SettingsController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'service_group_id' => ['nullable', Rule::exists('service_groups', 'id')],
+            'new_group_name' => ['nullable', 'string', 'max:100'],
             'billing' => ['required', Rule::in(['once', 'monthly'])],
+            'has_phases' => ['sometimes', 'boolean'],
+            'default_price' => ['nullable', 'numeric', 'gte:0'],
             'is_active' => ['sometimes', 'boolean'],
         ]);
+        // مجموعة جديدة من آخر قائمة المجموعات جوّا نافذة الخدمة.
+        $newGroup = trim((string) ($data['new_group_name'] ?? ''));
+        unset($data['new_group_name']);
+        if ($newGroup !== '') {
+            $data['service_group_id'] = ServiceGroup::query()->where('name', $newGroup)->value('id')
+                ?? ServiceGroup::query()->create(['name' => $newGroup, 'sort_order' => (int) ServiceGroup::query()->max('sort_order') + 1])->id;
+        }
+        $data['has_phases'] = $request->boolean('has_phases');
+        $data['default_price'] = filled($data['default_price'] ?? null) ? $data['default_price'] : null;
         $data['name'] = trim($data['name']);
         $dup = ServiceType::query()->where('name', $data['name'])
             ->when($current, fn ($q) => $q->whereKeyNot($current->id))->exists();
