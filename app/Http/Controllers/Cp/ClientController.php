@@ -81,7 +81,101 @@ class ClientController extends Controller
 
     public function show(Request $request, Client $client, ClientStatementService $statements)
     {
-        return view('cp.finance.clients.show', $this->showPayload($request, $client, $statements));
+        // The page filters by type and period in the browser, so it loads the client's whole history once.
+        $data = $statements->build($client, null, null);
+        $ils = Currency::byCode('ILS');
+
+        $methods = \App\Models\CashPayment::query()
+            ->whereIn('id', $data['timeline']->where('type', 'payment')->pluck('id'))
+            ->with('paymentMethod')->get()->keyBy('id');
+        $takes = $data['goodsTakes']->keyBy('id');
+        $memos = $data['balanceMemos']->keyBy('id');
+        $services = $client->services->keyBy('id');
+
+        $movements = $data['timeline']->map(function (array $m) use ($methods, $takes, $memos, $services) {
+            $row = [
+                'id' => $m['type'].'-'.$m['id'],
+                'date' => $m['date']->format('Y-m-d'),
+                'currency' => $m['currency']->code,
+                'symbol' => $m['currency']->symbol,
+                'delta' => (float) $m['delta'],
+                'amount' => (float) $m['amount'],
+                'notes' => (string) ($m['notes'] ?? ''),
+            ];
+
+            return $row + match ($m['type']) {
+                'service' => [
+                    'group' => 'svc',
+                    'kind' => $services[$m['id']]?->serviceType?->name ?: $services[$m['id']]?->title ?: 'خدمة',
+                    'title' => $services[$m['id']]?->title ?: 'خدمة',
+                    'icon' => 'work',
+                    'edit' => route('cp.client-services.edit', $m['id']),
+                    'delete' => route('cp.client-services.destroy', $m['id']),
+                ],
+                'payment' => [
+                    'group' => 'pay',
+                    'kind' => $methods[$m['id']]?->paymentMethod?->name ?: 'دفعة',
+                    'title' => 'دفعة · '.($methods[$m['id']]?->paymentMethod?->name ?: ''),
+                    'icon' => 'payments',
+                    'edit' => route('cp.payments.edit', $m['id']),
+                    'delete' => route('cp.payments.destroy', $m['id']),
+                ],
+                'goods' => [
+                    'group' => 'other',
+                    'kind' => self::isDiscount($takes[$m['id']] ?? null) ? 'خصم' : 'دفعة بضاعة',
+                    'title' => self::isDiscount($takes[$m['id']] ?? null)
+                        ? 'خصم'
+                        : 'دفعة بضاعة'.($takes[$m['id']]?->title ? ' · '.$takes[$m['id']]->title : ''),
+                    'icon' => self::isDiscount($takes[$m['id']] ?? null) ? 'percent' : 'inventory_2',
+                    'edit' => route('cp.client-goods-takes.edit', $m['id']),
+                    'delete' => route('cp.client-goods-takes.destroy', $m['id']),
+                ],
+                'memo' => [
+                    'group' => 'other',
+                    'kind' => 'رصيد سابق',
+                    'title' => $m['title'],
+                    'icon' => 'history',
+                    'edit' => route('cp.balance-memos.edit', $m['id']),
+                    'delete' => route('cp.balance-memos.destroy', $m['id']),
+                ],
+                default => ['group' => 'other', 'kind' => 'أخرى', 'title' => $m['title'], 'icon' => 'layers', 'edit' => null, 'delete' => null],
+            };
+        })->values();
+
+        $serviceTypes = \App\Models\ServiceType::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']);
+        $lastPrices = $client->services
+            ->sortByDesc(fn ($s) => $s->service_date->format('Y-m-d').sprintf('%010d', $s->id))
+            ->groupBy('service_type_id')
+            ->map(fn ($rows) => (float) ($rows->first()->source_amount ?: $rows->first()->amount));
+
+        $lookups = [
+            'ilsId' => $ils->id,
+            'currencies' => Currency::query()->active()->get(['id', 'code', 'symbol', 'name']),
+            'serviceTypes' => $serviceTypes->map(fn ($t) => ['id' => $t->id, 'name' => $t->name, 'last' => $lastPrices[$t->id] ?? null])->values(),
+            'methods' => \App\Models\PaymentMethod::query()->where('is_active', true)->orderBy('sort_order')->get(['id', 'name']),
+            'fundId' => (tenantBusinessEnabled() ? \App\Models\Fund::query()->where('slug', 'business')->value('id') : null)
+                ?: \App\Models\Fund::family()->id,
+            'rates' => \App\Models\CashPayment::query()->whereNotNull('fx_currency_id')->whereNotNull('exchange_rate')
+                ->latest('occurred_on')->get(['fx_currency_id', 'exchange_rate'])->unique('fx_currency_id')
+                ->mapWithKeys(fn ($p) => [$p->fx_currency_id => (float) $p->exchange_rate]),
+        ];
+
+        return view('cp.finance.clients.show', [
+            'client' => $client,
+            'movements' => $movements,
+            'lookups' => $lookups,
+            'balances' => collect($data['summaries'])->map(fn ($s) => [
+                'code' => $s['currency']->code,
+                'amount' => (float) $s['lifetime_due'],
+                'label' => $s['currency']->format(Money::abs($s['lifetime_due'])),
+            ])->filter(fn ($b) => abs($b['amount']) >= 0.005)->values(),
+        ]);
+    }
+
+    protected static function isDiscount(?\App\Models\ClientGoodsTake $take): bool
+    {
+        // Goods takes keep their category as the title: the discount preset is stored as «خصم».
+        return $take?->title === \App\Enums\GoodsTakeCategory::Discount->label();
     }
 
     public function exportPdf(Request $request, Client $client, PdfExporter $pdf, ClientStatementService $statements)
