@@ -9,6 +9,10 @@
     @endphp
     @component('cp.partials.filter-panel', ['count' => $filterCount, 'open' => true])
         @slot('actions')
+            <a href="{{ route('cp.reports.services', $filterQuery) }}" class="cp-btn cp-btn-ghost">
+                <span class="material-symbols-outlined">category</span>
+                دخل الخدمات
+            </a>
             <a href="{{ route('cp.reports.export-pdf', $filterQuery) }}" class="cp-btn cp-btn-ghost">
                 <span class="material-symbols-outlined">picture_as_pdf</span>
                 تصدير PDF

@@ -21,6 +21,7 @@ class ServiceType extends Model
         'name',
         'service_group_id',
         'billing',
+        'has_phases',
         'description',
         'default_price',
         'default_currency_id',
@@ -32,6 +33,7 @@ class ServiceType extends Model
         return [
             'default_price' => 'decimal:2',
             'is_active' => 'boolean',
+            'has_phases' => 'boolean',
         ];
     }
 

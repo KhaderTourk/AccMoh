@@ -1,0 +1,359 @@
+<title>ترتيب خدمات براند</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
+<style>
+/* تقرير: رأس قصير، شاشة الخدمات، نافذة الحركة، معاينة التقرير، ملاحظات */
+:root{
+  --pink:#FB005B;--pink-soft:rgba(251,0,91,.09);--navy:#0B2537;
+  --bg:#F3F4F7;--surface:#FFFFFF;--fg:#0B2537;--muted:#6B7787;--line:#E6E9EE;--hover:#F6F7FA;--chip:#EDEFF3;--credit:#0E8A5F;
+  --field:#F6F7F9;--field-line:#DCE1E7;
+  --font:"IBM Plex Sans Arabic",-apple-system,"SF Arabic","Segoe UI",Tahoma,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#06141F;--surface:#0E2333;--fg:#EEF2F6;--muted:#8E9DAC;--line:#1C3447;--hover:#132C3F;--chip:#173246;--credit:#3DD39B;--pink-soft:rgba(251,0,91,.12);--field:#081925;--field-line:#2A4660;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#06141F;--surface:#0E2333;--fg:#EEF2F6;--muted:#8E9DAC;--line:#1C3447;--hover:#132C3F;--chip:#173246;--credit:#3DD39B;--pink-soft:rgba(251,0,91,.12);--field:#081925;--field-line:#2A4660;color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:15px;line-height:1.6;direction:rtl;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 56px}
+.wrap{max-width:980px;margin:0 auto;display:grid;gap:30px}
+header h1{margin:0;font-size:1.6rem;text-wrap:balance}
+header p{margin:4px 0 0;color:var(--muted)}
+.status{display:inline-block;margin-top:10px;background:var(--pink-soft);color:var(--pink);font-weight:600;font-size:.82rem;padding:5px 12px;border-radius:999px}
+h2{margin:0 0 4px;font-size:1.15rem}
+.sec>p.lead{margin:0 0 14px;color:var(--muted);font-size:.92rem;max-width:65ch}
+.frame{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:0 18px 50px -26px rgba(11,37,55,.4)}
+.bar{display:flex;gap:8px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--hover);border-radius:16px 16px 0 0;direction:ltr}
+.bar i{width:11px;height:11px;border-radius:50%;background:var(--line)}
+.bar span{flex:1;text-align:center;font-size:.78rem;color:var(--muted)}
+.main{padding:22px;display:grid;gap:14px}
+.top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.top h3{margin:0;font-size:1.5rem;flex:1}
+.btn{font:inherit;font-weight:600;border:0;border-radius:10px;cursor:pointer;padding:9px 16px}
+.btn-primary{background:var(--pink);color:#fff}
+.btn-ghost{background:var(--chip);color:var(--fg)}
+.btn:focus-visible,.switch:focus-visible,.seg button:focus-visible,.dd-btn:focus-visible,.more:focus-visible{outline:2px solid var(--pink);outline-offset:2px}
+.key{display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:.8rem}
+.pcard{border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+.pcard-h{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line)}
+.pcard-h b{font-size:.98rem}
+.pcard-h small{color:var(--muted);font-size:.78rem}
+.pcard-h .sp{flex:1}
+.prow{display:grid;grid-template-columns:minmax(0,1fr) auto 44px 32px;gap:12px;align-items:center;padding:10px 14px;border-top:1px solid var(--line)}
+.prow:first-of-type{border-top:0}
+.prow .who b{font-weight:600;display:block}
+.prow .who span{color:var(--muted);font-size:.8rem}
+.prow .who .m{color:var(--pink);font-weight:600}
+.prow.off .who{opacity:.5}
+.prow.new{background:var(--pink-soft)}
+.tags{display:flex;gap:4px}
+.tag{font-size:.72rem;border-radius:999px;padding:1px 9px;white-space:nowrap;background:var(--chip);color:var(--fg)}
+.tag.n{background:var(--pink);color:#fff}
+.tag.r{background:transparent;box-shadow:inset 0 0 0 1px var(--line);color:var(--muted)}
+.switch{position:relative;width:44px;height:26px;border:0;border-radius:999px;background:var(--chip);cursor:pointer;padding:0}
+.switch::after{content:"";position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .2s}
+.switch[aria-checked="true"]{background:var(--pink)}
+.switch[aria-checked="true"]::after{transform:translateX(-18px)}
+.more{width:32px;height:32px;border:0;border-radius:8px;background:transparent;color:var(--muted);font-size:1.2rem;cursor:pointer}
+.stopped summary{cursor:pointer;list-style:none;display:flex;gap:8px;align-items:center;padding:10px 14px;color:var(--muted)}
+.stopped summary::-webkit-details-marker{display:none}
+.stopped summary::before{content:"‹";transition:transform .2s;display:inline-block}
+.stopped[open] summary::before{transform:rotate(-90deg)}
+.stopped[open] summary{border-bottom:1px solid var(--line)}
+
+/* نافذة الحركة */
+.sheet-wrap{display:grid;place-items:center;padding:28px 16px;background:color-mix(in srgb,var(--navy) 55%,transparent);border-radius:0 0 16px 16px}
+.sheet{width:min(460px,100%);background:var(--surface);border:1px solid var(--line);border-radius:18px;display:grid;gap:16px;padding-bottom:18px;box-shadow:0 30px 70px -20px rgba(6,20,31,.6)}
+.sheet-head{padding:14px 20px;border-bottom:1px solid var(--line);text-align:center;font-weight:700}
+.sheet-head small{display:block;color:var(--muted);font-weight:400;font-size:.78rem}
+.group{margin:0 20px;display:grid;gap:14px}
+.field{display:grid;gap:6px;position:relative}
+.field>label{font-size:.84rem;font-weight:600}
+.field input,.dd-btn{font:inherit;color:var(--fg);background:var(--field);border:1px solid var(--field-line);border-radius:10px;padding:10px 12px;height:46px;width:100%}
+.field input:focus{border-color:var(--pink);box-shadow:0 0 0 3px var(--pink-soft);outline:none}
+.two{display:grid;grid-template-columns:1.4fr 1fr;gap:12px}
+.dd-btn{display:flex;justify-content:space-between;align-items:center;cursor:pointer;text-align:right}
+.dd-btn::after{content:"";width:7px;height:7px;border-left:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg) translateY(-2px)}
+.dd-btn small{color:var(--muted);font-size:.78rem;margin-inline-start:6px}
+.menu{position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:20;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 14px 34px -12px rgba(11,37,55,.45);padding:5px;max-height:300px;overflow:auto;display:grid}
+.menu .g{font-size:.72rem;font-weight:600;color:var(--muted);padding:8px 12px 2px}
+.menu button{font:inherit;text-align:right;border:0;background:transparent;color:var(--fg);padding:7px 12px;border-radius:8px;cursor:pointer;display:flex;justify-content:space-between;gap:8px}
+.menu button:hover{background:var(--hover)}
+.menu button[aria-selected="true"]{color:var(--pink);font-weight:600}
+.menu button i{font-style:normal;font-size:.7rem;color:var(--muted)}
+.seg{display:flex;background:var(--chip);border-radius:10px;padding:3px}
+.seg button{flex:1;font:inherit;font-size:.9rem;border:0;background:transparent;color:var(--fg);padding:8px 10px;border-radius:8px;cursor:pointer}
+.seg button.on{background:var(--fg);color:var(--surface);font-weight:600}
+.hint{color:var(--muted);font-size:.78rem}
+.amt{direction:ltr;text-align:right;font-variant-numeric:tabular-nums}
+.foot{display:flex;gap:8px;padding:14px 20px 0;border-top:1px solid var(--line)}
+.phase-in{animation:pin .2s ease-out}
+@keyframes pin{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+
+/* التقرير */
+.rep{width:100%;border-collapse:collapse;font-size:.9rem;min-width:520px}
+.rep-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+.rep th{font-size:.76rem;color:var(--muted);font-weight:600;text-align:right;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--hover)}
+.rep td{padding:9px 14px;border-bottom:1px solid var(--line)}
+.rep td:nth-child(n+2),.rep th:nth-child(n+2){text-align:left;font-variant-numeric:tabular-nums;direction:ltr;white-space:nowrap}
+.rep tr.grp td{font-weight:700;background:var(--hover)}
+.rep tr.sub td:first-child{padding-inline-start:30px}
+.rep td.z{color:var(--muted)}
+.ex{font-size:.75rem;color:var(--muted);margin:8px 0 0}
+
+/* ملاحظات */
+.notes{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 26px;counter-reset:n}
+.notes li{counter-increment:n;display:grid;grid-template-columns:26px 1fr;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.notes li::before{content:counter(n);width:26px;height:26px;border-radius:50%;background:var(--pink-soft);color:var(--pink);display:grid;place-items:center;font-weight:700;font-size:.8rem}
+.notes b{display:block}
+.notes span{color:var(--muted);font-size:.9rem}
+.notes li.warn::before{content:"!";background:var(--pink);color:#fff}
+/* نافذة الخدمة */
+.modal{position:fixed;inset:0;z-index:50;background:rgba(6,20,31,.62);backdrop-filter:blur(3px);display:grid;place-items:start center;padding:56px 16px 16px;overflow:auto}
+.modal .sheet{animation:pin .22s ease-out}
+.sw-row{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--field);border:1px solid var(--field-line);border-radius:12px;padding:10px 12px}
+.sw-row b{display:block;font-size:.88rem}
+.sw-row span{display:block;color:var(--muted);font-size:.78rem}
+.err{color:var(--pink);font-size:.78rem}
+.btn-primary:disabled{background:var(--chip);color:var(--muted);cursor:not-allowed}
+.newg{display:flex;gap:6px}
+.newg input{flex:1}
+.menu .add{color:var(--pink);border-top:1px solid var(--line);border-radius:0 0 8px 8px}
+.toast{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);z-index:60;background:var(--navy);color:#fff;padding:8px 18px;border-radius:999px;font-size:.9rem}
+.prow.flash{animation:fl 2.4s ease-out}
+@keyframes fl{0%,50%{background:var(--pink-soft)}100%{background:transparent}}
+.prow .more:hover{background:var(--chip);color:var(--fg)}
+@media (max-width:720px){.notes{grid-template-columns:1fr}.two{grid-template-columns:1fr}.prow{grid-template-columns:minmax(0,1fr) 44px 32px}.prow .tags{grid-column:1/-1;grid-row:2}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+<header>
+  <h1>ترتيب الخدمات مع حقل «تصميم / تنفيذ»</h1>
+  <p>صورة ثابتة للمراجعة. الشاشة بتشتغل بالضغط عشان تجرّب، بس ما في إشي بينحفظ.</p>
+  <span class="status">بانتظار موافقة م. محمد</span>
+</header>
+
+<section class="sec">
+  <h2>١. شاشة الخدمات بعد الترتيب</h2>
+  <p class="lead">جرّب «＋ خدمة» أو ⋯ جنب أي خدمة لتعديلها، والخدمة اللي بتضيفها بتطلع فوراً بقائمة الحركة تحت. ٦ مجموعات بدل «بدون مجموعة». الخدمة اللي إلها شقين عليها وسم «تصميم · تنفيذ»، وهاد معناه إن الحقل بيطلع بالحركة. «أخرى» نازلة تحت بالموقوفة.</p>
+  <div class="frame">
+    <div class="bar"><i></i><i></i><i></i><span>الإعدادات ‹ الخدمات</span></div>
+    <div class="main">
+      <div class="top"><h3>الخدمات</h3><button class="btn btn-primary" type="button" id="addSvc">＋ خدمة</button></div>
+      <div class="key"><span><span class="tag">تصميم · تنفيذ</span> الحقل بيطلع بالحركة</span><span><span class="tag n">جديدة</span> خدمة بتنضاف</span><span><span class="tag r">اسم جديد</span> تعديل اسم بس</span></div>
+      <div id="groups" style="display:grid;gap:12px"></div>
+      <details class="pcard stopped">
+        <summary>موقوفة · خدمة وحدة</summary>
+        <div class="prow off">
+          <div class="who"><b>أخرى</b><span>لمرة وحدة · مستعملة 9 مرات · ما بتطلع بالحركات الجديدة</span></div>
+          <div class="tags"></div>
+          <button class="switch" role="switch" aria-checked="false" aria-label="تشغيل أخرى" type="button"></button>
+          <button class="more" type="button" aria-label="خيارات">⋯</button>
+        </div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <h2>٢. إضافة حركة خدمة</h2>
+  <p class="lead">جرّب تغيّر الخدمة من القائمة: «مطبوعات» أو «ديكور وواجهات» بيطلع معهم الحقل، و«إدارة حسابات التواصل» أو «برمجة وتطوير» بيختفي.</p>
+  <div class="frame">
+    <div class="bar"><i></i><i></i><i></i><span>زبون ‹ مطعم السرايا</span></div>
+    <div class="sheet-wrap">
+      <form class="sheet" id="tx" onsubmit="event.preventDefault()">
+        <div class="sheet-head">حركة خدمة<small>مطعم السرايا · مثال</small></div>
+        <div class="group">
+          <div class="field">
+            <label id="svcL">الخدمة</label>
+            <button class="dd-btn" id="svcBtn" type="button" aria-haspopup="listbox" aria-labelledby="svcL svcBtn"><span id="svcTxt"></span></button>
+            <div class="menu" id="svcMenu" role="listbox" hidden></div>
+          </div>
+          <div class="field phase-in" id="phaseF">
+            <label>نوع الشغل</label>
+            <div class="seg" id="phase" role="radiogroup">
+              <button type="button" role="radio" data-v="d">تصميم</button>
+              <button type="button" role="radio" data-v="e">تنفيذ</button>
+              <button type="button" role="radio" data-v="b" class="on">تصميم وتنفيذ</button>
+            </div>
+            <span class="hint" id="phaseHint"></span>
+          </div>
+          <div class="field">
+            <label for="title">العنوان</label>
+            <input id="title" value="رول أب ٢ قطعة، داخلي" autocomplete="off">
+            <span class="hint">التفاصيل زي داخلي أو خارجي أو المقاس بتنكتب هون أو بالملاحظات.</span>
+          </div>
+          <div class="two">
+            <div class="field"><label for="amt">المبلغ</label><input id="amt" class="amt" value="1,200" inputmode="decimal"></div>
+            <div class="field"><label for="dt">التاريخ</label><input id="dt" class="amt" value="31/10/2026"></div>
+          </div>
+        </div>
+        <div class="foot"><button class="btn btn-primary" type="submit">حفظ</button><button class="btn btn-ghost" type="button">إلغاء</button></div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <h2>٣. شو بتربح بالتقارير</h2>
+  <p class="lead">تقرير دخل الخدمات بيقدر يفصل كل خدمة على الشقين. الأرقام هون توضيحية بس، مش من بياناتك.</p>
+  <div class="rep-wrap">
+    <table class="rep">
+      <thead><tr><th>الخدمة</th><th>تصميم</th><th>تنفيذ</th><th>الاثنين مع بعض</th><th>المجموع</th></tr></thead>
+      <tbody>
+        <tr class="grp"><td>مطبوعات وتغليف</td><td>1,400</td><td>5,200</td><td>2,600</td><td>9,200</td></tr>
+        <tr class="sub"><td>مطبوعات</td><td>1,000</td><td>4,000</td><td>2,600</td><td>7,600</td></tr>
+        <tr class="sub"><td>تغليف</td><td>400</td><td>1,200</td><td class="z">0</td><td>1,600</td></tr>
+        <tr class="grp"><td>ديكور وواجهات</td><td>3,000</td><td>12,500</td><td>8,000</td><td>23,500</td></tr>
+        <tr class="grp"><td>سوشيال ميديا</td><td class="z">—</td><td class="z">—</td><td class="z">—</td><td>6,300</td></tr>
+        <tr class="sub"><td>بدون تحديد <small>· حركات قديمة</small></td><td class="z">—</td><td class="z">—</td><td class="z">—</td><td>3,100</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="ex">المبالغ بالشيكل. «بدون تحديد» هي الحركات اللي انسجّلت قبل الحقل، وبتقدر تحددها لاحقاً إذا بدك.</p>
+</section>
+
+<section class="sec">
+  <h2>ملاحظات قبل الموافقة</h2>
+  <ul class="notes">
+    <li><div><b>الحقل بيطلع بس للخدمات اللي إلها شقين</b><span>مطبوعات وتغليف وديكور وواجهات. بتقدر تشغّله لأي خدمة من نافذة تعديلها.</span></div></li>
+    <li><div><b>«تصميم وتنفيذ» خيار ثالث</b><span>لما السعر واحد للشغلتين. إذا السعر مفصول، الأدق تسجّلهم حركتين عشان التقرير يفصل الربح.</span></div></li>
+    <li><div><b>تصميم شعار خدمة لحالها</b><span>تحت «هوية بصرية»، والهوية الكاملة بتشمل الدليل.</span></div></li>
+    <li><div><b>الموقع والتطبيق لنفس النظام</b><span>حركة وحدة على «برمجة وتطوير»، والتفاصيل بالعنوان.</span></div></li>
+    <li class="warn"><div><b>تغيير الاسم بيمشي على القديم</b><span>كل حركة مربوطة بخدمة وحدة برقمها، فلما «هوية بصرية» يصير «هوية بصرية كاملة» الحركات الخمس القديمة بتطلع بالاسم الجديد. ما في إشي بينحذف.</span></div></li>
+    <li class="warn"><div><b>«أخرى» بتتوقف ما بتنحذف</b><span>الإيقاف بيخفيها من الحركات الجديدة بس، والتسعة القديمة بتضل بالكشوفات والتقارير باسمها.</span></div></li>
+  </ul>
+</section>
+</div>
+
+<div class="modal" id="modal" hidden>
+  <form class="sheet" id="svcForm" autocomplete="off">
+    <div class="sheet-head" id="mTitle">خدمة جديدة</div>
+    <div class="group">
+      <div class="field">
+        <label for="sName">اسم الخدمة</label>
+        <input id="sName" placeholder="مثلاً: تصميم بوستر">
+        <span class="err" id="sErr" hidden></span>
+        <span class="hint" id="sRen" hidden></span>
+      </div>
+      <div class="field">
+        <label id="gL">المجموعة</label>
+        <button class="dd-btn" id="gBtn" type="button" aria-haspopup="listbox" aria-labelledby="gL gBtn"><span id="gTxt"></span></button>
+        <div class="menu" id="gMenu" role="listbox" hidden></div>
+        <div class="newg" id="newG" hidden><input id="gNew" placeholder="اسم المجموعة الجديدة"><button class="btn btn-ghost" type="button" id="gCancel">رجوع</button></div>
+      </div>
+      <div class="field">
+        <label>طريقة الحساب</label>
+        <div class="seg" id="bill" role="radiogroup">
+          <button type="button" role="radio" data-v="o" class="on">لمرة وحدة</button>
+          <button type="button" role="radio" data-v="m">شهرية</button>
+        </div>
+      </div>
+      <div class="sw-row">
+        <div><b>فيها تصميم وتنفيذ</b><span>بيطلع حقل «نوع الشغل» لما تسجّل حركة عليها</span></div>
+        <button class="switch" role="switch" aria-checked="false" id="sPh" type="button" aria-label="فيها تصميم وتنفيذ"></button>
+      </div>
+      <div class="field">
+        <label for="sPrice">السعر المعتاد <span class="hint">اختياري، بالشيكل</span></label>
+        <input id="sPrice" class="amt" inputmode="decimal" placeholder="0">
+      </div>
+    </div>
+    <div class="foot"><button class="btn btn-primary" type="submit" id="sSave" disabled>حفظ</button><button class="btn btn-ghost" type="button" id="sCancel">إلغاء</button></div>
+  </form>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const G=[
+ {n:"هوية بصرية",s:[["تصميم شعار",0,"o","n"],["هوية بصرية كاملة",5,"o","r"]]},
+ {n:"مطبوعات وتغليف",s:[["مطبوعات",14,"o","",1],["تغليف",0,"o","",1]]},
+ {n:"ديكور وواجهات",s:[["ديكور وواجهات",2,"o","",1]]},
+ {n:"سوشيال ميديا",s:[["تصاميم سوشيال ميديا",1,"o"],["إدارة حسابات التواصل",53,"m"],["إدارة الإعلانات الممولة",110,"m"]]},
+ {n:"تصوير ومونتاج",s:[["إنتاج ريلز",24,"o"],["إنتاج فيديو",2,"o"]]},
+ {n:"برمجة وتطوير",s:[["برمجة وتطوير",3,"o"]]}
+];
+const uses=n=>n===0?"مش مستعملة":n===1?"مستعملة مرة":n===2?"مستعملة مرتين":`مستعملة ${n} ${n<=10?"مرات":"مرة"}`;
+const cnt=n=>n===1?"خدمة وحدة":n===2?"خدمتين":`${n} خدمات`;
+const esc=t=>t.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+G.forEach(g=>g.s.forEach(s=>s[5]=true));
+function render(flashName){
+document.getElementById("groups").innerHTML=G.filter(g=>g.s.length).map((g,gi)=>`
+ <div class="pcard"><div class="pcard-h"><b>${esc(g.n)}</b><small>${cnt(g.s.length)}</small></div>
+ ${g.s.map(([nm,u,b,flag,ph,on])=>`<div class="prow${flag==="n"?" new":""}${on?"":" off"}${nm===flashName?" flash":""}" data-n="${esc(nm)}">
+   <div class="who"><b>${esc(nm)}</b><span>${b==="m"?'<span class="m">شهرية</span>':"لمرة وحدة"} · ${uses(u)}${flag==="r"?" · كانت «هوية بصرية»":""}</span></div>
+   <div class="tags">${ph?'<span class="tag">تصميم · تنفيذ</span>':""}${flag==="n"?'<span class="tag n">جديدة</span>':""}${flag==="r"?'<span class="tag r">اسم جديد</span>':""}</div>
+   <button class="switch" role="switch" aria-checked="${on}" aria-label="تشغيل ${esc(nm)}" type="button" data-act="toggle"></button>
+   <button class="more" type="button" aria-label="تعديل ${esc(nm)}" data-act="edit">⋯</button></div>`).join("")}
+ </div>`).join("");
+}
+const find=n=>{for(const g of G){const s=g.s.find(s=>s[0]===n);if(s)return[g,s]}return[]};
+const toast=t=>{const el=document.getElementById("toast");el.textContent=t;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>el.hidden=true,2200)};
+document.getElementById("groups").addEventListener("click",e=>{
+  const b=e.target.closest("[data-act]");if(!b)return;const n=b.closest(".prow").dataset.n;const[g,s]=find(n);
+  if(b.dataset.act==="toggle"){s[5]=!s[5];render();pick(s[5]||cur!==n?cur:firstOn());toast(s[5]?`«${n}» رجعت تطلع بالحركات`:`«${n}» موقوفة، حركاتها القديمة باقية`)}
+  else openModal(n);
+});
+document.querySelector(".stopped .switch").onclick=()=>toast("«أخرى» بتضل موقوفة بهالمقترح");
+
+/* نافذة الخدمة */
+const modal=document.getElementById("modal"),form=document.getElementById("svcForm"),sName=document.getElementById("sName"),sErr=document.getElementById("sErr"),sRen=document.getElementById("sRen"),sSave=document.getElementById("sSave"),sPh=document.getElementById("sPh"),bill=document.getElementById("bill"),gBtn=document.getElementById("gBtn"),gMenu=document.getElementById("gMenu"),gTxt=document.getElementById("gTxt"),newG=document.getElementById("newG"),gNew=document.getElementById("gNew");
+let editing=null,grp="";
+function setGroup(n){grp=n;gTxt.textContent=n;gMenu.innerHTML=G.map(g=>`<button type="button" role="option" aria-selected="${g.n===grp}" data-g="${esc(g.n)}">${esc(g.n)}</button>`).join("")+`<button type="button" class="add" data-new="1">＋ مجموعة جديدة</button>`}
+function setBill(v){bill.querySelectorAll("button").forEach(x=>{x.classList.toggle("on",x.dataset.v===v);x.setAttribute("aria-checked",x.dataset.v===v)})}
+function openModal(n){
+  editing=n||null;const[g,s]=n?find(n):[];
+  document.getElementById("mTitle").textContent=n?"تعديل الخدمة":"خدمة جديدة";
+  sName.value=n||"";setGroup(g?g.n:G[1].n);setBill(s?s[2]:"o");sPh.setAttribute("aria-checked",!!(s&&s[4]));
+  document.getElementById("sPrice").value="";newG.hidden=true;gBtn.hidden=false;gMenu.hidden=true;
+  modal.hidden=false;check();setTimeout(()=>sName.focus(),50);
+}
+function close(){modal.hidden=true}
+function check(){
+  const v=sName.value.trim();const[,dup]=find(v);const isDup=dup&&v!==editing;
+  sErr.hidden=!isDup;sErr.textContent=isDup?"في خدمة بنفس الاسم":"";
+  const[,old]=editing?find(editing):[];
+  sRen.hidden=!(editing&&v&&v!==editing&&old[1]>0);sRen.textContent=old?`الاسم الجديد بيطلع على ${old[1]===1?"حركة وحدة قديمة":old[1]===2?"حركتين قديمات":old[1]+(old[1]<=10?" حركات قديمة":" حركة قديمة")} كمان.`:"";
+  const g=newG.hidden?grp:gNew.value.trim();
+  sSave.disabled=!v||isDup||!g;
+}
+sName.oninput=check;gNew.oninput=check;
+document.getElementById("addSvc").onclick=()=>openModal();
+document.getElementById("sCancel").onclick=close;
+modal.onclick=e=>{if(e.target===modal)close()};
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!modal.hidden)close()});
+gBtn.onclick=()=>gMenu.hidden=!gMenu.hidden;
+gMenu.onclick=e=>{const b=e.target.closest("button");if(!b)return;gMenu.hidden=true;if(b.dataset.new){gBtn.hidden=true;newG.hidden=false;gNew.value="";gNew.focus()}else setGroup(b.dataset.g);check()};
+document.getElementById("gCancel").onclick=()=>{newG.hidden=true;gBtn.hidden=false;check()};
+bill.onclick=e=>{const b=e.target.closest("button");if(b)setBill(b.dataset.v)};
+sPh.onclick=()=>sPh.setAttribute("aria-checked",sPh.getAttribute("aria-checked")!=="true");
+form.onsubmit=e=>{
+  e.preventDefault();if(sSave.disabled)return;
+  const name=sName.value.trim(),b=bill.querySelector(".on").dataset.v,ph=sPh.getAttribute("aria-checked")==="true";
+  let gName=newG.hidden?grp:gNew.value.trim();let g=G.find(x=>x.n===gName);if(!g){g={n:gName,s:[]};G.push(g)}
+  if(editing){const[og,s]=find(editing);og.s.splice(og.s.indexOf(s),1);s[0]=name;s[2]=b;s[4]=ph;if(name!==editing&&s[3]!=="n")s[3]="r";g.s.push(s);if(cur===editing)cur=name}
+  else g.s.push([name,0,b,"n",ph,true]);
+  close();render(name);pick(cur);
+  toast(editing?"انحفظ التعديل":`انضافت «${name}»، جرّبها بالحركة تحت`);
+};
+const firstOn=()=>{for(const g of G)for(const s of g.s)if(s[5])return s[0]};
+render();
+
+const btn=document.getElementById("svcBtn"),menu=document.getElementById("svcMenu"),txt=document.getElementById("svcTxt"),pf=document.getElementById("phaseF");
+let cur="مطبوعات";
+function pick(name){
+  cur=name;const g=G.find(g=>g.s.some(s=>s[0]===name)),s=g.s.find(s=>s[0]===name);
+  txt.innerHTML=`${esc(name)}${g.n!==name?`<small>${esc(g.n)}</small>`:""}`;
+  pf.hidden=!s[4]; if(s[4]){pf.classList.remove("phase-in");void pf.offsetWidth;pf.classList.add("phase-in")}
+  menu.innerHTML=G.filter(g=>g.s.some(s=>s[5])).map(g=>`<div class="g">${esc(g.n)}</div>`+g.s.filter(s=>s[5]).map(s=>`<button type="button" role="option" aria-selected="${s[0]===cur}" data-n="${esc(s[0])}">${esc(s[0])}${s[4]?"<i>تصميم · تنفيذ</i>":""}</button>`).join("")).join("");
+}
+btn.onclick=()=>{menu.hidden=!menu.hidden};
+menu.onclick=e=>{const b=e.target.closest("button");if(b){pick(b.dataset.n);menu.hidden=true}};
+document.addEventListener("click",e=>{if(!e.target.closest(".field")){menu.hidden=true;gMenu.hidden=true}});
+const hints={d:"بيتحسب بالتقرير على شق التصميم.",e:"بيتحسب بالتقرير على شق التنفيذ.",b:"سعر واحد للشغلتين. إذا السعر مفصول، سجّلهم حركتين."};
+const ph=document.getElementById("phase"),hint=document.getElementById("phaseHint");
+ph.onclick=e=>{const b=e.target.closest("button");if(!b)return;ph.querySelectorAll("button").forEach(x=>{x.classList.toggle("on",x===b);x.setAttribute("aria-checked",x===b)});hint.textContent=hints[b.dataset.v]};
+hint.textContent=hints.b;
+pick(cur);
+</script>

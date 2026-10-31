@@ -21,6 +21,7 @@ class ClientService extends Model
     protected $fillable = [
         'client_id',
         'service_type_id',
+        'work_phase',
         'subscription_id',
         'period',
         'title',
@@ -34,6 +35,8 @@ class ClientService extends Model
         'status',
         'notes',
     ];
+
+    public const PHASES = ['design' => 'تصميم', 'execution' => 'تنفيذ', 'both' => 'تصميم وتنفيذ'];
 
     protected function casts(): array
     {

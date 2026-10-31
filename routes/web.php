@@ -140,6 +140,7 @@ Route::prefix('cp')->name('cp.')->middleware(['cp.auth', 'cp.check'])->group(fun
 
     Route::get('/ledger', [LedgerController::class, 'index'])->name('ledger.index');
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+    Route::get('/reports/services', [\App\Http\Controllers\Cp\ServiceIncomeController::class, 'index'])->name('reports.services');
     Route::get('/reports/pdf', [ReportController::class, 'exportPdf'])->name('reports.export-pdf');
 
     Route::get('/api-operations', [ApiOperationController::class, 'index'])->name('api-operations.index');
