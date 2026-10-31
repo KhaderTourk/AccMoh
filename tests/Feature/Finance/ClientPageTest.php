@@ -104,4 +104,48 @@ class ClientPageTest extends TestCase
 
         $this->assertSame('0.00', $client->fresh()->outstandingAmount($this->ils->id));
     }
+
+    public function test_statement_pdf_follows_the_page_filter(): void
+    {
+        $client = Client::query()->create(['name' => 'زبون الكشف', 'is_active' => true]);
+        $type = ServiceType::query()->where('is_active', true)->firstOrFail();
+        $method = PaymentMethod::query()->where('is_active', true)->firstOrFail();
+        $fund = Fund::query()->where('slug', 'business')->first() ?? Fund::family();
+
+        $this->actingAs($this->user)->post(route('cp.client-services.store'), [
+            'client_id' => $client->id, 'service_type_id' => $type->id, 'title' => 'تصميم شعار',
+            'currency_id' => $this->ils->id, 'amount' => 500, 'service_date' => '3/10/2026',
+        ]);
+        $this->actingAs($this->user)->post(route('cp.payments.store', ['incoming']), [
+            'party_key' => 'client:'.$client->id, 'fund_id' => $fund->id, 'payment_method_id' => $method->id,
+            'currency_id' => $this->ils->id, 'amount' => 200, 'occurred_on' => '5/10/2026',
+        ]);
+
+        // Render the statement as HTML instead of a PDF so its text can be checked.
+        $this->app->instance(\App\Services\Export\PdfExporter::class, new class extends \App\Services\Export\PdfExporter
+        {
+            public function download(string $view, array $data, string $filename): \Illuminate\Http\Response
+            {
+                return response(view($view, $data)->render());
+            }
+        });
+
+        $this->actingAs($this->user)->get(route('cp.clients.export-pdf', $client))
+            ->assertOk()
+            ->assertSee('كشف حساب')
+            ->assertSee('براند للحلول الإبداعية المتكاملة')
+            ->assertSee('الرصيد المستحق بتاريخ')
+            ->assertSee('خلال 15 يوماً')
+            ->assertSee('كل الوقت');
+
+        $this->actingAs($this->user)->get(route('cp.clients.export-pdf', [$client, 'type' => 'pay', 'kinds' => [$method->name]]))
+            ->assertOk()
+            ->assertSee('كشف دفعات · '.$method->name)
+            ->assertDontSee('تصميم شعار');
+
+        $this->app->forgetInstance(\App\Services\Export\PdfExporter::class);
+        $this->actingAs($this->user)->get(route('cp.clients.export-pdf', [$client, 'type' => 'svc']))
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
+    }
 }

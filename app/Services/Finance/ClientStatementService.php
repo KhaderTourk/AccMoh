@@ -109,6 +109,7 @@ class ClientStatementService
                 'delta' => $service->status?->countsTowardReceivable() ? $service->amount : '0.00',
                 'currency' => $service->currency,
                 'notes' => $service->notes,
+                'fx' => $this->fxNote($service),
             ]);
         }
         foreach ($payments->where('is_reversed', false) as $payment) {
@@ -122,6 +123,7 @@ class ClientStatementService
                 'delta' => Money::neg($payment->amount),
                 'currency' => $payment->currency,
                 'notes' => $payment->notes,
+                'fx' => $this->fxNote($payment),
             ]);
         }
         foreach ($balanceMemos as $memo) {
@@ -148,6 +150,7 @@ class ClientStatementService
                 'delta' => Money::neg($take->amount),
                 'currency' => $take->currency,
                 'notes' => $take->notes,
+                'fx' => $this->fxNote($take),
             ]);
         }
 
@@ -172,6 +175,17 @@ class ClientStatementService
             'title' => $client->personName(),
             'subtitle' => trim(implode(' · ', array_filter([$client->organization(), $client->phone]))),
         ];
+    }
+
+    /** «100 USD × 3.65» for a movement entered in a foreign currency, else null. */
+    protected function fxNote($model): ?string
+    {
+        if (! $model->fx_currency_id || ! $model->exchange_rate || ! $model->fxCurrency) {
+            return null;
+        }
+
+        return rtrim(rtrim((string) $model->source_amount, '0'), '.').' '.$model->fxCurrency->code
+            .' × '.rtrim(rtrim((string) $model->exchange_rate, '0'), '.');
     }
 
     /**

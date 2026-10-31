@@ -235,8 +235,10 @@
         const filtered = cType !== 'all' || sub.size;
         const pdf = $('csPdf');
         pdf.hidden = view !== 'stmt';
-        const q = range ? `?from=${encodeURIComponent(dayLabel(range.from))}&to=${encodeURIComponent(dayLabel(range.to))}` : '';
-        pdf.href = D.urls.pdf + q;
+        const qs = new URLSearchParams();
+        if (range) { qs.set('from', dayLabel(range.from)); qs.set('to', dayLabel(range.to)); }
+        if (cType !== 'all') { qs.set('type', cType); sub.forEach((k) => qs.append('kinds[]', k)); }
+        pdf.href = D.urls.pdf + (qs.toString() ? '?' + qs.toString() : '');
 
         const totalIn = list.filter((m) => m.delta > 0).reduce((a, m) => a + m.delta, 0);
         const totalOut = list.filter((m) => m.delta < 0).reduce((a, m) => a - m.delta, 0);
