@@ -19,51 +19,46 @@ class ClientController extends Controller
 {
     public function index(Request $request)
     {
-        [$from, $to] = DateRange::fromRequest($request);
-
         $currencies = Currency::query()->active()->get();
 
-        $clients = TableSort::paginate(
-            Client::query()
-                ->active()
-                ->when($request->q, fn ($q, $term) => $q->where(function ($qq) use ($term) {
-                    $qq->where('name', 'like', "%{$term}%")
-                        ->orWhere('phone', 'like', "%{$term}%")
-                        ->orWhere('company_name', 'like', "%{$term}%")
-                        ->orWhere('notes', 'like', "%{$term}%");
-                    if (Schema::hasColumn('clients', 'contact_name')) {
-                        $qq->orWhere('contact_name', 'like', "%{$term}%");
+        // Every client (archived included) in one list; filtering and search happen in the browser.
+        $clients = Client::query()
+            ->orderByRaw("COALESCE(NULLIF(company_name, ''), name)")
+            ->get()
+            ->map(function (Client $client) use ($currencies) {
+                $balances = [];
+                foreach ($currencies as $currency) {
+                    $due = $client->outstandingAmount($currency->id);
+                    if (! Money::isZero($due)) {
+                        $balances[] = [
+                            'code' => $currency->code,
+                            'amount' => (float) $due,
+                            'label' => $currency->format(Money::abs($due)),
+                        ];
                     }
-                }))
-                ->when($from || $to, function ($q) use ($from, $to) {
-                    $q->where(function ($qq) use ($from, $to) {
-                        $qq->whereHas('services', fn ($s) => DateRange::constrain($s, 'service_date', $from, $to))
-                            ->orWhereHas('cashPayments', fn ($p) => DateRange::constrain($p->active(), 'occurred_on', $from, $to))
-                            ->orWhereHas('goodsTakes', fn ($g) => DateRange::constrain($g, 'taken_on', $from, $to))
-                            ->orWhereHas('balanceMemos', fn ($m) => DateRange::constrain($m, 'memo_date', $from, $to));
-                    });
-                }),
-            [
-                'company' => ['column' => 'company_name'],
-                'name' => ['column' => 'name'],
-                'phone' => ['column' => 'phone'],
-                'due' => [
-                    'dir' => 'desc',
-                    'value' => function (Client $client) use ($currencies) {
-                        $sum = 0.0;
-                        foreach ($currencies as $currency) {
-                            $sum += (float) $client->outstandingAmount($currency->id);
-                        }
+                }
 
-                        return $sum;
-                    },
-                ],
-            ],
-            'name'
-        );
-        $periodQuery = DateRange::queryParams($from, $to);
+                return [
+                    'id' => $client->id,
+                    'org' => (string) $client->organization(),
+                    'name' => $client->personName(),
+                    'phone' => (string) $client->phone,
+                    'notes' => (string) $client->notes,
+                    'archived' => ! $client->is_active,
+                    'balances' => $balances,
+                    'show' => route('cp.clients.show', $client),
+                    'pdf' => route('cp.clients.export-pdf', $client),
+                    'update' => route('cp.clients.update', $client),
+                    'archive' => route('cp.clients.destroy', $client),
+                    'restore' => route('cp.clients.restore', $client),
+                ];
+            })
+            ->values();
 
-        return view('cp.finance.clients.index', compact('clients', 'currencies', 'from', 'to', 'periodQuery'));
+        $currencyFormats = $currencies->mapWithKeys(fn (Currency $c) => [$c->code => ['symbol' => $c->symbol]])->all();
+        $flash = (int) $request->query('flash');
+
+        return view('cp.finance.clients.index', compact('clients', 'currencyFormats', 'flash'));
     }
 
     public function create()
@@ -74,9 +69,14 @@ class ClientController extends Controller
     public function store(Request $request)
     {
         $data = $this->validated($request);
+        $data['is_active'] = true;
         $client = Client::query()->create($data);
 
-        return redirect()->route('cp.clients.show', $client)->with('success', 'تم إضافة الزبون.');
+        if ($request->input('return') === 'list') {
+            return redirect()->route('cp.clients.index', ['flash' => $client->id])->with('success', 'انضاف الزبون.');
+        }
+
+        return redirect()->route('cp.clients.show', $client)->with('success', 'انضاف الزبون.');
     }
 
     public function show(Request $request, Client $client, ClientStatementService $statements)
@@ -114,7 +114,11 @@ class ClientController extends Controller
     {
         $client->update($this->validated($request));
 
-        return redirect()->route('cp.clients.show', $client)->with('success', 'تم تحديث بيانات الزبون.');
+        if ($request->input('return') === 'list') {
+            return redirect()->route('cp.clients.index', ['flash' => $client->id])->with('success', 'انحفظ التعديل.');
+        }
+
+        return redirect()->route('cp.clients.show', $client)->with('success', 'انحفظ التعديل.');
     }
 
     public function destroy(Client $client)
@@ -122,7 +126,15 @@ class ClientController extends Controller
         $client->update(['is_active' => false]);
 
         return redirect()->route('cp.clients.index')
-            ->with('success', 'تم أرشفة الزبون ولن يظهر في القوائم.');
+            ->with('success', 'انأرشف الزبون، وبتلاقيه مع كل حركاته بتاب «مؤرشف».');
+    }
+
+    public function restore(Client $client)
+    {
+        $client->update(['is_active' => true]);
+
+        return redirect()->route('cp.clients.index', ['flash' => $client->id])
+            ->with('success', 'رجع الزبون لقائمة الزبائن.');
     }
 
     protected function validated(Request $request): array
@@ -133,7 +145,10 @@ class ClientController extends Controller
             'phone' => Phone::rules(),
             'notes' => ['nullable', 'string'],
         ], ['phone.regex' => Phone::message()]);
-        $data['is_active'] = $request->boolean('is_active');
+        // The control panel form no longer sends is_active (archiving has its own action); the API still may.
+        if ($request->has('is_active')) {
+            $data['is_active'] = $request->boolean('is_active');
+        }
 
         return $data;
     }

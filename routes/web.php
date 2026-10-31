@@ -92,6 +92,7 @@ Route::prefix('cp')->name('cp.')->middleware(['cp.auth', 'cp.check'])->group(fun
         Route::post('/clients/import', [ClientImportController::class, 'store'])->name('clients.import.store');
         Route::resource('clients', ClientController::class);
         Route::get('/clients/{client}/export-pdf', [ClientController::class, 'exportPdf'])->name('clients.export-pdf');
+        Route::post('/clients/{client}/restore', [ClientController::class, 'restore'])->name('clients.restore');
         Route::get('/clients/{client}/unpaid-services', [ClientController::class, 'unpaidServices'])->name('clients.unpaid-services');
         Route::resource('client-services', ClientServiceController::class)->except(['show']);
         Route::resource('client-goods-takes', ClientGoodsTakeController::class)->except(['index', 'show']);

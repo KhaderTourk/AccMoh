@@ -69,7 +69,9 @@ class ReportsAndArchiveTest extends TestCase
 
         $this->actingAs($this->user)->get(route('cp.clients.index'))
             ->assertOk()
-            ->assertDontSee('زبون للأرشفة');
+            ->assertSee('"name":"زبون للأرشفة"', false)->assertSee('"archived":true', false);
+        $this->assertFalse((bool) Client::withoutGlobalScopes()->find($client->id)->is_active);
+
         $this->actingAs($this->user)->get(route('cp.persons.index'))
             ->assertOk()
             ->assertDontSee('شخص للأرشفة');
@@ -84,6 +86,9 @@ class ReportsAndArchiveTest extends TestCase
         $this->assertFalse($person->fresh()->is_active);
         $this->assertFalse($worker->fresh()->is_active);
         $this->assertFalse($supplier->fresh()->is_active);
+
+        $this->actingAs($this->user)->post(route('cp.clients.restore', $client))->assertRedirect();
+        $this->assertTrue((bool) Client::withoutGlobalScopes()->find($client->id)->is_active);
     }
 
     public function test_archive_toggle_shows_archived_people_users_and_movements(): void
@@ -124,7 +129,9 @@ class ReportsAndArchiveTest extends TestCase
         TenantContext::clear();
 
         $this->actingAs($this->user)->get(route('cp.dashboard'))->assertOk()->assertSee('إظهار/إخفاء المؤرشف');
-        $this->actingAs($this->user)->get(route('cp.clients.index'))->assertDontSee('زبون مخفي');
+        // Archived clients now live in the list's «مؤرشف» tab instead of being dropped from the page.
+        $this->actingAs($this->user)->get(route('cp.clients.index'))
+            ->assertSee('"name":"زبون مخفي"', false)->assertSee('"archived":true', false);
         $this->actingAs($this->user)->get(route('cp.persons.index'))->assertDontSee('شخص مخفي');
         $this->actingAs($this->user)->get(route('cp.workers.index'))->assertDontSee('موظف مخفي');
         $this->actingAs($this->user)->get(route('cp.suppliers.index'))->assertDontSee('مورد مخفي');
