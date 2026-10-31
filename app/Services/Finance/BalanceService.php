@@ -127,11 +127,11 @@ class BalanceService
             ->pluck('total', 'currency_id');
 
         $paid = CashPayment::query()
-            ->incoming()
+            ->clientReceipts()
             ->active()
             ->when($clientId, fn ($q) => $q->where('party_type', 'client')->where('party_id', $clientId))
             ->when(! $clientId, fn ($q) => $q->where('party_type', 'client'))
-            ->selectRaw('currency_id, SUM(amount) as total')
+            ->selectRaw('currency_id, SUM('.CashPayment::clientReceiptSql().') as total')
             ->groupBy('currency_id')
             ->pluck('total', 'currency_id');
 

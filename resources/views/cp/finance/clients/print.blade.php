@@ -13,7 +13,7 @@
     if ($filterKinds) {
         $docTitle .= ' · '.implode('، ', $filterKinds);
     }
-    $typeLabels = ['service' => 'خدمة', 'payment' => 'دفعة', 'memo' => 'رصيد سابق', 'goods' => 'بضاعة / خصم'];
+    $typeLabels = ['service' => 'خدمة', 'payment' => 'دفعة', 'memo' => 'رصيد سابق', 'goods' => 'بضاعة / خصم', 'refund' => 'استرداد'];
 
     $chronological = collect($timeline)
         ->sortBy(fn ($m) => $m['date']->format('Y-m-d').sprintf('%010d', $m['sort_at'] ?? 0).sprintf('%010d', $m['id'] ?? 0))

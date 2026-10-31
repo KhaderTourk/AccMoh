@@ -29,6 +29,7 @@
                     <button type="button" data-o="memo">رصيد سابق</button>
                     <button type="button" data-o="discount">خصم</button>
                     <button type="button" data-o="goods">دفعة بضاعة</button>
+                    <button type="button" data-o="refund">استرداد</button>
                 </div>
             </div>
             <div class="cs-add">
@@ -49,6 +50,12 @@
     @include('cp.partials.note-card', ['notes' => $client->notes])
 
     <div class="cs-balance" id="csBalance"></div>
+
+    <section class="st-card cs-subs" id="csSubs" hidden>
+        <header class="st-card-h"><h2>الاشتراكات الشهرية</h2><span class="st-count" id="csSubsN"></span>
+            <a href="{{ route('cp.subscriptions.confirm') }}" class="cs-subs-link">خدمات الشهر</a></header>
+        <div id="csSubsList"></div>
+    </section>
 
     <div class="cs-tabs" role="tablist">
         <button type="button" class="on" data-view="list" role="tab">الحركات</button>
@@ -99,18 +106,22 @@
 </div>
 
 <form method="post" id="csDelForm" hidden>@csrf<input type="hidden" name="_method" value="DELETE"></form>
+<form method="post" id="csStopForm" hidden>@csrf<input type="hidden" name="ends_on" id="csStopDate"></form>
 <form method="post" id="csArchForm" action="{{ $client->is_active ? route('cp.clients.destroy', $client) : route('cp.clients.restore', $client) }}" hidden>@csrf @if($client->is_active)<input type="hidden" name="_method" value="DELETE">@endif</form>
 
 <script type="application/json" id="csData">{!! json_encode([
     'client' => ['id' => $client->id, 'title' => $title],
     'movements' => $movements,
     'balances' => $balances,
+    'subscriptions' => $subscriptions,
     'lookups' => $lookups,
     'urls' => [
         'service' => route('cp.client-services.store'),
         'payment' => route('cp.payments.store', ['incoming']),
         'goods' => route('cp.client-goods-takes.store'),
         'memo' => route('cp.balance-memos.store'),
+        'refund' => route('cp.payments.store', ['outgoing']),
+        'sub' => route('cp.subscriptions.store'),
         'pdf' => route('cp.clients.export-pdf', $client),
     ],
     'today' => now()->toDateString(),
@@ -287,11 +298,23 @@
         if (more) { e.stopPropagation(); const menu = more.nextElementSibling; const open = menu.hidden; closeMenus(); menu.hidden = !open; return; }
         if (!e.target.closest('.cl-menu')) closeMenus();
     });
-    $('mSvc').innerHTML = L.serviceTypes.length
-        ? L.serviceTypes.map((t) => `<button type="button" data-s="${t.id}">${esc(t.name)}</button>`).join('')
-        : '<p class="cs-mnote">ما في خدمات مفعّلة. ضيفها من صفحة الخدمات.</p>';
+    {
+        let html = '', last = null;
+        L.serviceTypes.forEach((t) => {
+            const g = t.group || '';
+            if (g !== last) { if (g || last !== null) html += `<span class="cs-mgroup">${esc(g || 'بدون مجموعة')}</span>`; last = g; }
+            html += `<button type="button" data-s="${t.id}">${esc(t.name)}${t.monthly ? ' <small>· شهرية</small>' : ''}</button>`;
+        });
+        $('mSvc').innerHTML = html + (html ? '<hr>' : '') + '<button type="button" class="cs-mfree" data-s="free">أخرى…</button>';
+    }
     $('mPay').innerHTML = L.methods.map((p) => `<button type="button" data-m="${p.id}">${esc(p.name)}</button>`).join('');
-    $('mSvc').addEventListener('click', (e) => { const b = e.target.closest('[data-s]'); if (b) { closeMenus(); openTx('service', { typeId: +b.dataset.s }); } });
+    $('mSvc').addEventListener('click', (e) => {
+        const b = e.target.closest('[data-s]'); if (!b) return;
+        closeMenus();
+        if (b.dataset.s === 'free') { openTx('service', { free: true }); return; }
+        const t = L.serviceTypes.find((x) => x.id === +b.dataset.s);
+        openTx(t.monthly ? 'sub' : 'service', { typeId: t.id });
+    });
     $('mPay').addEventListener('click', (e) => { const b = e.target.closest('[data-m]'); if (b) { closeMenus(); openTx('payment', { methodId: +b.dataset.m }); } });
     $('mOther').addEventListener('click', (e) => { const b = e.target.closest('[data-o]'); if (b) { closeMenus(); openTx(b.dataset.o, {}); } });
 
@@ -321,18 +344,20 @@
         discount: { title: 'خصم', url: D.urls.goods, sign: -1, date: 'taken_on', amtLabel: 'قيمة الخصم' },
         goods: { title: 'دفعة بضاعة', url: D.urls.goods, sign: -1, date: 'taken_on', amtLabel: 'قيمة البضاعة' },
         memo: { title: 'رصيد سابق', url: D.urls.memo, sign: 0, date: 'memo_date', amtLabel: 'المبلغ' },
+        refund: { title: 'استرداد', url: D.urls.refund, sign: 1, date: 'occurred_on', amtLabel: 'المبلغ المسترد' },
+        sub: { title: 'اشتراك شهري', url: D.urls.sub, sign: 0, date: 'starts_on', amtLabel: 'السعر الشهري' },
     };
     let tx = null;
     const hidden = (n, v) => `<input type="hidden" name="${n}" value="${esc(v)}">`;
-    function dateField(name) {
-        return `<div class="cl-field"><label for="xDate">التاريخ</label><div class="cs-date-in">
+    function dateField(name, label) {
+        return `<div class="cl-field"><label for="xDate">${label || 'التاريخ'}</label><div class="cs-date-in">
             <input id="xDate" name="${name}" inputmode="numeric" dir="ltr" placeholder="يوم/شهر/سنة" value="${dayLabel(D.today)}">
             <button type="button" class="cs-today" id="xToday">اليوم</button>
             <label class="cs-cal" title="اختار من التقويم"><span class="material-symbols-outlined">calendar_month</span><input type="date" id="xPick" tabindex="-1"></label>
         </div><small class="cl-err" id="xDateErr" hidden>التاريخ لازم يكون يوم/شهر/سنة</small></div>`;
     }
-    function moneyFields(label) {
-        const cur = L.currencies.map((c) => `<option value="${c.id}" data-code="${esc(c.code)}">${esc(c.code)} ${esc(c.symbol)}</option>`).join('');
+    function moneyFields(label, ilsOnly) {
+        const cur = L.currencies.filter((c) => !ilsOnly || c.code === 'ILS').map((c) => `<option value="${c.id}" data-code="${esc(c.code)}">${esc(c.code)} ${esc(c.symbol)}</option>`).join('');
         return `<div class="cs-two"><div class="cl-field"><label for="xAmt">${label}</label><input id="xAmt" inputmode="decimal" dir="ltr" placeholder="0.00"><small class="cs-hint" id="xHint"></small></div>
             <div class="cl-field"><label for="xCur">العملة</label><select id="xCur" name="currency_id">${cur}</select></div></div>
             <div class="cl-field" id="xRateWrap" hidden><label for="xRate">سعر الصرف للشيكل</label><input id="xRate" name="exchange_rate" inputmode="decimal" dir="ltr"><small class="cs-hint" id="xIls"></small></div>
@@ -343,11 +368,27 @@
         tx = { kind, opt };
         let title = K.title, fields = '', hid = '';
         const partyKey = 'client:' + D.client.id;
-        if (kind === 'service') {
+        if (kind === 'service' && opt.free) {
+            title = 'خدمة · أخرى';
+            hid = hidden('client_id', D.client.id);
+            fields = '<div class="cl-field"><label for="xWhat">شو الخدمة</label><input id="xWhat" name="title" maxlength="255" placeholder="عنوان لهالزبون بس"></div>'
+                + moneyFields(K.amtLabel) + dateField(K.date);
+        } else if (kind === 'service') {
             const t = L.serviceTypes.find((x) => x.id === opt.typeId);
             title = 'خدمة · ' + t.name;
             hid = hidden('client_id', D.client.id) + hidden('service_type_id', t.id);
             fields = moneyFields(K.amtLabel) + dateField(K.date);
+        } else if (kind === 'sub') {
+            const t = L.serviceTypes.find((x) => x.id === opt.typeId);
+            title = 'اشتراك شهري · ' + t.name;
+            hid = hidden('client_id', D.client.id) + hidden('service_type_id', t.id);
+            fields = moneyFields(K.amtLabel, true) + dateField(K.date, 'يوم البداية')
+                + '<p class="st-note">كل شهر بيطلع للتأكيد بصفحة «خدمات الشهر»، وأول شهر محسوب حسب الأيام.</p>';
+        } else if (kind === 'refund') {
+            const opts = L.methods.map((p) => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
+            hid = hidden('party_key', partyKey) + hidden('fund_id', L.fundId) + hidden('name', D.client.title) + hidden('kind', 'refund');
+            fields = `<div class="cl-field"><label for="xMethod">طلع من</label><select id="xMethod" name="payment_method_id" class="cs-sel">${opts}</select></div>`
+                + moneyFields(K.amtLabel) + dateField(K.date);
         } else if (kind === 'payment') {
             const p = L.methods.find((x) => x.id === opt.methodId);
             title = 'دفعة · ' + p.name;
@@ -379,7 +420,7 @@
     function wireTx() {
         const cur = $('xCur');
         const curCode = () => cur.selectedOptions[0].dataset.code;
-        if (tx.kind === 'service') {
+        if ((tx.kind === 'service' || tx.kind === 'sub') && tx.opt.typeId) {
             const t = L.serviceTypes.find((x) => x.id === tx.opt.typeId);
             if (t.last) $('xHint').textContent = 'آخر سعر لهالزبون: ' + num(t.last);
         }
@@ -429,10 +470,10 @@
         if (tx.kind === 'memo') sign = $('xDirIn').value === 'owed_to_us' ? 1 : -1;
         const cur = tx.kind === 'memo' ? code : 'ILS';
         const after = balanceBy(cur) + sign * ils;
-        $('txAfter').innerHTML = ils ? 'الرصيد بعدها: ' + balCell(after, cur) : '';
+        $('txAfter').innerHTML = ils && tx.kind !== 'sub' ? 'الرصيد بعدها: ' + balCell(after, cur) : '';
         // تنبيه التكرار: نفس النوع ونفس المبلغ خلال ±3 أيام
         let dup = null;
-        if (ils && day) {
+        if (ils && day && tx.kind !== 'sub') {
             const group = { service: 'svc', payment: 'pay' }[tx.kind] || 'other';
             const dd = new Date(day + 'T00:00:00');
             dup = M.find((m) => m.group === group && Math.abs(Math.abs(m.delta) - ils) < 0.005
@@ -440,7 +481,7 @@
         }
         $('txDup').hidden = !dup;
         if (dup) $('txDupTxt').textContent = `في حركة بنفس المبلغ بتاريخ ${dayLabel(dup.date)}: ${dup.title}. تأكد إنها مش مكررة.`;
-        const okWhat = tx.kind !== 'goods' || ($('xWhat').value.trim().length > 0);
+        const okWhat = !$('xWhat') || $('xWhat').value.trim().length > 0;
         const okRate = !fx || parseFloat(($('xRate') || {}).value) > 0;
         $('txSave').disabled = !(a > 0 && day && okWhat && okRate);
     }
@@ -454,6 +495,45 @@
         $('xDate').value = dayLabel(day);
     });
 
+    function renderSubs() {
+        const S = D.subscriptions || [];
+        $('csSubs').hidden = !S.length;
+        if (!S.length) return;
+        const active = S.filter((x) => !x.to || x.to >= D.today).length;
+        $('csSubsN').textContent = active + ' فعّال';
+        $('csSubsList').innerHTML = S.map((x) => `<div class="st-row${x.to && x.to < D.today ? ' is-off' : ''}">
+            <div class="st-name"><b>${esc(x.title)} · ${num(x.amount)} ₪ شهرياً</b>
+            <span>من ${dayLabel(x.from)}${x.to ? ' لغاية ' + dayLabel(x.to) : ''} · ${x.months} شهر مسجّل</span></div>
+            <div class="st-act"><button type="button" class="cl-more" aria-label="خيارات الاشتراك">⋯</button>
+            <div class="cl-menu" hidden>
+                ${x.to ? '' : `<button type="button" data-sub-stop="${x.id}">إيقاف</button>`}
+                ${x.months ? '' : `<button type="button" class="danger" data-sub-del="${x.id}">حذف</button>`}
+            </div></div></div>`).join('');
+    }
+    $('csSubsList').addEventListener('click', (e) => {
+        const more = e.target.closest('.cl-more');
+        if (more) { e.stopPropagation(); const m = more.nextElementSibling; const open = m.hidden; closeMenus(); m.hidden = !open; return; }
+        const st = e.target.closest('[data-sub-stop]');
+        if (st) {
+            closeMenus();
+            const x = D.subscriptions.find((y) => y.id === +st.dataset.subStop);
+            const v = window.prompt(`آخر يوم بالاشتراك «${x.title}» (يوم/شهر/سنة). إذا شهره مسجّل، مبلغه بيتعدّل حسب الأيام.`, dayLabel(D.today));
+            const day = v && parseDay(v);
+            if (!day) return;
+            $('csStopDate').value = dayLabel(day);
+            $('csStopForm').action = x.stop; $('csStopForm').submit();
+            return;
+        }
+        const dl = e.target.closest('[data-sub-del]');
+        if (dl) {
+            closeMenus();
+            const x = D.subscriptions.find((y) => y.id === +dl.dataset.subDel);
+            const ask = window.cpConfirm ? window.cpConfirm(`حذف الاشتراك «${x.title}»؟`) : Promise.resolve(window.confirm('حذف الاشتراك؟'));
+            ask.then((ok) => { if (ok) { const f = $('csDelForm'); f.action = x.delete; f.submit(); } });
+        }
+    });
+
+    renderSubs();
     renderBalance();
     render();
 })();

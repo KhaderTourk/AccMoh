@@ -16,6 +16,8 @@ use App\Http\Controllers\Cp\TransferController;
 use App\Http\Controllers\Cp\LedgerController;
 use App\Http\Controllers\Cp\ReportController;
 use App\Http\Controllers\Cp\ServiceTypeController;
+use App\Http\Controllers\Cp\SettingsController;
+use App\Http\Controllers\Cp\ClientSubscriptionController;
 use App\Http\Controllers\Cp\OfflineController;
 use App\Http\Controllers\Cp\ApiOperationController;
 use App\Http\Controllers\Api\BootstrapController as ApiBootstrapController;
@@ -97,6 +99,25 @@ Route::prefix('cp')->name('cp.')->middleware(['cp.auth', 'cp.check'])->group(fun
         Route::resource('client-services', ClientServiceController::class)->except(['show']);
         Route::resource('client-goods-takes', ClientGoodsTakeController::class)->except(['index', 'show']);
         Route::resource('service-types', ServiceTypeController::class)->except(['show']);
+
+        Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
+        Route::post('/settings/groups', [SettingsController::class, 'storeGroup'])->name('settings.groups.store');
+        Route::put('/settings/groups/{group}', [SettingsController::class, 'updateGroup'])->name('settings.groups.update');
+        Route::delete('/settings/groups/{group}', [SettingsController::class, 'destroyGroup'])->name('settings.groups.destroy');
+        Route::post('/settings/services', [SettingsController::class, 'storeService'])->name('settings.services.store');
+        Route::put('/settings/services/{serviceType}', [SettingsController::class, 'updateService'])->name('settings.services.update');
+        Route::post('/settings/services/{serviceType}/toggle', [SettingsController::class, 'toggleService'])->name('settings.services.toggle');
+        Route::delete('/settings/services/{serviceType}', [SettingsController::class, 'destroyService'])->name('settings.services.destroy');
+        Route::post('/settings/methods', [SettingsController::class, 'storeMethod'])->name('settings.methods.store');
+        Route::put('/settings/methods/{paymentMethod}', [SettingsController::class, 'updateMethod'])->name('settings.methods.update');
+        Route::post('/settings/methods/{paymentMethod}/toggle', [SettingsController::class, 'toggleMethod'])->name('settings.methods.toggle');
+        Route::delete('/settings/methods/{paymentMethod}', [SettingsController::class, 'destroyMethod'])->name('settings.methods.destroy');
+
+        Route::get('/subscriptions/confirm', [ClientSubscriptionController::class, 'confirm'])->name('subscriptions.confirm');
+        Route::post('/subscriptions/confirm', [ClientSubscriptionController::class, 'confirmStore'])->name('subscriptions.confirm.store');
+        Route::post('/subscriptions', [ClientSubscriptionController::class, 'store'])->name('subscriptions.store');
+        Route::post('/subscriptions/{subscription}/stop', [ClientSubscriptionController::class, 'stop'])->name('subscriptions.stop');
+        Route::delete('/subscriptions/{subscription}', [ClientSubscriptionController::class, 'destroy'])->name('subscriptions.destroy');
 
         Route::resource('vendor-charges', VendorChargeController::class)->except(['index', 'show']);
 

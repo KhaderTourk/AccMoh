@@ -50,6 +50,7 @@ class CashPaymentService
 
             $payment = CashPayment::query()->create([
                 'direction' => $direction,
+                'kind' => $direction === PaymentDirection::Outgoing && $party instanceof Client && ($data['kind'] ?? null) === 'refund' ? 'refund' : null,
                 'fund_id' => $fundId,
                 'payment_method_id' => $data['payment_method_id'],
                 'currency_id' => $pricing['currency_id'],
@@ -105,6 +106,7 @@ class CashPaymentService
             $this->reverse($payment, $data['occurred_on'] ?? now()->toDateString());
 
             $data['direction'] = $data['direction'] ?? $payment->direction;
+            $data['kind'] = array_key_exists('kind', $data) ? $data['kind'] : $payment->kind;
             $data['party_type'] = $data['party_type'] ?? $this->partyKey($payment);
             $data['party_id'] = $data['party_id'] ?? $payment->party_id;
 

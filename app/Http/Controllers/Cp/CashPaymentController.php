@@ -189,6 +189,7 @@ class CashPaymentController extends Controller
             'exchange_rate' => [$isFx ? 'required' : 'nullable', 'numeric', 'gt:0'],
             'account_holder_name' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],
+            'kind' => ['nullable', Rule::in(['refund'])],
         ], [
             'party_key.required' => 'اختر جهة من الزبائن أو الأشخاص أو الموظفين أو الموردين.',
         ]);

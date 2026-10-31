@@ -45,6 +45,11 @@ class Client extends Model
         return $this->cashPayments()->incoming();
     }
 
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(ClientSubscription::class);
+    }
+
     public function goodsTakes(): HasMany
     {
         return $this->hasMany(ClientGoodsTake::class);
@@ -84,16 +89,39 @@ class Client extends Model
         );
     }
 
+    /** Net money received: incoming payments minus refunds paid back («استرداد»). */
     public function paidAmount(int $currencyId, ?string $from = null, ?string $to = null): string
+    {
+        return Money::sub(
+            Money::of(
+                $this->cashPayments()
+                    ->incoming()
+                    ->active()
+                    ->where('currency_id', $currencyId)
+                    ->tap(fn ($q) => DateRange::constrain($q, 'occurred_on', $from, $to))
+                    ->sum('amount')
+            ),
+            $this->refundedAmount($currencyId, $from, $to)
+        );
+    }
+
+    public function refundedAmount(int $currencyId, ?string $from = null, ?string $to = null, bool $before = false): string
     {
         return Money::of(
             $this->cashPayments()
-                ->incoming()
+                ->refunds()
                 ->active()
                 ->where('currency_id', $currencyId)
-                ->tap(fn ($q) => DateRange::constrain($q, 'occurred_on', $from, $to))
+                ->tap(fn ($q) => $before
+                    ? DateRange::before($q, 'occurred_on', $from)
+                    : DateRange::constrain($q, 'occurred_on', $from, $to))
                 ->sum('amount')
         );
+    }
+
+    public function refunds(): MorphMany
+    {
+        return $this->cashPayments()->refunds();
     }
 
     public function goodsTakenAmount(int $currencyId, ?string $from = null, ?string $to = null): string
@@ -127,6 +155,7 @@ class Client extends Model
                 ->tap(fn ($q) => DateRange::before($q, 'occurred_on', $from))
                 ->sum('amount')
         );
+        $paid = Money::sub($paid, $this->refundedAmount($currencyId, $from, null, true));
         $goods = Money::of(
             $this->goodsTakes()
                 ->where('currency_id', $currencyId)

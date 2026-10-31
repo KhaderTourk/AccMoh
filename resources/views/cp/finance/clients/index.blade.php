@@ -2,6 +2,7 @@
 @section('title', 'الزبائن')
 @section('content')
 <div class="cl-page" id="clPage">
+    @include('cp.partials.subs-banner')
     <div class="cl-top">
         <h1 class="cl-h">الزبائن</h1>
         <div class="cl-sp"></div>

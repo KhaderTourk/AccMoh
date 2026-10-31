@@ -103,11 +103,11 @@ class OfflineSnapshotBuilder
             ->get();
 
         $paid = CashPayment::query()
-            ->incoming()
+            ->clientReceipts()
             ->active()
             ->where('party_type', 'client')
             ->whereIn('party_id', $clientIds)
-            ->selectRaw('party_id as client_id, currency_id, SUM(amount) as total')
+            ->selectRaw('party_id as client_id, currency_id, SUM('.CashPayment::clientReceiptSql().') as total')
             ->groupBy('party_id', 'currency_id')
             ->get();
 

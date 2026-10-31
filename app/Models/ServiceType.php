@@ -19,6 +19,8 @@ class ServiceType extends Model
 
     protected $fillable = [
         'name',
+        'service_group_id',
+        'billing',
         'description',
         'default_price',
         'default_currency_id',
@@ -36,6 +38,16 @@ class ServiceType extends Model
     public function defaultCurrency(): BelongsTo
     {
         return $this->belongsTo(Currency::class, 'default_currency_id');
+    }
+
+    public function group(): BelongsTo
+    {
+        return $this->belongsTo(ServiceGroup::class, 'service_group_id');
+    }
+
+    public function isMonthly(): bool
+    {
+        return $this->billing === 'monthly';
     }
 
     public function clientServices(): HasMany

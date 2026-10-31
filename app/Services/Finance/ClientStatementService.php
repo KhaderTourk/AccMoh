@@ -31,6 +31,10 @@ class ClientStatementService
                 ->tap(fn ($qq) => DateRange::constrain($qq, 'occurred_on', $from, $to))
                 ->orderBy('occurred_on')
                 ->orderBy('id'),
+            'refunds' => fn ($q) => $q->active()->with(['currency', 'fxCurrency', 'paymentMethod'])
+                ->tap(fn ($qq) => DateRange::constrain($qq, 'occurred_on', $from, $to))
+                ->orderBy('occurred_on')
+                ->orderBy('id'),
             'goodsTakes' => fn ($q) => $q->with(['currency', 'fxCurrency'])
                 ->tap(fn ($qq) => DateRange::constrain($qq, 'taken_on', $from, $to))
                 ->orderBy('taken_on')
@@ -126,6 +130,20 @@ class ClientStatementService
                 'fx' => $this->fxNote($payment),
             ]);
         }
+        foreach ($client->refunds as $refund) {
+            $timeline->push([
+                'id' => $refund->id,
+                'sort_at' => $refund->created_at?->getTimestamp() ?? $refund->id,
+                'date' => $refund->occurred_on,
+                'type' => 'refund',
+                'title' => 'استرداد عبر '.$refund->paymentMethod->name,
+                'amount' => $refund->amount,
+                'delta' => $refund->amount,
+                'currency' => $refund->currency,
+                'notes' => $refund->notes,
+                'fx' => $this->fxNote($refund),
+            ]);
+        }
         foreach ($balanceMemos as $memo) {
             $timeline->push([
                 'id' => $memo->id,
@@ -170,7 +188,7 @@ class ClientStatementService
             'balanceMemos' => $balanceMemos->sortByDesc(fn ($m) => $m->memo_date->format('Y-m-d').sprintf('%010d', $m->id))->values(),
             'goodsTotals' => $this->totalsByCurrency($goodsTakes),
             'timeline' => $timeline,
-            'movementCount' => $services->count() + $payments->where('is_reversed', false)->count() + $goodsTakes->count() + $balanceMemos->count(),
+            'movementCount' => $services->count() + $payments->where('is_reversed', false)->count() + $client->refunds->count() + $goodsTakes->count() + $balanceMemos->count(),
             'exportedAt' => format_date(now(), true),
             'title' => $client->personName(),
             'subtitle' => trim(implode(' · ', array_filter([$client->organization(), $client->phone]))),

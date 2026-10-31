@@ -95,7 +95,6 @@
                             </button>
                             <ul class="cp-section-content space-y-0.5">
                                 <li><a href="{{ route('cp.clients.index') }}" class="cp-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary transition-colors {{ request()->routeIs('cp.clients.*') ? 'bg-primary/10 text-primary dark:bg-primary/20' : '' }}"><span class="material-symbols-outlined text-xl">groups</span><span>الزبائن</span></a></li>
-                                <li><a href="{{ route('cp.service-types.index') }}" class="cp-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary transition-colors {{ request()->routeIs('cp.service-types.*') ? 'bg-primary/10 text-primary dark:bg-primary/20' : '' }}"><span class="material-symbols-outlined text-xl">category</span><span>الخدمات</span></a></li>
                                 <li><a href="{{ route('cp.workers.index') }}" class="cp-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary transition-colors {{ request()->routeIs('cp.workers.*') ? 'bg-primary/10 text-primary dark:bg-primary/20' : '' }}"><span class="material-symbols-outlined text-xl">badge</span><span>الموظفون</span></a></li>
                                 <li><a href="{{ route('cp.suppliers.index') }}" class="cp-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary transition-colors {{ request()->routeIs('cp.suppliers.*') ? 'bg-primary/10 text-primary dark:bg-primary/20' : '' }}"><span class="material-symbols-outlined text-xl">local_shipping</span><span>الموردون</span></a></li>
                             </ul>
@@ -123,19 +122,29 @@
                             </ul>
                         </li>
                         @endif
-                        @if(cpCan('users'))
-                        <li class="cp-nav-section pt-2 mt-2 {{ request()->routeIs('cp.users.*') ? '' : 'cp-collapsed' }}" data-section="system">
-                            <button type="button" class="cp-section-toggle" aria-expanded="{{ request()->routeIs('cp.users.*') ? 'true' : 'false' }}">
+                        @if(cpCan('users') || (cpCan('finance') && tenantBusinessEnabled()))
+                        <li class="cp-nav-section pt-2 mt-2 {{ request()->routeIs('cp.users.*', 'cp.settings.*') ? '' : 'cp-collapsed' }}" data-section="system">
+                            <button type="button" class="cp-section-toggle" aria-expanded="{{ request()->routeIs('cp.users.*', 'cp.settings.*') ? 'true' : 'false' }}">
                                 <span>النظام</span>
                                 <span class="material-symbols-outlined cp-chevron">expand_more</span>
                             </button>
                             <ul class="cp-section-content space-y-0.5">
+                                @if(cpCan('finance') && tenantBusinessEnabled())
+                                <li>
+                                    <a href="{{ route('cp.settings.index') }}" class="cp-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary transition-colors {{ request()->routeIs('cp.settings.*') ? 'bg-primary/10 text-primary dark:bg-primary/20' : '' }}">
+                                        <span class="material-symbols-outlined text-xl">settings</span>
+                                        <span>الإعدادات</span>
+                                    </a>
+                                </li>
+                                @endif
+                                @if(cpCan('users'))
                                 <li>
                                     <a href="{{ route('cp.users.index') }}" class="cp-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary transition-colors {{ request()->routeIs('cp.users.*') ? 'bg-primary/10 text-primary dark:bg-primary/20' : '' }}">
                                         <span class="material-symbols-outlined text-xl">people</span>
                                         <span>المستخدمون</span>
                                     </a>
                                 </li>
+                                @endif
                             </ul>
                         </li>
                         @endif
@@ -248,6 +257,9 @@
             $cpMore[] = ['url' => route('cp.payments.outgoing'), 'icon' => 'north_east', 'label' => 'دفعات صادرة'];
             $cpMore[] = ['url' => route('cp.transfers.index'), 'icon' => 'swap_horiz', 'label' => 'التحويلات'];
             $cpMore[] = ['url' => route('cp.reports.index'), 'icon' => 'analytics', 'label' => 'التقارير'];
+            if (tenantBusinessEnabled()) {
+                $cpMore[] = ['url' => route('cp.settings.index'), 'icon' => 'settings', 'label' => 'الإعدادات'];
+            }
         }
         $cpMore[] = ['url' => route('cp.offline'), 'icon' => 'cloud_off', 'label' => 'وضع عدم الاتصال'];
     ?>

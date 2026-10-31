@@ -19,6 +19,7 @@ class CashPayment extends Model
     protected $fillable = [
         'tenant_id',
         'direction',
+        'kind',
         'fund_id',
         'payment_method_id',
         'currency_id',
@@ -116,6 +117,23 @@ class CashPayment extends Model
     public function scopeIncoming(Builder $query): Builder
     {
         return $query->where('direction', PaymentDirection::Incoming);
+    }
+
+    /** Client receipts: incoming payments plus refunds paid back (summed with clientReceiptSql()). */
+    public function scopeClientReceipts(Builder $query): Builder
+    {
+        return $query->where(fn ($q) => $q->where('direction', PaymentDirection::Incoming)
+            ->orWhere(fn ($r) => $r->where('direction', PaymentDirection::Outgoing)->where('kind', 'refund')));
+    }
+
+    public static function clientReceiptSql(): string
+    {
+        return "CASE WHEN direction = 'outgoing' THEN -amount ELSE amount END";
+    }
+
+    public function scopeRefunds(Builder $query): Builder
+    {
+        return $query->where('direction', PaymentDirection::Outgoing)->where('kind', 'refund');
     }
 
     public function scopeOutgoing(Builder $query): Builder

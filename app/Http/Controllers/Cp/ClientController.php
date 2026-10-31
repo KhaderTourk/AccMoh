@@ -138,11 +138,21 @@ class ClientController extends Controller
                     'edit' => route('cp.balance-memos.edit', $m['id']),
                     'delete' => route('cp.balance-memos.destroy', $m['id']),
                 ],
+                'refund' => [
+                    'group' => 'other',
+                    'kind' => 'استرداد',
+                    'title' => $m['title'],
+                    'icon' => 'undo',
+                    'edit' => route('cp.payments.edit', $m['id']),
+                    'delete' => route('cp.payments.destroy', $m['id']),
+                ],
                 default => ['group' => 'other', 'kind' => 'أخرى', 'title' => $m['title'], 'icon' => 'layers', 'edit' => null, 'delete' => null],
             };
         })->values();
 
-        $serviceTypes = \App\Models\ServiceType::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']);
+        $serviceTypes = \App\Models\ServiceType::query()->where('is_active', true)->with('group')->orderBy('name')
+            ->get(['id', 'name', 'service_group_id', 'billing'])
+            ->sortBy(fn ($t) => [$t->group ? 0 : 1, $t->group?->sort_order ?? 0, $t->group?->name ?? '', $t->name])->values();
         $lastPrices = $client->services
             ->sortByDesc(fn ($s) => $s->service_date->format('Y-m-d').sprintf('%010d', $s->id))
             ->groupBy('service_type_id')
@@ -151,7 +161,13 @@ class ClientController extends Controller
         $lookups = [
             'ilsId' => $ils->id,
             'currencies' => Currency::query()->active()->get(['id', 'code', 'symbol', 'name']),
-            'serviceTypes' => $serviceTypes->map(fn ($t) => ['id' => $t->id, 'name' => $t->name, 'last' => $lastPrices[$t->id] ?? null])->values(),
+            'serviceTypes' => $serviceTypes->map(fn ($t) => [
+                'id' => $t->id,
+                'name' => $t->name,
+                'group' => $t->group?->name,
+                'monthly' => $t->isMonthly(),
+                'last' => $lastPrices[$t->id] ?? null,
+            ])->values(),
             'methods' => \App\Models\PaymentMethod::query()->where('is_active', true)->orderBy('sort_order')->get(['id', 'name']),
             'fundId' => (tenantBusinessEnabled() ? \App\Models\Fund::query()->where('slug', 'business')->value('id') : null)
                 ?: \App\Models\Fund::family()->id,
@@ -160,8 +176,21 @@ class ClientController extends Controller
                 ->mapWithKeys(fn ($p) => [$p->fx_currency_id => (float) $p->exchange_rate]),
         ];
 
+        $subscriptions = $client->subscriptions()->withCount('months')->orderByRaw('ends_on IS NOT NULL')->orderByDesc('starts_on')->get()
+            ->map(fn (\App\Models\ClientSubscription $s) => [
+                'id' => $s->id,
+                'title' => $s->title,
+                'amount' => (float) $s->amount,
+                'from' => $s->starts_on->toDateString(),
+                'to' => $s->ends_on?->toDateString(),
+                'months' => $s->months_count,
+                'stop' => route('cp.subscriptions.stop', $s),
+                'delete' => route('cp.subscriptions.destroy', $s),
+            ])->values();
+
         return view('cp.finance.clients.show', [
             'client' => $client,
+            'subscriptions' => $subscriptions,
             'movements' => $movements,
             'lookups' => $lookups,
             'balances' => collect($data['summaries'])->map(fn ($s) => [
@@ -194,7 +223,7 @@ class ClientController extends Controller
         // Same type filter as the page: services, payments (by method) or other movements.
         $type = $request->input('type', 'all');
         $kinds = array_filter((array) $request->input('kinds', []));
-        $groups = ['service' => 'svc', 'payment' => 'pay', 'goods' => 'other', 'memo' => 'other'];
+        $groups = ['service' => 'svc', 'payment' => 'pay', 'goods' => 'other', 'memo' => 'other', 'refund' => 'other'];
         // Kinds use the exact labels the client page shows in its filter chips.
         $methods = \App\Models\CashPayment::query()
             ->whereIn('id', $data['timeline']->where('type', 'payment')->pluck('id'))
@@ -206,6 +235,7 @@ class ClientController extends Controller
             'payment' => $methods[$m['id']]?->paymentMethod?->name ?: 'دفعة',
             'goods' => self::isDiscount($takes[$m['id']] ?? null) ? 'خصم' : 'دفعة بضاعة',
             'memo' => 'رصيد سابق',
+            'refund' => 'استرداد',
             default => 'أخرى',
         };
         $data['timeline'] = $data['timeline']->map(fn ($m) => $m + ['kind' => $kindOf($m)]);

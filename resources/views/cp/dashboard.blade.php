@@ -4,6 +4,7 @@
 
 @section('content')
 <div class="space-y-6">
+    @include('cp.partials.subs-banner')
     <section class="cp-welcome">
         <div>
             <p class="cp-welcome-date" data-today></p>
