@@ -89,6 +89,11 @@ class ClientServiceController extends Controller
 
     public function update(Request $request, ClientService $clientService, ClientWorkService $service)
     {
+        // A free-title service («أخرى…») keeps its title when edited without picking a type.
+        if (! $request->filled('service_type_id') && ! $request->filled('title')) {
+            $request->merge(['title' => $clientService->title]);
+        }
+
         try {
             $service->update($clientService, $this->validated($request));
         } catch (FinanceException $e) {
@@ -116,7 +121,8 @@ class ClientServiceController extends Controller
 
         $data = $request->validate([
             'client_id' => ['required', 'exists:clients,id'],
-            'service_type_id' => ['required', 'exists:service_types,id'],
+            'service_type_id' => ['nullable', 'required_without:title', 'exists:service_types,id'],
+            'title' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'amount' => [$isFx ? 'nullable' : 'required', 'numeric', 'gt:0'],
             'source_amount' => [$isFx ? 'required' : 'nullable', 'numeric', 'gt:0'],
@@ -126,8 +132,9 @@ class ClientServiceController extends Controller
             'notes' => ['nullable', 'string'],
         ]);
 
-        $type = ServiceType::query()->find($data['service_type_id']);
-        $data['title'] = $type?->name ?: 'خدمة';
+        $type = filled($data['service_type_id'] ?? null) ? ServiceType::query()->find($data['service_type_id']) : null;
+        $data['service_type_id'] = $type?->id;
+        $data['title'] = $type?->name ?: (trim((string) ($data['title'] ?? '')) ?: 'خدمة');
         $data['status'] = ClientServiceStatus::Completed->value;
 
         if ($isFx && empty($data['source_amount']) && filled($data['amount'] ?? null)) {

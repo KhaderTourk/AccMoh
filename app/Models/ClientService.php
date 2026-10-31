@@ -21,6 +21,8 @@ class ClientService extends Model
     protected $fillable = [
         'client_id',
         'service_type_id',
+        'subscription_id',
+        'period',
         'title',
         'description',
         'amount',

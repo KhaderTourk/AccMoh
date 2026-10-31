@@ -24,7 +24,10 @@
     </div>
     <div>
         <label class="text-sm">الخدمة *</label>
-        <select name="service_type_id" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
+        <select name="service_type_id" @unless($service->exists && ! $service->service_type_id) required @endunless class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
+            @if($service->exists && ! $service->service_type_id)
+                <option value="" selected>{{ $service->title }} (عنوان حر)</option>
+            @endif
             @foreach($types as $t)
                 <option value="{{ $t->id }}" @selected(old('service_type_id', $service->service_type_id)==$t->id)>{{ $t->name }}</option>
             @endforeach
