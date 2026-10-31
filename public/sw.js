@@ -1,5 +1,5 @@
 /* AccMa CP Service Worker — offline shell for control panel */
-const CACHE = 'accma-cp-v3';
+const CACHE = 'accma-cp-v4';
 const SHELL = [
   '/assets/css/cp.css',
   '/assets/js/cp-offline.js',

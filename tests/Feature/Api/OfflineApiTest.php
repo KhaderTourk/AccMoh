@@ -8,7 +8,9 @@ use App\Models\Currency;
 use App\Models\FamilyMember;
 use App\Models\Fund;
 use App\Models\PaymentMethod;
+use App\Models\ServiceType;
 use App\Models\User;
+use App\Support\TenantContext;
 use App\Services\Finance\CashPaymentService;
 use App\Services\Finance\ClientWorkService;
 use Database\Seeders\FinanceCatalogSeeder;
@@ -37,12 +39,21 @@ class OfflineApiTest extends TestCase
         $this->seed(FinanceCatalogSeeder::class);
 
         $this->user = User::query()->where('email', 'admin@example.com')->firstOrFail();
+        Fund::withoutGlobalScopes()->whereNull('tenant_id')->update(['tenant_id' => $this->user->tenant_id]);
+        ServiceType::withoutGlobalScopes()->whereNull('tenant_id')->update(['tenant_id' => $this->user->tenant_id]);
+        TenantContext::set((int) $this->user->tenant_id);
         $this->ils = Currency::query()->where('code', 'ILS')->firstOrFail();
         $this->usd = Currency::query()->where('code', 'USD')->firstOrFail();
         $this->cash = PaymentMethod::query()->where('slug', 'cash')->firstOrFail();
         $this->bank = PaymentMethod::query()->where('slug', 'bank')->firstOrFail();
-        $this->family = Fund::family();
-        $this->business = Fund::business();
+        $this->family = Fund::withoutGlobalScopes()->where('tenant_id', $this->user->tenant_id)->where('slug', 'family')->firstOrFail();
+        $this->business = Fund::withoutGlobalScopes()->where('tenant_id', $this->user->tenant_id)->where('slug', 'business')->firstOrFail();
+    }
+
+    protected function tearDown(): void
+    {
+        TenantContext::clear();
+        parent::tearDown();
     }
 
     public function test_login_returns_token(): void
@@ -54,6 +65,16 @@ class OfflineApiTest extends TestCase
         ]);
 
         $response->assertOk()->assertJsonStructure(['token', 'user' => ['id', 'email']]);
+    }
+
+    public function test_login_is_rate_limited(): void
+    {
+        for ($i = 0; $i < 10; $i++) {
+            $this->postJson('/api/v1/auth/login', ['email' => 'admin@example.com', 'password' => 'wrong']);
+        }
+
+        $this->postJson('/api/v1/auth/login', ['email' => 'admin@example.com', 'password' => 'password'])
+            ->assertStatus(429);
     }
 
     public function test_bootstrap_requires_auth_and_returns_catalog(): void

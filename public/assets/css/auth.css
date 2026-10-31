@@ -1,12 +1,12 @@
-/* صفحات الدخول — AccMa (لوحة النسخة ولوحة المنصة) */
+/* صفحات الدخول — حسابات براند (لوحة النسخة ولوحة المنصة) */
 :root {
-    --a-primary: #08A46D;
-    --a-primary-rgb: 8, 164, 109;
-    --a-grad: linear-gradient(135deg, #0bbf7f 0%, #08A46D 45%, #057a55 100%);
-    --a-c1: #34d399;
-    --a-c2: #0ea5e9;
-    --a-c3: #a3e635;
-    --a-bg: #eef5f2;
+    --a-primary: #FB005B;
+    --a-primary-rgb: 251, 0, 91;
+    --a-grad: linear-gradient(135deg, #ff3d82 0%, #FB005B 45%, #741446 100%);
+    --a-c1: #ff4d88;
+    --a-c2: #0B2537;
+    --a-c3: #741446;
+    --a-bg: #f6f1f4;
     --a-card: rgba(255, 255, 255, 0.78);
     --a-line: rgba(15, 23, 42, 0.08);
     --a-text: #0f172a;

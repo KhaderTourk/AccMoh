@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="theme-color" content="#0b1220">
-    <title>@yield('title', 'المنصة') — AccMa Super</title>
+    <title>@yield('title', 'المنصة') — حسابات براند · المنصة</title>
     <link href="https://fonts.googleapis.com" rel="preconnect">
     <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
@@ -16,7 +16,7 @@
             theme: {
                 extend: {
                     fontFamily: { sans: ['Tajawal', 'sans-serif'] },
-                    colors: { primary: '#08A46D', 'primary-dark': '#069660' }
+                    colors: { primary: '#FB005B', 'primary-dark': '#d6004e' }
                 }
             }
         }
@@ -30,7 +30,7 @@
             <div class="flex items-center gap-5">
                 <a href="{{ route('super.dashboard') }}" class="super-brand">
                     <span class="super-brand-mark"><span class="material-symbols-outlined">shield_person</span></span>
-                    <span>AccMa <em>Super</em></span>
+                    <span>حسابات براند <em>المنصة</em></span>
                 </a>
                 <nav class="super-nav">
                     <a href="{{ route('super.dashboard') }}" class="{{ request()->routeIs('super.dashboard') ? 'is-active' : '' }}">
