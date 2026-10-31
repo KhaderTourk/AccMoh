@@ -11,6 +11,12 @@
     </div>
     @if($type === \App\Enums\VendorType::Worker)
         <div><label class="text-sm">المسمى الوظيفي</label><input name="job_title" value="{{ old('job_title', $vendor->job_title) }}" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700"></div>
+        <div class="grid grid-cols-3 gap-2">
+            <div><label class="text-sm">الراتب الشهري</label><input name="salary_amount" inputmode="decimal" value="{{ old('salary_amount', $vendor->salary_amount) }}" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700"></div>
+            <div><label class="text-sm">من تاريخ</label><input name="salary_from" placeholder="يوم/شهر/سنة" value="{{ old('salary_from', $vendor->salary_from ? format_date($vendor->salary_from) : '') }}" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700"></div>
+            <div><label class="text-sm">إيقاف من</label><input name="salary_to" placeholder="اختياري" value="{{ old('salary_to', $vendor->salary_to ? format_date($vendor->salary_to) : '') }}" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700"></div>
+        </div>
+        <p class="text-xs text-slate-500">الراتب ما بينسجّل لحاله، بس بيعبّي نافذة «مستحق» بصفحة الموظف.</p>
     @else
         <div><label class="text-sm">وصف العمل</label><input name="work_description" value="{{ old('work_description', $vendor->work_description) }}" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700"></div>
     @endif

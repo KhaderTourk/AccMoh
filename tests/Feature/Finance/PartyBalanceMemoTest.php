@@ -175,7 +175,7 @@ class PartyBalanceMemoTest extends TestCase
         $this->actingAs($this->user)
             ->get(route('cp.suppliers.show', $vendor))
             ->assertOk()
-            ->assertSee('رصيد مرحّل')
+            ->assertSee('"kind":"رصيد سابق"', false)
             ->assertSee('رصيد افتتاحي');
     }
 

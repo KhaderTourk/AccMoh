@@ -19,13 +19,16 @@ class Vendor extends Model
     use HasBalanceMemos;
     use SoftDeletes;
 
-    protected $fillable = ['name', 'type', 'phone', 'job_title', 'work_description', 'notes', 'is_active'];
+    protected $fillable = ['name', 'type', 'phone', 'job_title', 'work_description', 'salary_amount', 'salary_from', 'salary_to', 'notes', 'is_active'];
 
     protected function casts(): array
     {
         return [
             'type' => VendorType::class,
             'is_active' => 'boolean',
+            'salary_amount' => 'decimal:2',
+            'salary_from' => 'date',
+            'salary_to' => 'date',
         ];
     }
 
@@ -57,6 +60,23 @@ class Vendor extends Model
     public function hasFinancialHistory(): bool
     {
         return $this->cashPayments()->exists() || $this->charges()->exists() || $this->expenses()->exists() || $this->goodsTakes()->exists() || $this->balanceMemos()->exists();
+    }
+
+    /** Salary amount when one is set and running today, else null. */
+    public function activeSalary(): ?string
+    {
+        if (! $this->salary_amount || ! Money::isPositive($this->salary_amount)) {
+            return null;
+        }
+        $today = now()->toDateString();
+        if ($this->salary_from && $this->salary_from->toDateString() > $today) {
+            return null;
+        }
+        if ($this->salary_to && $this->salary_to->toDateString() < $today) {
+            return null;
+        }
+
+        return Money::of($this->salary_amount);
     }
 
     public function scopeActive(Builder $query): Builder

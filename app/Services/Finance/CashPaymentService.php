@@ -50,7 +50,7 @@ class CashPaymentService
 
             $payment = CashPayment::query()->create([
                 'direction' => $direction,
-                'kind' => $direction === PaymentDirection::Outgoing && $party instanceof Client && ($data['kind'] ?? null) === 'refund' ? 'refund' : null,
+                'kind' => self::kindFor($direction, $party, $data['kind'] ?? null),
                 'fund_id' => $fundId,
                 'payment_method_id' => $data['payment_method_id'],
                 'currency_id' => $pricing['currency_id'],
@@ -94,6 +94,20 @@ class CashPaymentService
 
             return $payment->fresh(['party', 'fund', 'currency', 'paymentMethod', 'fxCurrency']);
         });
+    }
+
+    /** «استرداد» is an outgoing payment to a client; «سلفة» an outgoing payment to a worker or supplier. */
+    public static function kindFor(PaymentDirection $direction, mixed $party, ?string $kind): ?string
+    {
+        if ($direction !== PaymentDirection::Outgoing) {
+            return null;
+        }
+
+        return match (true) {
+            $kind === 'refund' && $party instanceof Client => 'refund',
+            $kind === 'advance' && $party instanceof \App\Models\Vendor => 'advance',
+            default => null,
+        };
     }
 
     public function update(CashPayment $payment, array $data): CashPayment

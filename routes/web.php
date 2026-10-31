@@ -72,6 +72,7 @@ Route::prefix('cp')->name('cp.')->middleware(['cp.auth', 'cp.check'])->group(fun
     Route::resource('balance-memos', PartyBalanceMemoController::class)->except(['index', 'show']);
 
     Route::get('/persons/{person}/export-pdf', [PersonController::class, 'exportPdf'])->name('persons.export-pdf');
+    Route::post('/persons/{person}/restore', [PersonController::class, 'restore'])->name('persons.restore');
     Route::resource('persons', PersonController::class);
 
     Route::get('/payments/incoming', [CashPaymentController::class, 'incoming'])->name('payments.incoming');
@@ -126,6 +127,7 @@ Route::prefix('cp')->name('cp.')->middleware(['cp.auth', 'cp.check'])->group(fun
             Route::get("/{$prefix}/create", [VendorController::class, 'create'])->name("{$prefix}.create");
             Route::post("/{$prefix}", [VendorController::class, 'store'])->name("{$prefix}.store");
             Route::get("/{$prefix}/{vendor}/export-pdf", [VendorController::class, 'exportPdf'])->name("{$prefix}.export-pdf");
+            Route::post("/{$prefix}/{vendor}/restore", [VendorController::class, 'restore'])->name("{$prefix}.restore");
             Route::get("/{$prefix}/{vendor}", [VendorController::class, 'show'])->name("{$prefix}.show");
             Route::get("/{$prefix}/{vendor}/edit", [VendorController::class, 'edit'])->name("{$prefix}.edit");
             Route::put("/{$prefix}/{vendor}", [VendorController::class, 'update'])->name("{$prefix}.update");
