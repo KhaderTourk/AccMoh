@@ -37,16 +37,19 @@ class PdfExporter
         ]);
         $mpdf->SetDirectionality('rtl');
         $mpdf->SetTitle($title);
-        $mpdf->SetAuthor('AccMa');
-        $mpdf->SetHTMLHeader(
-            '<div style="font-family:dejavusans;font-size:9px;color:#069660;border-bottom:1px solid #a7f3d0;padding-bottom:4px;text-align:right;">AccMa — إدارة مالية</div>'
-        );
-        $mpdf->SetHTMLFooter(
+        $mpdf->SetAuthor('حسابات براند');
+        // A view can bring its own footer (the client statement does); the rest share the default one.
+        if (empty($data['pdfOwnHeader'])) {
+            $mpdf->SetHTMLHeader(
+                '<div style="font-family:dejavusans;font-size:9px;color:#0B2537;border-bottom:1.5px solid #FB005B;padding-bottom:4px;text-align:right;">حسابات براند المالية</div>'
+            );
+        }
+        $mpdf->SetHTMLFooter($data['pdfFooter'] ??
             '<table width="100%" style="font-family:dejavusans;font-size:8px;color:#64748b;border-top:1px solid #e2e8f0;padding-top:4px;">
                 <tr>
                     <td width="33%">'.$exportedAt.'</td>
                     <td width="34%" style="text-align:center;">صفحة {PAGENO} من {nbpg}</td>
-                    <td width="33%" style="text-align:left;">AccMa</td>
+                    <td width="33%" style="text-align:left;">حسابات براند</td>
                 </tr>
             </table>'
         );

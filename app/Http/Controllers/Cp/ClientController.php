@@ -183,10 +183,44 @@ class ClientController extends Controller
         $request->validate([
             'opening' => ['sometimes', 'array'],
             'opening.*' => ['nullable', 'numeric'],
+            'type' => ['nullable', 'in:all,svc,pay,other'],
+            'kinds' => ['sometimes', 'array'],
+            'kinds.*' => ['string', 'max:255'],
         ]);
 
         $data = $this->showPayload($request, $client, $statements);
         $data['exporting'] = true;
+
+        // Same type filter as the page: services, payments (by method) or other movements.
+        $type = $request->input('type', 'all');
+        $kinds = array_filter((array) $request->input('kinds', []));
+        $groups = ['service' => 'svc', 'payment' => 'pay', 'goods' => 'other', 'memo' => 'other'];
+        // Kinds use the exact labels the client page shows in its filter chips.
+        $methods = \App\Models\CashPayment::query()
+            ->whereIn('id', $data['timeline']->where('type', 'payment')->pluck('id'))
+            ->with('paymentMethod')->get()->keyBy('id');
+        $takes = $data['goodsTakes']->keyBy('id');
+        $services = $client->services->keyBy('id');
+        $kindOf = fn (array $m) => match ($m['type']) {
+            'service' => $services[$m['id']]?->serviceType?->name ?: $services[$m['id']]?->title ?: 'خدمة',
+            'payment' => $methods[$m['id']]?->paymentMethod?->name ?: 'دفعة',
+            'goods' => self::isDiscount($takes[$m['id']] ?? null) ? 'خصم' : 'دفعة بضاعة',
+            'memo' => 'رصيد سابق',
+            default => 'أخرى',
+        };
+        $data['timeline'] = $data['timeline']->map(fn ($m) => $m + ['kind' => $kindOf($m)]);
+        if ($type !== 'all') {
+            $data['timeline'] = $data['timeline']
+                ->filter(fn ($m) => ($groups[$m['type']] ?? 'other') === $type && (! $kinds || in_array($m['kind'], $kinds, true)))
+                ->values();
+        }
+        $data['filterType'] = $type;
+        $data['filterKinds'] = $kinds;
+        $data['statementNo'] = 'C'.$client->id.'-'.now()->format('ymd');
+        $data['pdfOwnHeader'] = true;
+        $data['pdfFooter'] = '<table width="100%" style="font-family:dejavusans;font-size:8px;color:#64748b;border-top:1px solid #e2e8f0;padding-top:4px;"><tr>'
+            .'<td width="60%">للاستفسار: م. محمد عمار الشيخ · 0597667671</td>'
+            .'<td width="40%" style="text-align:left;">صفحة {PAGENO} من {nbpg}</td></tr></table>';
 
         $suffix = ($data['from'] || $data['to'])
             ? '-'.($data['from'] ?: 'start').'-'.($data['to'] ?: 'now')

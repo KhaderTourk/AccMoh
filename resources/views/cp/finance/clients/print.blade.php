@@ -1,134 +1,236 @@
-@extends('cp.print')
-@section('content')
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="UTF-8">
 @php
-    // كشف حساب على نمط برامج المحاسبة: جدول واحد مرتب زمنياً لكل عملة مع مجاميع المدين والدائن.
-    $typeLabels = ['service' => 'خدمة', 'payment' => 'دفعة', 'memo' => 'رصيد مرحّل', 'goods' => 'بضاعة مأخوذة'];
-    $chronological = collect($timeline)
-        ->sortBy(fn ($item) => $item['date']->format('Y-m-d').sprintf('%010d', $item['sort_at'] ?? 0).sprintf('%010d', $item['id'] ?? 0))
-        ->values();
-    $byCurrency = $chronological->groupBy(fn ($item) => (int) $item['currency']->id);
-    $openings = collect($summaries ?? [])->mapWithKeys(fn ($row) => [(int) $row['currency']->id => $row['opening'] ?? '0.00']);
-    $multiCurrency = $byCurrency->count() > 1;
-@endphp
+    use App\Support\Money;
 
-@if(filled($client->notes))
-<div class="card">
-    <div class="kpi-label">ملاحظات</div>
-    <div class="sub" style="white-space: pre-line;">{{ $client->notes }}</div>
-</div>
+    // كشف حساب الزبون (تصميم #7 §5): ورقة بيضاء موفّرة للحبر، خط وردي فوق، رأس جدول أبيض بخط كحلي.
+    $filterType = $filterType ?? 'all';
+    $filterKinds = $filterKinds ?? [];
+    $filtered = $filterType !== 'all';
+    $docTitle = ['all' => 'كشف حساب', 'svc' => 'كشف خدمات', 'pay' => 'كشف دفعات', 'other' => 'كشف حركات أخرى'][$filterType] ?? 'كشف حساب';
+    if ($filterKinds) {
+        $docTitle .= ' · '.implode('، ', $filterKinds);
+    }
+    $typeLabels = ['service' => 'خدمة', 'payment' => 'دفعة', 'memo' => 'رصيد سابق', 'goods' => 'بضاعة / خصم'];
+
+    $chronological = collect($timeline)
+        ->sortBy(fn ($m) => $m['date']->format('Y-m-d').sprintf('%010d', $m['sort_at'] ?? 0).sprintf('%010d', $m['id'] ?? 0))
+        ->values();
+    $byCurrency = $chronological->groupBy(fn ($m) => (int) $m['currency']->id);
+    $summaryBy = collect($summaries ?? [])->keyBy(fn ($r) => (int) $r['currency']->id);
+    $multiCurrency = $byCurrency->count() > 1;
+
+    if ($from || $to) {
+        $periodText = ($from ? format_date($from) : 'البداية').' — '.($to ? format_date($to) : format_date(now()));
+    } elseif ($chronological->isNotEmpty()) {
+        $periodText = 'كل الوقت: '.format_date($chronological->first()['date']).' — '.format_date($chronological->last()['date']);
+    } else {
+        $periodText = 'كل الوقت';
+    }
+    $dueDate = $to ? format_date($to) : format_date(now());
+    $logo = public_path('assets/icons/brand-logo.png');
+@endphp
+<title>{{ $docTitle }} — {{ $client->personName() }}</title>
+<style>
+    body { font-family: dejavusans, sans-serif; direction: rtl; font-size: 10px; color: #0B2537; }
+    .topline { height: 4px; background: #FB005B; margin: 0 0 12px; }
+    table.head { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+    table.head td { vertical-align: middle; }
+    .co { font-size: 14px; font-weight: bold; color: #0B2537; }
+    .co-sub { font-size: 8.5px; color: #64748b; margin-top: 2px; }
+    .doc { font-size: 16px; font-weight: bold; color: #FB005B; text-align: left; }
+    .doc-meta { font-size: 8.5px; color: #475569; text-align: left; margin-top: 3px; }
+    table.cards { width: 100%; border-collapse: separate; border-spacing: 6px 0; margin: 0 -6px 12px; }
+    table.cards td { border: 1px solid #e2e8f0; padding: 8px 10px; vertical-align: top; }
+    .lbl { font-size: 8px; color: #64748b; margin-bottom: 2px; }
+    .val { font-size: 11px; font-weight: bold; color: #0B2537; }
+    .small { font-size: 8.5px; color: #475569; }
+    table.sum { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+    table.sum th { background: #fff; color: #0B2537; border-bottom: 1.5px solid #0B2537; padding: 5px 6px; font-size: 8.5px; text-align: center; }
+    table.sum td { padding: 5px 6px; text-align: center; border-bottom: 1px solid #e2e8f0; font-weight: bold; }
+    .cur { font-size: 10.5px; font-weight: bold; margin: 10px 0 4px; color: #0B2537; }
+    table.st { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
+    table.st th { background: #fff; color: #0B2537; border: 1px solid #cbd5e1; border-bottom: 1.5px solid #0B2537; padding: 6px 5px; font-size: 8.5px; text-align: center; }
+    table.st th span { display: block; font-weight: normal; color: #64748b; font-size: 7.5px; }
+    table.st td { border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #eef2f7; padding: 5px; text-align: center; vertical-align: top; }
+    table.st tr.alt td { background: #fafbfd; }
+    table.st td.desc { text-align: right; }
+    table.st td.n { color: #94a3b8; font-size: 8px; width: 20px; }
+    .t { font-size: 7.5px; color: #64748b; }
+    .dr { color: #be123c; }
+    .cr { color: #047857; }
+    table.st tr.open td, table.st tr.tot td { background: #fff5f9; font-weight: bold; border-top: 1px solid #cbd5e1; }
+    .due { border: 1.5px solid #FB005B; padding: 8px 10px; margin: 10px 0; font-size: 11px; font-weight: bold; }
+    ol.terms { font-size: 8.5px; color: #334155; margin: 8px 0 18px; padding-right: 16px; }
+    ol.terms li { margin-bottom: 2px; }
+    table.sign { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    table.sign td { width: 50%; padding: 0 10px; font-size: 9px; color: #475569; }
+    .line { border-bottom: 1px solid #94a3b8; height: 34px; }
+    table.sign td.line { padding: 0; }
+    table.sign td + td.line { border-right: 20px solid #fff; }
+</style>
+</head>
+<body>
+<div class="topline"></div>
+<table class="head">
+    <tr>
+        <td style="width:46px;">@if(is_file($logo))<img src="{{ $logo }}" style="width:40px;height:40px;">@endif</td>
+        <td>
+            <div class="co">براند للحلول الإبداعية المتكاملة</div>
+            <div class="co-sub">حسابات براند المالية</div>
+        </td>
+        <td>
+            <div class="doc">{{ $docTitle }}</div>
+            <div class="doc-meta">رقم الكشف: {{ $statementNo ?? ('C'.$client->id) }} · تاريخ الإصدار: {{ format_date(now()) }}</div>
+        </td>
+    </tr>
+</table>
+
+<table class="cards">
+    <tr>
+        <td style="width:58%;">
+            <div class="lbl">الزبون</div>
+            <div class="val">{{ $client->personName() }}</div>
+            @if(filled($client->organization()) || filled($client->phone))
+                <div class="small">{{ trim(implode(' · ', array_filter([$client->organization(), $client->phone]))) }}</div>
+            @endif
+        </td>
+        <td>
+            <div class="lbl">الفترة</div>
+            <div class="val" style="font-size:10px;">{{ $periodText }}</div>
+            <div class="small">عدد الحركات: {{ $chronological->count() }}</div>
+        </td>
+    </tr>
+</table>
+
+@if($byCurrency->isNotEmpty())
+<table class="sum">
+    <tr>
+        @if($multiCurrency)<th>العملة</th>@endif
+        @unless($filtered)<th>رصيد سابق</th>@endunless
+        <th>مدين (عليه)</th>
+        <th>دائن (له)</th>
+        <th>{{ $filtered ? 'المجموع' : 'الرصيد' }}</th>
+    </tr>
+    @foreach($byCurrency as $cid => $items)
+        @php
+            $cur = $items->first()['currency'];
+            $dr = '0.00'; $crd = '0.00';
+            foreach ($items as $m) {
+                $d = (string) $m['delta'];
+                if (Money::isPositive($d)) { $dr = Money::add($dr, $d); }
+                elseif (Money::isNegative($d)) { $crd = Money::add($crd, Money::abs($d)); }
+            }
+            $open = (string) ($summaryBy[$cid]['opening'] ?? '0.00');
+            $end = $filtered ? Money::sub($dr, $crd) : Money::add($open, Money::sub($dr, $crd));
+        @endphp
+        <tr>
+            @if($multiCurrency)<td>{{ $cur->name }}</td>@endif
+            @unless($filtered)<td>{{ $cur->format($open) }}</td>@endunless
+            <td class="dr">{{ $cur->format($dr) }}</td>
+            <td class="cr">{{ $cur->format($crd) }}</td>
+            <td>{{ $cur->format(Money::abs($end)) }}{{ Money::isNegative($end) ? ' (له)' : '' }}</td>
+        </tr>
+    @endforeach
+</table>
 @endif
 
-<h2>السجل الزمني</h2>
-
-@forelse($byCurrency as $currencyId => $items)
+@forelse($byCurrency as $cid => $items)
     @php
-        $currency = $items->first()['currency'];
-        $opening = (string) ($openings[$currencyId] ?? '0.00');
-        $summaryRow = collect($summaries ?? [])->first(fn ($row) => (int) $row['currency']->id === (int) $currencyId);
-        $openingOverridden = ! empty($summaryRow['opening_overridden']);
-        $debitTotal = '0.00';
-        $creditTotal = '0.00';
+        $cur = $items->first()['currency'];
+        $open = (string) ($summaryBy[$cid]['opening'] ?? '0.00');
+        $running = $filtered ? '0.00' : $open;
+        $dr = '0.00'; $crd = '0.00';
     @endphp
-    @if($multiCurrency)
-        <div class="cur-title"><span class="cur-chip">{{ $currency->name }}</span></div>
-    @endif
-    <table class="stmt">
+    @if($multiCurrency)<div class="cur">{{ $cur->name }}</div>@endif
+    <table class="st">
         <thead>
             <tr>
-                <th style="width:22px;">م</th>
-                <th style="width:62px;">التاريخ</th>
-                <th style="width:70px;">نوع الحركة</th>
+                <th>م</th>
+                <th style="width:58px;">التاريخ</th>
                 <th>البيان</th>
-                <th style="width:78px;">مدين</th>
-                <th style="width:78px;">دائن</th>
-                <th style="width:84px;">الرصيد</th>
+                <th style="width:72px;">مدين<span>عليه</span></th>
+                <th style="width:72px;">دائن<span>له</span></th>
+                <th style="width:80px;">{{ $filtered ? 'المجموع' : 'الرصيد' }}</th>
             </tr>
         </thead>
         <tbody>
-        @if(!empty($hasOpening) || ! \App\Support\Money::isZero($opening))
-            <tr class="opening">
-                <td class="num">—</td>
-                <td>{{ !empty($from) ? format_date($from) : '—' }}</td>
-                <td>—</td>
-                <td class="desc">رصيد سابق{{ $openingOverridden ? ' (معدّل للعرض)' : '' }}</td>
-                <td>—</td>
-                <td>—</td>
-                <td class="bal">{{ $currency->format($opening) }}</td>
+        @unless($filtered)
+            <tr class="open">
+                <td class="n">—</td>
+                <td>{{ $from ? format_date($from) : '—' }}</td>
+                <td class="desc">رصيد سابق{{ !empty($summaryBy[$cid]['opening_overridden']) ? ' (معدّل للعرض)' : '' }}</td>
+                <td></td><td></td>
+                <td>{{ $cur->format($open) }}</td>
             </tr>
-        @endif
-        @foreach($items as $i => $item)
+        @endunless
+        @foreach($items as $i => $m)
             @php
-                $delta = (string) ($item['delta'] ?? '0');
-                $isCredit = \App\Support\Money::isNegative($delta)
-                    || (\App\Support\Money::isZero($delta) && in_array($item['type'] ?? '', ['payment', 'goods'], true));
-                $counts = ! \App\Support\Money::isZero($delta);
-                if (\App\Support\Money::isPositive($delta)) {
-                    $debitTotal = \App\Support\Money::add($debitTotal, $delta);
-                } elseif (\App\Support\Money::isNegative($delta)) {
-                    $creditTotal = \App\Support\Money::add($creditTotal, \App\Support\Money::abs($delta));
-                }
-                $formattedAmount = $item['currency']->format($item['amount']);
-                $type = $item['type'] ?? '';
+                $d = (string) $m['delta'];
+                $isCredit = Money::isNegative($d) || (Money::isZero($d) && in_array($m['type'], ['payment', 'goods'], true));
+                if (Money::isPositive($d)) { $dr = Money::add($dr, $d); }
+                elseif (Money::isNegative($d)) { $crd = Money::add($crd, Money::abs($d)); }
+                $running = Money::add($running, $d);
+                $amt = $cur->format($m['amount']);
+                $title = preg_replace('/^(خدمة|بضاعة مأخوذة): /u', '', $m['title']);
             @endphp
             <tr class="{{ $i % 2 ? 'alt' : '' }}">
-                <td class="num">{{ $i + 1 }}</td>
-                <td>{{ format_date($item['date']) }}</td>
-                <td><span class="type-tag t-{{ $type }}">{{ $typeLabels[$type] ?? '—' }}</span></td>
+                <td class="n">{{ $i + 1 }}</td>
+                <td>{{ format_date($m['date']) }}</td>
                 <td class="desc">
-                    {{ $item['title'] }}
-                    @if(!$counts)
-                        <span class="sub">(لا تُحتسب في الرصيد)</span>
-                    @endif
-                    @if(!empty($item['notes']))
-                        <div class="sub" style="white-space: pre-line;">{{ $item['notes'] }}</div>
-                    @endif
+                    {{ $title }}
+                    <div class="t">{{ $m['kind'] ?? ($typeLabels[$m['type']] ?? '') }}@if(!empty($m['fx'])) · سعر الصرف: {{ $m['fx'] }}@endif @if(Money::isZero($d)) · لا تُحتسب في الرصيد @endif</div>
+                    @if(filled($m['notes'] ?? null))<div class="t" style="white-space:pre-line;">{{ $m['notes'] }}</div>@endif
                 </td>
-                <td class="{{ $isCredit ? '' : 'debit' }}">{{ $isCredit ? '' : $formattedAmount }}</td>
-                <td class="{{ $isCredit ? 'credit' : '' }}">{{ $isCredit ? $formattedAmount : '' }}</td>
-                <td class="bal">{{ $item['currency']->format($item['balance']) }}</td>
+                <td class="dr">{{ $isCredit ? '' : $amt }}</td>
+                <td class="cr">{{ $isCredit ? $amt : '' }}</td>
+                <td>{{ $cur->format(Money::abs($running)) }}{{ Money::isNegative($running) ? ' له' : '' }}</td>
             </tr>
         @endforeach
+            <tr class="tot">
+                <td></td><td></td>
+                <td class="desc">المجموع</td>
+                <td class="dr">{{ $cur->format($dr) }}</td>
+                <td class="cr">{{ $cur->format($crd) }}</td>
+                <td>{{ $cur->format(Money::abs($running)) }}{{ Money::isNegative($running) ? ' له' : '' }}</td>
+            </tr>
         </tbody>
     </table>
-    @php
-        $net = \App\Support\Money::add($debitTotal, \App\Support\Money::neg($creditTotal));
-        $final = \App\Support\Money::add($opening, $net);
-    @endphp
-    <table class="stmt-foot">
-        <tr>
-            <td class="label">المجموع المدين</td>
-            <td class="val val-debit">{{ $currency->format($debitTotal) }}</td>
-            <td class="label">المجموع الدائن</td>
-            <td class="val val-credit">{{ $currency->format($creditTotal) }}</td>
-        </tr>
-        @if(! \App\Support\Money::isZero($opening))
-        <tr>
-            <td class="label">الرصيد السابق</td>
-            <td class="val">{{ $currency->format($opening) }}</td>
-            <td class="label">صافي الفترة</td>
-            <td class="val">{{ $currency->format($net) }}</td>
-        </tr>
-        @endif
-        <tr class="grand">
-            <td class="label">الإجمالي</td>
-            <td class="val" colspan="3">
-                @if(\App\Support\Money::isNegative($final))
-                    {{ $currency->format(\App\Support\Money::abs($final)) }} — عربون (له)
-                @elseif(\App\Support\Money::isZero($final))
-                    {{ $currency->format($final) }} — الحساب مسدّد
-                @else
-                    {{ $currency->format($final) }} — مستحق (عليه)
-                @endif
-            </td>
-        </tr>
-    </table>
 @empty
-    <table class="data">
-        <tbody><tr><td class="empty">لا حركات{{ !empty($from) || !empty($to) ? ' في هذه الفترة' : '' }}.</td></tr></tbody>
-    </table>
+    <p class="small" style="text-align:center;padding:14px;">لا حركات{{ ($from || $to) ? ' في هذه الفترة' : '' }}.</p>
 @endforelse
 
-@if(!empty($hasOpening))
-<p class="muted">الرصيد السابق للعرض في هذا الكشف فقط، ولا يغيّر الأرصدة المسجّلة في النظام.</p>
-@endif
-@endsection
+@php
+    $dueRows = collect($summaries ?? [])->filter(fn ($r) => ! Money::isZero($r['closing']));
+@endphp
+<div class="due">
+    الرصيد المستحق بتاريخ {{ $dueDate }}:
+    @forelse($dueRows as $r)
+        {{ $r['currency']->format(Money::abs($r['closing'])) }} {{ Money::isNegative($r['closing']) ? '(له)' : '(عليه)' }}@if(!$loop->last) · @endif
+    @empty
+        الحساب مسدّد
+    @endforelse
+</div>
+
+<ol class="terms">
+    <li>يُعدّ هذا الكشف ملزماً ما لم يصلنا اعتراض مكتوب خلال 15 يوماً من تاريخ استلامه.</li>
+    <li>الخطأ والسهو مستدرك.</li>
+    <li>المبالغ بالعملات الأخرى محسوبة بسعر صرف يومها.</li>
+    <li>هذا الكشف ليس إيصال قبض.</li>
+    <li>يرجى مطابقة الكشف مع سجلاتكم.</li>
+</ol>
+
+<table class="sign">
+    <tr>
+        <td>توقيع المحاسب</td>
+        <td>ختم الشركة</td>
+    </tr>
+    <tr>
+        <td class="line">&nbsp;</td>
+        <td class="line">&nbsp;</td>
+    </tr>
+</table>
+</body>
+</html>
