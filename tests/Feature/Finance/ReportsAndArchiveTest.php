@@ -74,13 +74,13 @@ class ReportsAndArchiveTest extends TestCase
 
         $this->actingAs($this->user)->get(route('cp.persons.index'))
             ->assertOk()
-            ->assertDontSee('شخص للأرشفة');
+            ->assertSee('"name":"شخص للأرشفة"', false)->assertSee('"archived":true', false);
         $this->actingAs($this->user)->get(route('cp.workers.index'))
             ->assertOk()
-            ->assertDontSee('موظف للأرشفة');
+            ->assertSee('"name":"موظف للأرشفة"', false)->assertSee('"archived":true', false);
         $this->actingAs($this->user)->get(route('cp.suppliers.index'))
             ->assertOk()
-            ->assertDontSee('مورد للأرشفة');
+            ->assertSee('"name":"مورد للأرشفة"', false)->assertSee('"archived":true', false);
 
         $this->assertFalse($client->fresh()->is_active);
         $this->assertFalse($person->fresh()->is_active);
@@ -132,9 +132,9 @@ class ReportsAndArchiveTest extends TestCase
         // Archived clients now live in the list's «مؤرشف» tab instead of being dropped from the page.
         $this->actingAs($this->user)->get(route('cp.clients.index'))
             ->assertSee('"name":"زبون مخفي"', false)->assertSee('"archived":true', false);
-        $this->actingAs($this->user)->get(route('cp.persons.index'))->assertDontSee('شخص مخفي');
-        $this->actingAs($this->user)->get(route('cp.workers.index'))->assertDontSee('موظف مخفي');
-        $this->actingAs($this->user)->get(route('cp.suppliers.index'))->assertDontSee('مورد مخفي');
+        $this->actingAs($this->user)->get(route('cp.persons.index'))->assertSee('"name":"شخص مخفي"', false)->assertSee('"archived":true', false);
+        $this->actingAs($this->user)->get(route('cp.workers.index'))->assertSee('"name":"موظف مخفي"', false)->assertSee('"archived":true', false);
+        $this->actingAs($this->user)->get(route('cp.suppliers.index'))->assertSee('"name":"مورد مخفي"', false)->assertSee('"archived":true', false);
         $this->actingAs($this->user)->get(route('cp.users.index'))->assertDontSee('مستخدم مؤرشف');
         $this->actingAs($this->user)->get(route('cp.payments.incoming'))->assertDontSee('دفعة الزبون المخفي');
         $this->actingAs($this->user)->get(route('cp.ledger.index'))->assertDontSee('دفعة الزبون المخفي');
