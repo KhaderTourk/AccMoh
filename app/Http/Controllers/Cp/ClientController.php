@@ -233,6 +233,38 @@ class ClientController extends Controller
         );
     }
 
+    public function edit(Client $client)
+    {
+        return view('cp.finance.clients.form', compact('client'));
+    }
+
+    public function update(Request $request, Client $client)
+    {
+        $client->update($this->validated($request));
+
+        if ($request->input('return') === 'list') {
+            return redirect()->route('cp.clients.index', ['flash' => $client->id])->with('success', 'انحفظ التعديل.');
+        }
+
+        return redirect()->route('cp.clients.show', $client)->with('success', 'انحفظ التعديل.');
+    }
+
+    public function destroy(Client $client)
+    {
+        $client->update(['is_active' => false]);
+
+        return redirect()->route('cp.clients.index')
+            ->with('success', 'انأرشف الزبون، وبتلاقيه مع كل حركاته بتاب «مؤرشف».');
+    }
+
+    public function restore(Client $client)
+    {
+        $client->update(['is_active' => true]);
+
+        return redirect()->route('cp.clients.index', ['flash' => $client->id])
+            ->with('success', 'رجع الزبون لقائمة الزبائن.');
+    }
+
     protected function validated(Request $request): array
     {
         $data = $request->validate([
