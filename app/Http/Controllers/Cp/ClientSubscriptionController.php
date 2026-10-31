@@ -147,7 +147,7 @@ class ClientSubscriptionController extends Controller
     {
         return ClientSubscription::query()
             ->with(['client', 'months:id,subscription_id,period'])
-            ->where('starts_on', '<=', $until.'-31')
+            ->where('starts_on', '<=', \Carbon\CarbonImmutable::createFromFormat('Y-m-d', $until.'-01')->endOfMonth()->toDateString())
             ->orderBy('starts_on')
             ->get()
             ->filter(fn ($s) => $s->client)
