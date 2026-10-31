@@ -1,85 +1,228 @@
 @extends('cp.layout')
 @section('title', 'الزبائن')
 @section('content')
-@php
-    $filterCount = collect(['q', 'from', 'to', '_preset'])->filter(fn ($key) => filled(request($key)))->count();
-    $periodQuery = $periodQuery ?? [];
-@endphp
-<div class="space-y-4">
-    @component('cp.partials.filter-panel', ['count' => $filterCount])
-        @slot('actions')
-            <a href="{{ route('cp.clients.import') }}" class="cp-btn cp-btn-ghost"><span class="material-symbols-outlined">upload_file</span> استيراد من إكسيل</a>
-            <a href="{{ route('cp.clients.create') }}" class="cp-btn cp-btn-primary"><span class="material-symbols-outlined">add</span> زبون جديد</a>
-        @endslot
-        <div>
-            <label class="text-xs block mb-0.5 text-slate-500">بحث</label>
-            <input type="text" name="q" value="{{ request('q') }}" placeholder="الاسم أو الجهة أو الهاتف..." class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-        </div>
-        @include('cp.partials.date-range-fields')
-        @slot('footer')
-            @include('cp.partials.date-range-shortcuts')
-            @if($from || $to)
-                <p class="text-xs text-slate-500 mt-2">عند تحديد فترة تظهر فقط الزبائن الذين لديهم خدمات أو دفعات أو بضاعة مأخوذة ضمنها، ويمكن تصدير كشف الحركات لنفس الفترة.</p>
-            @endif
-        @endslot
-    @endcomponent
+<div class="cl-page" id="clPage">
+    <div class="cl-top">
+        <h1 class="cl-h">الزبائن</h1>
+        <div class="cl-sp"></div>
+        <a href="{{ route('cp.clients.import') }}" class="cl-ghost" title="استيراد من إكسيل"><span class="material-symbols-outlined">upload_file</span></a>
+        <button type="button" class="cp-btn cp-btn-primary" id="clNew"><span class="material-symbols-outlined">add</span> زبون جديد</button>
+    </div>
 
-    @if($from || $to)
-        <div class="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm">
-            حركات الفترة: <strong>{{ \App\Support\DateRange::label($from, $to) }}</strong>
-            — التصدير من كل صف يعرض خدمات ودفعات وبضاعة هذه الفترة مع الرصيد السابق إن وُجد.
+    <div class="cl-tools">
+        <label class="cl-search" for="clQ">
+            <span class="material-symbols-outlined">search</span>
+            <input id="clQ" type="search" placeholder="ابحث بالجهة أو الاسم أو الهاتف" autocomplete="off">
+        </label>
+        <div class="cl-seg" role="tablist" aria-label="عرض">
+            <button type="button" class="on" data-f="all" role="tab">الكل</button>
+            <button type="button" data-f="due" role="tab">عليهم رصيد</button>
+            <button type="button" data-f="credit" role="tab">إلهم رصيد</button>
+            <button type="button" data-f="arch" role="tab">مؤرشف</button>
         </div>
+    </div>
+
+    <div class="cl-summary"><b id="clCount">0</b> <span id="clCountWord">زبون</span> · المستحق عليهم <b id="clTotal">0</b></div>
+    <div class="cl-legend"><span><i class="due"></i>عليه للشركة</span><span><i class="credit"></i>إله رصيد عندنا</span><span><i class="zero"></i>مسدّد</span></div>
+
+    <div class="cl-list" id="clList"></div>
+</div>
+
+{{-- نافذة إضافة وتعديل الزبون --}}
+<div class="cl-sheet" id="clSheet" hidden>
+    <form class="cl-dialog" id="clForm" method="post" action="{{ route('cp.clients.store') }}" role="dialog" aria-modal="true" aria-labelledby="clSheetTitle" novalidate>
+        @csrf
+        <input type="hidden" name="_method" id="clMethod" value="POST">
+        <input type="hidden" name="return" value="list">
+        <h2 id="clSheetTitle">زبون جديد</h2>
+        <div class="cl-field">
+            <label for="fOrg">الجهة</label>
+            <input id="fOrg" name="company_name" maxlength="255" placeholder="اختياري، وإذا فاضية الاسم بيحل محلها">
+        </div>
+        <div class="cl-field">
+            <label for="fName">الاسم</label>
+            <input id="fName" name="name" maxlength="255">
+        </div>
+        <div class="cl-field">
+            <label for="fPhone">الهاتف</label>
+            <input id="fPhone" name="phone" inputmode="numeric" dir="ltr" placeholder="اختياري · 05xxxxxxxx">
+            <small class="cl-err" id="phoneErr" hidden>الرقم لازم يكون 10 خانات ويبدأ بـ 05</small>
+        </div>
+        <div class="cl-field">
+            <label for="fNotes">ملاحظات</label>
+            <textarea id="fNotes" name="notes" rows="2" placeholder="اختياري"></textarea>
+        </div>
+        <p class="cl-dup" id="clDup" hidden><span class="material-symbols-outlined">info</span> في زبون مشابه: <b id="clDupName"></b></p>
+        <div class="cl-actions">
+            <button type="submit" class="cp-btn cp-btn-primary" id="fSave" disabled>حفظ</button>
+            <button type="button" class="cp-btn cp-btn-ghost" id="fCancel">إلغاء</button>
+        </div>
+    </form>
+</div>
+
+{{-- نموذج الأرشفة والاسترجاع --}}
+<form method="post" id="clArchForm" hidden>@csrf<input type="hidden" name="_method" id="clArchMethod" value="DELETE"></form>
+
+<script type="application/json" id="clData">{!! json_encode(['clients' => $clients, 'flash' => $flash, 'storeUrl' => route('cp.clients.store')], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) !!}</script>
+<script>
+(function () {
+    const D = JSON.parse(document.getElementById('clData').textContent);
+    const clients = D.clients;
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const norm = (s) => String(s || '').replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/\s+/g, ' ').trim().toLowerCase();
+    const fmt = (n) => Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    let filter = 'all';
+    let editing = null;
+
+    const due = (c) => c.balances.some((b) => b.amount > 0);
+    const credit = (c) => c.balances.some((b) => b.amount < 0);
+    const title = (c) => c.org || c.name;
+
+    function amountHtml(c) {
+        if (!c.balances.length) return '<div class="cl-amt zero">مسدّد</div>';
+        return '<div class="cl-amt-wrap">' + c.balances.map((b) =>
+            `<div class="cl-amt ${b.amount > 0 ? 'due' : 'credit'}" title="${b.amount > 0 ? 'عليه' : 'إله'}">${esc(b.label)}</div>`
+        ).join('') + '</div>';
+    }
+
+    function render() {
+        const q = norm($('clQ').value);
+        let rows = clients.filter((c) => filter === 'arch' ? c.archived : !c.archived);
+        if (filter === 'due') rows = rows.filter(due);
+        if (filter === 'credit') rows = rows.filter(credit);
+        if (q) rows = rows.filter((c) => norm([c.org, c.name, c.phone, c.notes].join(' ')).includes(q));
+
+        $('clList').innerHTML = rows.length ? rows.map((c) => `
+            <div class="cl-row${c.id === D.flash ? ' is-new' : ''}" tabindex="0" data-id="${c.id}">
+                <div class="cl-av">${esc((title(c).trim()[0]) || '؟')}</div>
+                <div class="cl-who"><b>${esc(title(c))}</b><span>${esc(c.org ? c.name : '')}</span></div>
+                ${amountHtml(c)}
+                <button type="button" class="cl-more" aria-label="خيارات ${esc(title(c))}">⋯</button>
+                <div class="cl-menu" hidden>
+                    <a href="${esc(c.pdf)}" target="_blank" rel="noopener">تصدير كشف حساب</a>
+                    <button type="button" data-act="edit">تعديل</button>
+                    <hr>
+                    ${c.archived ? '<button type="button" data-act="restore">استرجاع من الأرشيف</button>' : '<button type="button" class="danger" data-act="archive">أرشفة</button>'}
+                </div>
+            </div>`).join('')
+            : `<p class="cl-empty">${filter === 'arch' ? 'ما في زبائن مؤرشفين.' : (q ? 'ما في زبون بهالاسم.' : 'ما في زبائن هون.')}</p>`;
+
+        $('clCount').textContent = rows.length;
+        const totals = {};
+        rows.forEach((c) => c.balances.forEach((b) => { if (b.amount > 0) totals[b.code] = (totals[b.code] || 0) + b.amount; }));
+        const parts = Object.entries(totals).map(([code, v]) => fmt(v) + ' ' + ((D.symbols || {})[code] || code));
+        $('clTotal').textContent = parts.length ? parts.join(' · ') : '0.00';
+
+        if (D.flash) {
+            const el = document.querySelector('.cl-row.is-new');
+            if (el) el.scrollIntoView({ block: 'center' });
+            D.flash = 0;
+        }
+    }
+
+    function closeMenus() { document.querySelectorAll('.cl-menu').forEach((m) => { m.hidden = true; }); }
+
+    $('clList').addEventListener('click', (e) => {
+        const more = e.target.closest('.cl-more');
+        const row = e.target.closest('.cl-row');
+        if (!row) return;
+        const c = clients.find((x) => x.id === +row.dataset.id);
+        if (more) {
+            e.stopPropagation();
+            const menu = more.nextElementSibling;
+            const open = menu.hidden;
+            closeMenus();
+            menu.hidden = !open;
+            return;
+        }
+        const act = e.target.closest('[data-act]');
+        if (act) { closeMenus(); action(act.dataset.act, c); return; }
+        if (e.target.closest('.cl-menu')) return;
+        window.location.href = c.show;
+    });
+    $('clList').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && e.target.classList.contains('cl-row')) {
+            window.location.href = clients.find((x) => x.id === +e.target.dataset.id).show;
+        }
+    });
+    document.addEventListener('click', (e) => { if (!e.target.closest('.cl-menu')) closeMenus(); });
+
+    function submitArch(url, method) {
+        const f = $('clArchForm');
+        f.action = url;
+        $('clArchMethod').value = method;
+        f.submit();
+    }
+
+    function action(act, c) {
+        if (act === 'edit') return openSheet(c);
+        if (act === 'restore') return submitArch(c.restore, 'POST');
+        if (act === 'archive') {
+            const bal = c.balances.length ? ' رصيده مش صفر (' + c.balances.map((b) => (b.amount > 0 ? 'عليه ' : 'إله ') + b.label).join('، ') + ')، وبيضل محفوظ مع كل حركاته.' : '';
+            const msg = 'أرشفة «' + title(c) + '»؟' + bal + ' بتلاقيه بتاب «مؤرشف» وبتقدر ترجّعه.';
+            const ask = window.cpConfirm ? window.cpConfirm(msg) : Promise.resolve(window.confirm(msg));
+            ask.then((ok) => { if (ok) submitArch(c.archive, 'DELETE'); });
+        }
+    }
+
+    document.querySelectorAll('.cl-seg button').forEach((b) => b.addEventListener('click', () => {
+        document.querySelectorAll('.cl-seg button').forEach((x) => x.classList.toggle('on', x === b));
+        filter = b.dataset.f;
+        render();
+    }));
+    $('clQ').addEventListener('input', render);
+
+    /* نافذة الإضافة والتعديل */
+    const fOrg = $('fOrg'), fName = $('fName'), fPhone = $('fPhone'), fNotes = $('fNotes'), save = $('fSave');
+    function openSheet(c) {
+        editing = c || null;
+        $('clSheetTitle').textContent = c ? 'تعديل الزبون' : 'زبون جديد';
+        save.textContent = c ? 'حفظ التعديل' : 'حفظ';
+        $('clForm').action = c ? c.update : D.storeUrl;
+        $('clMethod').value = c ? 'PUT' : 'POST';
+        fOrg.value = c ? c.org : '';
+        fName.value = c ? c.name : '';
+        fPhone.value = c ? c.phone : '';
+        fNotes.value = c ? c.notes : '';
+        $('clSheet').hidden = false;
+        check();
+        setTimeout(() => (c ? fName : fOrg).focus(), 30);
+    }
+    function closeSheet() { $('clSheet').hidden = true; }
+    function check() {
+        const p = fPhone.value.trim();
+        const okPhone = !p || /^05\d{8}$/.test(p);
+        $('phoneErr').hidden = okPhone || p.length < 2;
+        const o = norm(fOrg.value), n = norm(fName.value);
+        let dup = null;
+        if (o.length >= 3 || n.length >= 3) {
+            dup = clients.find((r) => (!editing || r.id !== editing.id) &&
+                ((o.length >= 3 && norm(r.org).includes(o)) || (n.length >= 3 && norm(r.name).includes(n))));
+        }
+        $('clDup').hidden = !dup;
+        if (dup) $('clDupName').textContent = (dup.org ? dup.org + '، ' : '') + dup.name + (dup.archived ? ' (مؤرشف)' : '');
+        save.disabled = !fName.value.trim() || !okPhone;
+    }
+    [fOrg, fName, fPhone].forEach((el) => el.addEventListener('input', check));
+    fNotes.addEventListener('input', () => { fNotes.style.height = ''; fNotes.style.height = fNotes.scrollHeight + 'px'; });
+    $('clNew').addEventListener('click', () => openSheet(null));
+    $('fCancel').addEventListener('click', closeSheet);
+    $('clSheet').addEventListener('click', (e) => { if (e.target.id === 'clSheet') closeSheet(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('clSheet').hidden) closeSheet(); });
+    $('clForm').addEventListener('submit', (e) => { if (save.disabled) e.preventDefault(); });
+
+    @if($errors->any() && old('return') === 'list')
+        openSheet(null);
+        fOrg.value = @json(old('company_name', ''));
+        fName.value = @json(old('name', ''));
+        fPhone.value = @json(old('phone', ''));
+        fNotes.value = @json(old('notes', ''));
+        check();
     @endif
 
-    <div class="rounded-2xl bg-white dark:bg-slate-800 border overflow-hidden">
-        @if($clients->isEmpty())
-            <div class="p-12 text-center text-slate-500">لا يوجد زبائن مطابقون للتصفية.</div>
-        @else
-        <div class="overflow-x-auto">
-        <table class="w-full text-right text-sm">
-            <thead class="bg-slate-50 dark:bg-slate-700/50"><tr>
-                <th class="px-4 py-3" data-sort-key="company">الجهة</th><th class="px-4 py-3" data-sort-key="name">الاسم</th><th class="px-4 py-3" data-sort-key="phone">الهاتف</th><th class="px-4 py-3" data-sort-key="due">المتبقي</th><th class="px-4 py-3" data-sort="off">إجراء</th>
-            </tr></thead>
-            <tbody class="divide-y dark:divide-slate-700">
-            @foreach($clients as $client)
-                <tr>
-                    <td class="px-4 py-3">
-                        <a href="{{ route('cp.clients.show', array_merge(['client' => $client], $periodQuery)) }}" class="font-medium text-primary">{{ $client->organization() ?: '—' }}</a>
-                        @include('cp.partials.note-line', ['notes' => $client->notes])
-                    </td>
-                    <td class="px-4 py-3">
-                        {{ $client->personName() }}
-                        @includeWhen(! $client->is_active, 'cp.partials.archived-badge')
-                    </td>
-                    <td class="px-4 py-3">{{ $client->phone ?: '—' }}</td>
-                    <td class="px-4 py-3">
-                        @foreach($currencies as $currency)
-                            @php $due = $client->outstandingAmount($currency->id); @endphp
-                            @if(\App\Support\Money::isPositive($due))
-                                <div>{{ $currency->format($due) }}</div>
-                            @elseif(\App\Support\Money::isNegative($due))
-                                <div class="text-emerald-600">عربون {{ $currency->format(\App\Support\Money::abs($due)) }}</div>
-                            @endif
-                        @endforeach
-                    </td>
-                    <td class="px-4 py-3">
-                        <div class="flex items-center gap-1 justify-end">
-                            <a href="{{ route('cp.clients.show', array_merge(['client' => $client], $periodQuery)) }}" class="p-2 inline-block" title="عرض"><span class="material-symbols-outlined text-base">visibility</span></a>
-                            <a href="{{ route('cp.clients.export-pdf', array_merge(['client' => $client], $periodQuery)) }}" class="p-2 inline-block" title="تصدير كشف الفترة"><span class="material-symbols-outlined text-base">picture_as_pdf</span></a>
-                            <a href="{{ route('cp.clients.edit', $client) }}" class="p-2 inline-block" title="تعديل"><span class="material-symbols-outlined text-base">edit</span></a>
-                            <form method="post" action="{{ route('cp.clients.destroy', $client) }}" onsubmit="return confirm('أرشفة هذا الزبون؟ لن يظهر بعدها في القوائم.')">
-                                @csrf @method('DELETE')
-                                <button type="submit" class="p-2 text-rose-600" title="أرشفة"><span class="material-symbols-outlined text-base">archive</span></button>
-                            </form>
-                        </div>
-                    </td>
-                </tr>
-            @endforeach
-            </tbody>
-        </table>
-        </div>
-        <div class="p-3">{{ $clients->links() }}</div>
-        @endif
-    </div>
-</div>
+    D.symbols = @json(collect($currencyFormats)->map(fn ($c) => $c['symbol'])->all());
+    render();
+})();
+</script>
 @endsection

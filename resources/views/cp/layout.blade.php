@@ -96,7 +96,6 @@
                             <ul class="cp-section-content space-y-0.5">
                                 <li><a href="{{ route('cp.clients.index') }}" class="cp-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary transition-colors {{ request()->routeIs('cp.clients.*') ? 'bg-primary/10 text-primary dark:bg-primary/20' : '' }}"><span class="material-symbols-outlined text-xl">groups</span><span>الزبائن</span></a></li>
                                 <li><a href="{{ route('cp.service-types.index') }}" class="cp-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary transition-colors {{ request()->routeIs('cp.service-types.*') ? 'bg-primary/10 text-primary dark:bg-primary/20' : '' }}"><span class="material-symbols-outlined text-xl">category</span><span>الخدمات</span></a></li>
-                                <li><a href="{{ route('cp.client-services.index') }}" class="cp-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary transition-colors {{ request()->routeIs('cp.client-services.*') ? 'bg-primary/10 text-primary dark:bg-primary/20' : '' }}"><span class="material-symbols-outlined text-xl">work</span><span>خدمات الزبائن</span></a></li>
                                 <li><a href="{{ route('cp.workers.index') }}" class="cp-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary transition-colors {{ request()->routeIs('cp.workers.*') ? 'bg-primary/10 text-primary dark:bg-primary/20' : '' }}"><span class="material-symbols-outlined text-xl">badge</span><span>الموظفون</span></a></li>
                                 <li><a href="{{ route('cp.suppliers.index') }}" class="cp-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary transition-colors {{ request()->routeIs('cp.suppliers.*') ? 'bg-primary/10 text-primary dark:bg-primary/20' : '' }}"><span class="material-symbols-outlined text-xl">local_shipping</span><span>الموردون</span></a></li>
                             </ul>
@@ -227,25 +226,50 @@
         </div>
     </div>
 
-    <nav class="cp-bottom-nav lg:hidden" aria-label="تنقل سريع">
-        <a href="{{ route('cp.dashboard') }}" class="{{ request()->routeIs('cp.dashboard') ? 'is-active' : '' }}">
-            <span class="material-symbols-outlined">dashboard</span><span>الرئيسية</span>
-        </a>
-        @if(cpCan('finance'))
-        <a href="{{ route('cp.payments.create', ['incoming']) }}" class="{{ request()->routeIs('cp.payments.create') && request()->route('direction') === 'incoming' ? 'is-active' : '' }}">
-            <span class="material-symbols-outlined">south_west</span><span>واردة</span>
-        </a>
-        <a href="{{ route('cp.payments.create', ['outgoing']) }}" class="{{ request()->routeIs('cp.payments.create') && request()->route('direction') === 'outgoing' ? 'is-active' : '' }}">
-            <span class="material-symbols-outlined">north_east</span><span>صادرة</span>
-        </a>
-        @endif
-        <button type="button" data-cp-palette>
-            <span class="material-symbols-outlined">search</span><span>بحث</span>
-        </button>
-        <button type="button" id="cp-sidebar-open-bottom">
-            <span class="material-symbols-outlined">menu</span><span>القائمة</span>
+    <?php
+        $cpTabs = [];
+        if (tenantBusinessEnabled()) {
+            $cpTabs[] = ['route' => 'cp.clients.index', 'active' => 'cp.clients.*', 'icon' => 'groups', 'label' => 'الزبائن'];
+            $cpTabs[] = ['route' => 'cp.workers.index', 'active' => 'cp.workers.*', 'icon' => 'badge', 'label' => 'الموظفون'];
+            $cpTabs[] = ['route' => 'cp.suppliers.index', 'active' => 'cp.suppliers.*', 'icon' => 'storefront', 'label' => 'الموردون'];
+        } else {
+            $cpTabs[] = ['route' => 'cp.dashboard', 'active' => 'cp.dashboard', 'icon' => 'home', 'label' => 'الرئيسية'];
+        }
+        if (cpCan('finance')) {
+            $cpTabs[] = ['route' => 'cp.persons.index', 'active' => 'cp.persons.*', 'icon' => 'person', 'label' => 'الأشخاص'];
+        }
+        $cpMore = [];
+        if (tenantBusinessEnabled()) {
+            $cpMore[] = ['url' => route('cp.dashboard'), 'icon' => 'home', 'label' => 'لوحة التحكم'];
+        }
+        if (cpCan('finance')) {
+            $cpMore[] = ['url' => route('cp.balances.index'), 'icon' => 'account_balance_wallet', 'label' => 'الأدراج والأرصدة'];
+            $cpMore[] = ['url' => route('cp.payments.incoming'), 'icon' => 'south_west', 'label' => 'دفعات واردة'];
+            $cpMore[] = ['url' => route('cp.payments.outgoing'), 'icon' => 'north_east', 'label' => 'دفعات صادرة'];
+            $cpMore[] = ['url' => route('cp.transfers.index'), 'icon' => 'swap_horiz', 'label' => 'التحويلات'];
+            $cpMore[] = ['url' => route('cp.reports.index'), 'icon' => 'analytics', 'label' => 'التقارير'];
+        }
+        $cpMore[] = ['url' => route('cp.offline'), 'icon' => 'cloud_off', 'label' => 'وضع عدم الاتصال'];
+    ?>
+    <nav class="cp-bottom-nav cp-tabbar" aria-label="التنقل">
+        @foreach($cpTabs as $tab)
+            <a href="{{ route($tab['route']) }}" class="{{ request()->routeIs($tab['active']) ? 'is-active' : '' }}">
+                <span class="material-symbols-outlined">{{ $tab['icon'] }}</span><span>{{ $tab['label'] }}</span>
+            </a>
+        @endforeach
+        <button type="button" id="cp-more-open" aria-haspopup="dialog" aria-controls="cp-more-sheet">
+            <span class="material-symbols-outlined">more_horiz</span><span>المزيد</span>
         </button>
     </nav>
+    <div class="cp-more-sheet" id="cp-more-sheet" hidden>
+        <div class="cp-more-panel" role="dialog" aria-label="المزيد">
+            <span class="cp-more-grab"></span>
+            @foreach($cpMore as $item)
+                <a href="{{ $item['url'] }}"><span class="material-symbols-outlined">{{ $item['icon'] }}</span>{{ $item['label'] }}</a>
+            @endforeach
+            <button type="button" id="cp-sidebar-open-bottom"><span class="material-symbols-outlined">menu</span>كل القائمة</button>
+        </div>
+    </div>
 
     <?php
         $cpQuickActions = [];
@@ -289,7 +313,15 @@
             openBtn?.addEventListener('click', openSidebar);
             closeBtn?.addEventListener('click', closeSidebar);
             backdrop?.addEventListener('click', closeSidebar);
-            document.getElementById('cp-sidebar-open-bottom')?.addEventListener('click', openSidebar);
+            document.getElementById('cp-sidebar-open-bottom')?.addEventListener('click', function () { document.getElementById('cp-more-sheet').hidden = true; openSidebar(); });
+            (function () {
+                var sheet = document.getElementById('cp-more-sheet');
+                var openBtn = document.getElementById('cp-more-open');
+                if (!sheet || !openBtn) return;
+                openBtn.addEventListener('click', function () { sheet.hidden = !sheet.hidden; openBtn.classList.toggle('is-active', !sheet.hidden); });
+                sheet.addEventListener('click', function (e) { if (e.target === sheet) { sheet.hidden = true; openBtn.classList.remove('is-active'); } });
+                document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !sheet.hidden) { sheet.hidden = true; openBtn.classList.remove('is-active'); } });
+            })();
             document.addEventListener('keydown', function (e) {
                 if (e.key === 'Escape' && backdrop?.classList.contains('is-open')) closeSidebar();
             });

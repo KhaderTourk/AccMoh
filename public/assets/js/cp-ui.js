@@ -332,6 +332,7 @@
     }
 
     window.cpOpenPalette = openPalette;
+    window.cpConfirm = askConfirm;
 
     document.addEventListener('keydown', function (e) {
         if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K' || e.code === 'KeyK')) {
