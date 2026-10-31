@@ -11,6 +11,7 @@ use App\Models\ServiceType;
 use App\Services\Finance\ClientWorkService;
 use App\Support\DateRange;
 use App\Support\Money;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -46,7 +47,7 @@ class ClientSubscriptionController extends Controller
         ]);
 
         return redirect()->route('cp.clients.show', $client)
-            ->with('success', 'انضاف الاشتراك. كل شهر بيطلع للتأكيد بصفحة «خدمات الشهر».');
+            ->with('success', 'انضاف الاشتراك. الشهر الأول بيتحسب من يوم البداية، وأول الشهر الجاي بتطلع فاتورته بعدد الأيام مع فاتورة الشهر الجديد.');
     }
 
     /** Stop a subscription; a month already recorded for the last month gets its amount by days. */
@@ -65,13 +66,17 @@ class ClientSubscriptionController extends Controller
             if ($month) {
                 $amount = $subscription->suggestedAmount($last);
                 $work->update($month, [
-                    'title' => $month->title,
+                    'title' => $subscription->monthTitle($last),
                     'amount' => $amount,
                     'currency_id' => $month->currency_id,
                     'service_date' => $month->service_date->toDateString(),
                 ]);
             }
         });
+
+        if ($request->input('return') === 'confirm') {
+            return redirect()->route('cp.subscriptions.confirm')->with('success', 'انوقف الاشتراك «'.$subscription->title.'».');
+        }
 
         return redirect()->route('cp.clients.show', $subscription->client_id)->with('success', 'انوقف الاشتراك.');
     }
@@ -116,7 +121,7 @@ class ClientSubscriptionController extends Controller
                 }
                 $sub = ClientSubscription::query()->find((int) $m[1]);
                 $period = $m[2];
-                if (! $sub || ! $sub->coversMonth($period) || $sub->months()->where('period', $period)->exists()) {
+                if (! $sub || ! $sub->isBillable($period) || $sub->months()->where('period', $period)->exists()) {
                     continue;
                 }
                 $amount = Money::of($item['amount'] ?? $sub->suggestedAmount($period));
@@ -126,7 +131,7 @@ class ClientSubscriptionController extends Controller
                 $service = $work->create([
                     'client_id' => $sub->client_id,
                     'service_type_id' => $sub->service_type_id,
-                    'title' => $sub->title.' · شهر '.ClientSubscription::periodLabel($period),
+                    'title' => $sub->monthTitle($period),
                     'amount' => $amount,
                     'currency_id' => $sub->currency_id,
                     'service_date' => $sub->serviceDateFor($period),
@@ -141,25 +146,42 @@ class ClientSubscriptionController extends Controller
     }
 
     /**
+     * Invoices that can be issued now, up to the month $until: closed months by the days served,
+     * and new full months from their first day. A running partial month waits for the next month.
+     *
      * @return \Illuminate\Support\Collection<int, array<string, mixed>>
      */
     public static function pending(string $until)
     {
+        $today = CarbonImmutable::today();
+        $current = $today->format('Y-m');
+
         return ClientSubscription::query()
             ->with(['client', 'months:id,subscription_id,period'])
-            ->where('starts_on', '<=', \Carbon\CarbonImmutable::createFromFormat('Y-m-d', $until.'-01')->endOfMonth()->toDateString())
+            ->where('starts_on', '<=', CarbonImmutable::createFromFormat('Y-m-d', $until.'-01')->endOfMonth()->toDateString())
             ->orderBy('starts_on')
             ->get()
             ->filter(fn ($s) => $s->client)
-            ->flatMap(fn (ClientSubscription $s) => collect($s->pendingMonths($until))->map(fn ($p) => [
-                'key' => $s->id.'|'.$p,
-                'period' => $p,
-                'periodLabel' => ClientSubscription::periodLabel($p),
-                'client' => $s->client,
-                'title' => $s->title,
-                'amount' => $s->suggestedAmount($p),
-                'full' => Money::of($s->amount),
-            ]))
+            ->flatMap(fn (ClientSubscription $s) => collect($s->pendingMonths($until))
+                ->filter(fn ($p) => $s->isBillable($p, $today))
+                ->map(function ($p) use ($s, $current) {
+                    [$days, $inMonth] = $s->daysIn($p);
+
+                    return [
+                        'key' => $s->id.'|'.$p,
+                        'sub' => $s,
+                        'period' => $p,
+                        'periodLabel' => ClientSubscription::periodLabel($p),
+                        'closed' => $p < $current,
+                        'client' => $s->client,
+                        'title' => $s->title,
+                        'days' => $days,
+                        'inMonth' => $inMonth,
+                        'partial' => $days < $inMonth,
+                        'amount' => $s->suggestedAmount($p),
+                        'full' => Money::of($s->amount),
+                    ];
+                }))
             ->sortBy(fn ($r) => $r['period'].$r['client']->directoryLabel())
             ->values();
     }
@@ -167,6 +189,18 @@ class ClientSubscriptionController extends Controller
     public static function pendingCount(): int
     {
         return self::pending(now()->format('Y-m'))->count();
+    }
+
+    /** @return array{count: int, closed: int, fresh: int} */
+    public static function pendingSummary(): array
+    {
+        $rows = self::pending(now()->format('Y-m'));
+
+        return [
+            'count' => $rows->count(),
+            'closed' => $rows->where('closed', true)->count(),
+            'fresh' => $rows->where('closed', false)->count(),
+        ];
     }
 
     protected function month(?string $value): string

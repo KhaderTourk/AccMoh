@@ -122,6 +122,7 @@
         'memo' => route('cp.balance-memos.store'),
         'refund' => route('cp.payments.store', ['outgoing']),
         'sub' => route('cp.subscriptions.store'),
+        'subsConfirm' => route('cp.subscriptions.confirm'),
         'pdf' => route('cp.clients.export-pdf', $client),
     ],
     'today' => now()->toDateString(),
@@ -386,7 +387,7 @@
             title = 'اشتراك شهري · ' + t.name;
             hid = hidden('client_id', D.client.id) + hidden('service_type_id', t.id);
             fields = moneyFields(K.amtLabel, true) + dateField(K.date, 'يوم البداية')
-                + '<p class="st-note">كل شهر بيطلع للتأكيد بصفحة «خدمات الشهر»، وأول شهر محسوب حسب الأيام.</p>';
+                + '<p class="st-note cs-sub-note" id="xSubNote">الشهر الأول بيتحسب من يوم البداية. أول يوم بالشهر الجاي بيطلعلك تنبيه بعدد الأيام وفاتورتها، ومعها فاتورة جديدة للشهر الجديد.</p>';
         } else if (kind === 'refund') {
             const opts = L.methods.map((p) => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
             hid = hidden('party_key', partyKey) + hidden('fund_id', L.fundId) + hidden('name', D.client.title) + hidden('kind', 'refund');
@@ -427,6 +428,7 @@
             const t = L.serviceTypes.find((x) => x.id === tx.opt.typeId);
             if (t.last) $('xHint').textContent = 'آخر سعر لهالزبون: ' + num(t.last);
             else if (t.price) $('xHint').textContent = 'السعر المعتاد: ' + num(t.price);
+            if (tx.kind === 'sub' && !$('xAmt').value && (t.price || t.last)) $('xAmt').value = String(t.price || t.last);
         }
         if (tx.kind === 'payment') {
             const v = balanceBy('ILS');
@@ -477,6 +479,7 @@
         const cur = tx.kind === 'memo' ? code : 'ILS';
         const after = balanceBy(cur) + sign * ils;
         $('txAfter').innerHTML = ils && tx.kind !== 'sub' ? 'الرصيد بعدها: ' + balCell(after, cur) : '';
+        if (tx.kind === 'sub' && $('xSubNote')) $('xSubNote').textContent = subNote(day, a);
         // تنبيه التكرار: نفس النوع ونفس المبلغ خلال ±3 أيام
         let dup = null;
         if (ils && day && tx.kind !== 'sub') {
@@ -490,6 +493,18 @@
         const okWhat = !$('xWhat') || $('xWhat').value.trim().length > 0;
         const okRate = !fx || parseFloat(($('xRate') || {}).value) > 0;
         $('txSave').disabled = !(a > 0 && day && okWhat && okRate);
+    }
+    // شرح أول شهر: كم يوم بيتحسب وكم مبلغه، وإنه فاتورة لحاله.
+    function subNote(day, price) {
+        const base = 'أول يوم بالشهر الجاي بيطلعلك تنبيه بعدد الأيام وفاتورتها، ومعها فاتورة جديدة للشهر الجديد.';
+        if (!day) return 'الشهر الأول بيتحسب من يوم البداية. ' + base;
+        const d = new Date(day + 'T00:00:00');
+        const inMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+        const days = inMonth - d.getDate() + 1;
+        if (days >= inMonth) return 'بيبلّش من أول الشهر، ففاتورة هالشهر كاملة وبتطلع للتسجيل من اليوم.';
+        if (day.slice(0, 7) < D.today.slice(0, 7)) return `أول شهر جزئي: ${days} يوم من ${inMonth}. الأشهر اللي خلصت بتطلع فواتيرها للتسجيل فوراً، كل شهر فاتورة لحاله.`;
+        const part = price > 0 ? ` ≈ ${num(Math.round(price * days / inMonth * 100) / 100)} ₪` : '';
+        return `أول شهر جزئي: ${days} يوم من ${inMonth}${part}. ` + base;
     }
     function closeTx() { $('txSheet').hidden = true; tx = null; }
     $('txCancel').addEventListener('click', closeTx);
@@ -509,7 +524,9 @@
         $('csSubsN').textContent = active + ' فعّال';
         $('csSubsList').innerHTML = S.map((x) => `<div class="st-row${x.to && x.to < D.today ? ' is-off' : ''}">
             <div class="st-name"><b>${esc(x.title)} · ${num(x.amount)} ₪ شهرياً</b>
-            <span>من ${dayLabel(x.from)}${x.to ? ' لغاية ' + dayLabel(x.to) : ''} · ${x.months} شهر مسجّل</span></div>
+            <span>من ${dayLabel(x.from)}${x.to ? ' لغاية ' + dayLabel(x.to) : ''} · ${x.months} شهر مسجّل</span>
+            ${x.due ? `<a class="cs-sub-due" href="${esc(D.urls.subsConfirm)}">${x.due === 1 ? 'في فاتورة جاهزة' : 'في ' + x.due + ' فواتير جاهزة'} للتسجيل ←</a>` : ''}
+            ${x.accruing ? `<span class="cs-sub-run">الشهر الحالي: ${x.accruing.days} يوم لغاية اليوم ≈ ${num(x.accruing.amount)} ₪ · فاتورته بتطلع أول الشهر الجاي</span>` : ''}</div>
             <div class="st-act"><button type="button" class="cl-more" aria-label="خيارات الاشتراك">⋯</button>
             <div class="cl-menu" hidden>
                 ${x.to ? '' : `<button type="button" data-sub-stop="${x.id}">إيقاف</button>`}

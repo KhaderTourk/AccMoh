@@ -138,12 +138,14 @@
                 <button type="button" data-b="monthly">شهرية</button>
             </div>
             <input type="hidden" name="billing" id="sBilling" value="once">
+            <p class="st-hint st-bill-hint" id="sBillHint" hidden>بتنضاف للزبون كاشتراك: أول شهر بيتحسب من يوم البداية، وأول كل شهر بتطلع فاتورة الشهر اللي خلص حسب أيامه وفاتورة جديدة للشهر الجديد.</p>
         </div>
-        <label class="st-check"><input type="checkbox" name="has_phases" value="1" id="sPhases"> فيها تصميم وتنفيذ</label>
+        <label class="st-check" id="sPhasesRow"><input type="checkbox" name="has_phases" value="1" id="sPhases"> فيها تصميم وتنفيذ</label>
         <div class="cl-field">
-            <label for="sPrice">السعر المعتاد</label>
-            <input id="sPrice" name="default_price" inputmode="decimal" placeholder="اختياري">
+            <label for="sPrice" id="sPriceL">السعر المعتاد</label>
+            <input id="sPrice" name="default_price" inputmode="decimal" dir="ltr" placeholder="اختياري">
         </div>
+        <input type="hidden" name="is_active" value="0">
         <label class="st-check"><input type="checkbox" name="is_active" value="1" id="sActive" checked> شغّالة</label>
         <div class="cl-actions">
             <button type="submit" class="cp-btn cp-btn-primary">حفظ</button>
@@ -188,7 +190,12 @@
     }
     function setBilling(v) {
         $('sBilling').value = v;
-        document.querySelectorAll('.st-billing button').forEach((b) => b.classList.toggle('on', b.dataset.b === v));
+        document.querySelectorAll('.st-billing button').forEach((b) => { const on = b.dataset.b === v; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+        const monthly = v === 'monthly';
+        $('sBillHint').hidden = !monthly;
+        $('sPhasesRow').hidden = monthly;
+        if (monthly) $('sPhases').checked = false;
+        $('sPriceL').textContent = monthly ? 'السعر الشهري المعتاد' : 'السعر المعتاد';
     }
     const names = @json($serviceNames);
     let editingId = null, oldName = '', titled = 0;
@@ -222,8 +229,8 @@
                 $('sName').value = op.dataset.name || '';
                 editingId = edit ? +op.dataset.id : null; oldName = op.dataset.name || ''; titled = +(op.dataset.titled || 0);
                 setGroup(op.dataset.group || '');
-                setBilling(op.dataset.billing || 'once');
                 $('sPhases').checked = op.dataset.phases === '1';
+                setBilling(op.dataset.billing || 'once');
                 $('sPrice').value = op.dataset.price || '';
                 $('sActive').checked = op.dataset.active !== '0';
                 checkName();

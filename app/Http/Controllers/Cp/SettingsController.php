@@ -242,7 +242,8 @@ class SettingsController extends Controller
             $data['service_group_id'] = ServiceGroup::query()->where('name', $newGroup)->value('id')
                 ?? ServiceGroup::query()->create(['name' => $newGroup, 'sort_order' => (int) ServiceGroup::query()->max('sort_order') + 1])->id;
         }
-        $data['has_phases'] = $request->boolean('has_phases');
+        // الخدمة الشهرية اشتراك بسعر شهري، فما إلها شقّين تصميم وتنفيذ.
+        $data['has_phases'] = $data['billing'] === 'once' && $request->boolean('has_phases');
         $data['default_price'] = filled($data['default_price'] ?? null) ? $data['default_price'] : null;
         $data['name'] = trim($data['name']);
         $dup = ServiceType::query()->where('name', $data['name'])

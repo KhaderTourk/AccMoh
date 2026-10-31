@@ -178,9 +178,12 @@ class ClientController extends Controller
                 ->mapWithKeys(fn ($p) => [$p->fx_currency_id => (float) $p->exchange_rate]),
         ];
 
-        $subscriptions = $client->subscriptions()->withCount('months')->orderByRaw('ends_on IS NOT NULL')->orderByDesc('starts_on')->get()
+        $subToday = \Carbon\CarbonImmutable::today();
+        $subscriptions = $client->subscriptions()->with('months:id,subscription_id,period')->withCount('months')->orderByRaw('ends_on IS NOT NULL')->orderByDesc('starts_on')->get()
             ->map(fn (\App\Models\ClientSubscription $s) => [
                 'id' => $s->id,
+                'accruing' => $s->accruing($subToday),
+                'due' => collect($s->pendingMonths($subToday->format('Y-m')))->filter(fn ($p) => $s->isBillable($p, $subToday))->count(),
                 'title' => $s->title,
                 'amount' => (float) $s->amount,
                 'from' => $s->starts_on->toDateString(),
