@@ -375,7 +375,7 @@ h3{margin:0 0 4px;font-size:1.15rem}
 .mg+.mg{border-top:1px solid var(--line)}
 .mg-h{font-size:.72rem;font-weight:600;color:var(--muted);padding:6px 12px 4px;letter-spacing:.02em}
 .menu{scrollbar-width:thin;scrollbar-color:var(--line) transparent}
-@media (max-width:640px){.acts{width:100%}.act-w{flex:1}.act{width:100%;justify-content:center}.acts .menu{min-width:260px}}
+@media (max-width:640px){.acts{width:100%}.act-w{flex:1}.act{width:100%;justify-content:center;white-space:nowrap;padding:8px 6px;font-size:.88rem}.acts .menu{min-width:260px}}
 .vtabs{display:flex;gap:22px;border-bottom:1px solid var(--line)}
 .vtabs button{font:inherit;font-weight:600;border:0;background:transparent;color:var(--muted);padding:8px 2px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
 .vtabs button.on{color:var(--fg);border-bottom-color:var(--pink)}
@@ -651,7 +651,7 @@ button.hcard:focus-visible{outline:2px solid var(--pink);outline-offset:2px}
 .hbox-h.sub{border-top:1px solid var(--line);padding-top:12px}
 .hflow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .hflow>div{display:grid;gap:2px}.hflow small{color:var(--muted);font-size:.82rem;display:flex;align-items:center;gap:6px}
-.hflow b{font-size:1.25rem;font-variant-numeric:tabular-nums;direction:ltr;text-align:right}
+.hflow b{font-size:1.25rem;font-variant-numeric:tabular-nums;direction:ltr;text-align:right;white-space:nowrap}
 .hflow b.pos{color:var(--credit)}.hflow b.neg{color:var(--pink)}
 .dot{width:9px;height:9px;border-radius:3px;display:inline-block}.dot.in{background:var(--credit)}.dot.out{background:var(--muted)}
 .hbars{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;height:150px;direction:ltr}
@@ -668,7 +668,7 @@ button.hcard:focus-visible{outline:2px solid var(--pink);outline-offset:2px}
 .hrow:hover{background:var(--hover)}.hrow:focus-visible{outline:2px solid var(--pink);outline-offset:-2px}
 .hrow .ic{width:34px;height:34px}
 @media (max-width:900px){.hcols{grid-template-columns:minmax(0,1fr)}}
-@media (max-width:640px){.hcards{grid-template-columns:minmax(0,1fr);gap:10px}.hcard strong{font-size:1.6rem}.hflow b{font-size:1.05rem}.hbars{height:120px;gap:6px}}
+@media (max-width:640px){.hcards{grid-template-columns:minmax(0,1fr);gap:10px}.hcard strong{font-size:1.6rem}.hflow b{font-size:.92rem}.hbars{height:120px;gap:6px}}
 
 /* تسجيل سريع */
 .qa-side{font:inherit;display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 12px;padding:10px 12px;border:0;border-radius:12px;background:var(--pink);color:#fff;font-weight:700;cursor:pointer}

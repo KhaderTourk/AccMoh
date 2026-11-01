@@ -503,6 +503,7 @@ let invs=[
  {d:"6/11/2026",id:"8471203356",m:"10/2026",f:"بنك فلسطين",amt:170,ils:3}
 ];
 let approved=new Set(["9/2026"]), plat="", months=new Set(["10/2026"]);
+const S=v=>Number(v).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})+" ₪",D=v=>Number(v).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})+" $";
 const f2=v=>Number(v).toLocaleString("en-US",{minimumFractionDigits:0,maximumFractionDigits:2});
 const ico=p=>p.map(x=>`<i class="ico ${x==="فيس"?"fb":"ig"}"></i>`).join("");
 const plab=p=>p.length===2?"فيس وانستا بحملة وحدة":p[0];
@@ -515,15 +516,15 @@ function render(){
     let gs=0,gr=0,gc=0;
     const subs=list.map(r=>{const req=r.spend*r.sell,cost=r.spend*RATE;gs+=r.spend;gr+=req;gc+=cost;
       return `<div class="lrow sub${r.isNew?" new":""}"><div class="who"><span class="pc">${ico(r.p)}<b>${plab(r.p)}</b>${multi?`<em class="mo">${r.m}</em>`:""}${approved.has(r.m)?`<em class="stt ok">معتمد</em>`:`<em class="stt">مسودة</em>`}</span></div>
-      <span class="n">$${f2(r.spend)}</span><span class="n rate">× ${f2(r.sell)}</span><span class="n req">₪${f2(req)}</span><span class="n profit">₪${f2(req-cost)}</span><button type="button" class="rmore" data-i="${camps.indexOf(r)}" aria-label="خيارات الحملة">⋯</button><div class="menu rmenu" hidden><button data-ed="${camps.indexOf(r)}">تعديل</button><hr><button class="danger" data-del="${camps.indexOf(r)}">حذف</button></div></div>`}).join("");
+      <span class="n">${D(r.spend)}</span><span class="n rate">× ${f2(r.sell)}</span><span class="n req">${S(req)}</span><span class="n profit">${S(req-cost)}</span><button type="button" class="rmore" data-i="${camps.indexOf(r)}" aria-label="خيارات الحملة">⋯</button><div class="menu rmenu" hidden><button data-ed="${camps.indexOf(r)}">تعديل</button><hr><button class="danger" data-del="${camps.indexOf(r)}">حذف</button></div></div>`}).join("");
     ts+=gs;tr+=gr;tc+=gc;
-    return `<div class="grp-row"><div class="who"><b>${c}</b><span>${list.length>1?list.length+" حملات":"حملة وحدة"}</span></div><span class="n">$${f2(gs)}</span><span></span><span class="n">₪${f2(gr)}</span><span class="n profit">₪${f2(gr-gc)}</span><span></span></div>${subs}`}).join("")||`<p class="empty">ما في حملات بهالاختيار</p>`;
+    return `<div class="grp-row"><div class="who"><b>${c}</b><span>${list.length>1?list.length+" حملات":"حملة وحدة"}</span></div><span class="n">${D(gs)}</span><span></span><span class="n">${S(gr)}</span><span class="n profit">${S(gr-gc)}</span><span></span></div>${subs}`}).join("")||`<p class="empty">ما في حملات بهالاختيار</p>`;
   camps.forEach(r=>delete r.isNew);
-  $("tSpend").textContent="$"+f2(ts);$("tCount").textContent=Object.keys(groups).length+" زباين · "+rows.length+" حملات";
-  $("tReq").textContent="₪"+f2(tr);$("tCost").textContent="₪"+f2(tc);$("tProfit").textContent="₪"+f2(tr-tc);
+  $("tSpend").textContent=D(ts);$("tCount").textContent=Object.keys(groups).length+" زباين · "+rows.length+" حملات";
+  $("tReq").textContent=S(tr);$("tCost").textContent=S(tc);$("tProfit").textContent=S(tr-tc);
   const carryUsd=[...new Set(rows.map(r=>r.m))].filter(m=>!approved.has(m)||m==="10/2026").reduce((a,m)=>a+(CARRY[m]||0),0), avgSell=ts?tr/ts:0, est=carryUsd*(avgSell-RATE);
-  $("tPct").innerHTML=carryUsd?"منه <b class='estv'>₪"+f2(est)+"</b> تقديري، لأن $"+f2(carryUsd)+" لسا ما اندفعت":"كله مؤكد على فواتير مدفوعة";
-  $("fSpend").textContent="$"+f2(ts);$("fReq").textContent="₪"+f2(tr);$("fProfit").textContent="₪"+f2(tr-tc);
+  $("tPct").innerHTML=carryUsd?"منه <b class='estv'>"+S(est)+"</b> تقديري، لأن <bdi>"+D(carryUsd)+"</bdi> لسا ما اندفعت":"كله مؤكد على فواتير مدفوعة";
+  $("fSpend").textContent=D(ts);$("fReq").textContent=S(tr);$("fProfit").textContent=S(tr-tc);
   // حالة الشهور
   const ms=[...new Set(rows.map(r=>r.m))];const pend=ms.filter(m=>!approved.has(m));
   $("mstate").classList.toggle("done",!pend.length);
@@ -533,10 +534,10 @@ function render(){
   renderInv();
 }
 function renderInv(){
-  $("irows").innerHTML=invs.map(i=>`<div class="irow${i.isNew?" new":""}"><span class="ldate">${i.d}</span><span class="mid">${i.id}</span><span>${i.m}</span><span class="muted">${i.f}${i.ils?" · بسعر "+i.ils.toFixed(2):""}</span><span class="n">$${f2(i.amt)}</span></div>`).join("");
+  $("irows").innerHTML=invs.map(i=>`<div class="irow${i.isNew?" new":""}"><span class="ldate">${i.d}</span><span class="mid">${i.id}</span><span>${i.m}</span><span class="muted">${i.f}${i.ils?" · بسعر "+i.ils.toFixed(2):""}</span><span class="n">${D(i.amt)}</span></div>`).join("");
   invs.forEach(i=>delete i.isNew);
   const ap=camps.filter(r=>approved.has(r.m)).reduce((a,r)=>a+r.spend,0), pd=invs.filter(i=>approved.has(i.m)).reduce((a,i)=>a+i.amt,0);
-  const b=ap-pd;$("metaBal").textContent=b?"$"+f2(b):"مسدّد";$("metaBal").className=b?"due":"";
+  const b=ap-pd;$("metaBal").textContent=b?D(b):"مسدّد";$("metaBal").className=b?"due":"";
 }
 $("q").addEventListener("input",render);
 document.querySelectorAll("#segPlat button").forEach(b=>b.onclick=()=>{document.querySelectorAll("#segPlat button").forEach(x=>x.classList.toggle("on",x===b));plat=b.dataset.p;render()});
@@ -572,8 +573,8 @@ function calc(){
   const s=num($("fSpendIn")),sell=num($("fSell")),p=selP();
   $("tgHint").textContent=!p.length?"فعّل منصة وحدة على الأقل":p.length===2?"حملة وحدة على فيس وانستا مع بعض. للحملات المنفصلة سجّل كل وحدة لحالها.":"حملة على "+p[0]+" بس";
   $("tgHint").classList.toggle("bad",!p.length);
-  $("rReq").textContent="₪"+(s*sell).toFixed(2);$("rCost").textContent="₪"+(s*RATE).toFixed(2);
-  const pr=s*sell-s*RATE;$("rProfit").textContent="₪"+pr.toFixed(2);$("rProfit").classList.toggle("neg",pr<0);
+  $("rReq").textContent=S(s*sell);$("rCost").textContent=S(s*RATE);
+  const pr=s*sell-s*RATE;$("rProfit").textContent=S(pr);$("rProfit").classList.toggle("neg",pr<0);
   $("save").disabled=!(ddVal.client&&s>0&&sell>0&&p.length);
 }
 $("fSpendIn").oninput=$("fSell").oninput=calc;
@@ -600,7 +601,7 @@ $("rows").addEventListener("click",e=>{
   const mb=e.target.closest(".rmore");if(mb){e.stopPropagation();const m=mb.nextElementSibling,o=m.hidden;closeR();document.querySelectorAll(".dd .menu").forEach(x=>x.hidden=true);m.hidden=!o;return}
   const ed=e.target.closest("[data-ed]");if(ed){e.stopPropagation();closeR();return openSheet(+ed.dataset.ed)}
   const dl=e.target.closest("[data-del]");if(dl){e.stopPropagation();closeR();delI=+dl.dataset.del;const r=camps[delI];
-    $("cfText").innerHTML="حملة «"+r.c+"» على "+plab(r.p)+" لشهر "+r.m+" بقيمة <bdi>$"+f2(r.spend)+"</bdi>."+(approved.has(r.m)?"<br>الشهر معتمد، فبينزل قيد عكسي على كشف الزبون وحساب ميتا، والشهر بيرجع مسودة.":"<br>لسا مسودة، فبتنحذف نهائياً.");
+    $("cfText").innerHTML="حملة «"+r.c+"» على "+plab(r.p)+" لشهر "+r.m+" بقيمة <bdi>"+D(r.spend)+"</bdi>."+(approved.has(r.m)?"<br>الشهر معتمد، فبينزل قيد عكسي على كشف الزبون وحساب ميتا، والشهر بيرجع مسودة.":"<br>لسا مسودة، فبتنحذف نهائياً.");
     $("cf").hidden=false;$("cfNo").focus()}});
 $("cfNo").onclick=()=>$("cf").hidden=true;
 $("cf").onclick=e=>{if(e.target.id==="cf")$("cf").hidden=true};
@@ -620,14 +621,14 @@ function rc(){
   const m=ddVal.recMonth||"10/2026";
   const prev=carry["9/2026"]||0, camp=camps.filter(r=>r.m===m).reduce((a,r)=>a+r.spend,0), inv=invs.filter(i=>i.m===m).reduce((a,i)=>a+i.amt,0);
   const should=+(prev+camp-inv).toFixed(2), meta=num($("rMeta")), has=$("rMeta").value.trim()!=="", d=+(meta-should).toFixed(2);
-  $("cPrev").textContent="$"+f2(prev);$("cCamp").textContent="$"+f2(camp);$("cInv").textContent="$"+f2(inv);$("cCarry").textContent="$"+f2(should);
+  $("cPrev").textContent=D(prev);$("cCamp").textContent=D(camp);$("cInv").textContent=D(inv);$("cCarry").textContent=D(should);
   const el=$("cDiff");
-  if(!has){el.textContent="—";el.className=""}else if(d===0){el.textContent="مطابق ✓";el.className="okc"}else{el.textContent=(d>0?"ميتا أكثر بـ":"ميتا أقل بـ")+"$"+f2(Math.abs(d));el.className=Math.abs(d)<=SKIP?"warnc":"neg"}
+  if(!has){el.textContent="—";el.className=""}else if(d===0){el.textContent="مطابق ✓";el.className="okc"}else{el.textContent=(d>0?"ميتا أكثر بـ":"ميتا أقل بـ")+D(Math.abs(d));el.className=Math.abs(d)<=SKIP?"warnc":"neg"}
   const mapped=true;
   $("approve").disabled=!(has&&d===0&&mapped);
   $("skip").hidden=!(has&&d!==0&&Math.abs(d)<=SKIP);$("skip").disabled=!mapped;
   if(has&&!mapped){$("recNote").dataset.m="1"}
-  $("recNote").textContent=!has?"اكتب الضايل من لوحة ميتا عشان نقارن.":d===0?"مطابق. بعد التأكيد بتنزل خدمة «إعلان ممول» على كشف كل زبون، و$"+f2(should)+" بيترحل للشهر الجاي.":Math.abs(d)<=SKIP?"فرق بسيط، أقل من "+SKIP+" دولار. إذا تخطيته بينسجل تسوية على حساب ميتا، وبيترحل رقم لوحة ميتا.":"الفرق كبير. راجع الحملات أو الفواتير قبل الاعتماد.";
+  $("recNote").textContent=!has?"اكتب الضايل من لوحة ميتا عشان نقارن.":d===0?"مطابق. بعد التأكيد بتنزل خدمة «إعلان ممول» على كشف كل زبون، و"+D(should)+" بيترحل للشهر الجاي.":Math.abs(d)<=SKIP?"فرق بسيط، أقل من "+SKIP+" دولار. إذا تخطيته بينسجل تسوية على حساب ميتا، وبيترحل رقم لوحة ميتا.":"الفرق كبير. راجع الحملات أو الفواتير قبل الاعتماد.";
 }
 $("rMeta").oninput=rc;
 $("openRec").onclick=()=>{$("rec").hidden=false;rc()};
@@ -638,7 +639,7 @@ $("approve").onclick=()=>doApprove(false);$("skip").onclick=()=>doApprove(true);
 function ic(){$("iSave").disabled=!(num($("iAmt"))>0&&num($("iIls"))>0&&$("iId").value.trim()&&$("iDate").value.trim())}
 $("iIls").oninput=$("iAmt").oninput=$("iId").oninput=$("iDate").oninput=ic;
 $("openInv").onclick=()=>{$("inv").hidden=false;ic()};
-$("iSave").onclick=()=>{invs.push({d:$("iDate").value,id:$("iId").value.trim(),m:ddVal.iMonth,f:ddVal.iFund,amt:num($("iAmt")),ils:num($("iIls")),isNew:true});$("inv").hidden=true;renderInv();toast("انحفظت الفاتورة وانخصمت $"+f2(num($("iAmt")))+" من "+ddVal.iFund)};
+$("iSave").onclick=()=>{invs.push({d:$("iDate").value,id:$("iId").value.trim(),m:ddVal.iMonth,f:ddVal.iFund,amt:num($("iAmt")),ils:num($("iIls")),isNew:true});$("inv").hidden=true;renderInv();toast("انحفظت الفاتورة وانخصمت "+D(num($("iAmt")))+" من "+ddVal.iFund)};
 const names=()=>[...document.querySelectorAll('[data-dd="client"] .menu button:not(.addc)')].map(b=>b.textContent);
 const norm=t=>t.replace(/[أإآ]/g,"ا").replace(/ة/g,"ه").replace(/ى/g,"ي").replace(/\s+/g," ").trim();
 function ncCheck(){const ph=$("ncPhone").value.trim(),okP=!ph||/^05\d{8}$/.test(ph);$("ncPhoneErr").hidden=okP||ph.length<2;
