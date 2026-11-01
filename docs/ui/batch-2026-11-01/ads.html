@@ -1,0 +1,658 @@
+<!doctype html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>الإعلانات الممولة</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --pink:#FB005B;--pink-soft:rgba(251,0,91,.09);--navy:#0B2537;
+  --bg:#F3F4F7;--surface:#FFFFFF;--sidebar:#0B2537;--sidebar-fg:#C9D3DC;--sidebar-active:rgba(251,0,91,.16);
+  --fg:#0B2537;--muted:#6B7787;--line:#E6E9EE;--hover:#F6F7FA;--credit:#0E8A5F;--chip:#EDEFF3;
+  --field:#F6F7F9;--field-line:#DCE1E7;
+  --font:"IBM Plex Sans Arabic",-apple-system,"SF Arabic","Segoe UI",Tahoma,sans-serif;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#06141F;--surface:#0E2333;--sidebar:#081B29;--sidebar-fg:#AFC0CE;--sidebar-active:rgba(251,0,91,.2);
+  --fg:#EEF2F6;--muted:#8E9DAC;--line:#1C3447;--hover:#132C3F;--credit:#3DD39B;--chip:#173246;--pink-soft:rgba(251,0,91,.12);
+  --field:#081925;--field-line:#2A4660;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#06141F;--surface:#0E2333;--sidebar:#081B29;--sidebar-fg:#AFC0CE;--sidebar-active:rgba(251,0,91,.2);
+  --fg:#EEF2F6;--muted:#8E9DAC;--line:#1C3447;--hover:#132C3F;--credit:#3DD39B;--chip:#173246;--pink-soft:rgba(251,0,91,.12);
+  --field:#081925;--field-line:#2A4660;color-scheme:dark}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);font-size:15px;line-height:1.6;direction:rtl;padding:28px 16px 48px}
+.wrap{max-width:1120px;margin:0 auto;display:grid;gap:28px}
+header.rep{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+header.rep img{width:56px;height:56px}
+header.rep h1{margin:0;font-size:1.6rem;font-weight:700}
+header.rep p{margin:2px 0 0;color:var(--muted);font-size:.92rem}
+.status{margin-inline-start:auto;background:var(--pink-soft);color:var(--pink);font-weight:600;font-size:.82rem;padding:6px 12px;border-radius:999px}
+.frame{border:1px solid var(--line);border-radius:16px;background:var(--surface);box-shadow:0 18px 50px -24px rgba(11,37,55,.35)}
+.bar{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--hover);direction:ltr;border-radius:16px 16px 0 0}
+.bar i{width:11px;height:11px;border-radius:50%;background:var(--line)}
+.bar span{flex:1;text-align:center;font-size:.78rem;color:var(--muted)}
+.app{display:grid;grid-template-columns:1fr 230px;min-height:640px;direction:ltr}
+.app>*{direction:rtl;min-width:0}
+.side{background:var(--sidebar);color:var(--sidebar-fg);padding:20px 14px;display:flex;flex-direction:column;gap:4px;grid-column:2;grid-row:1;border-bottom-right-radius:16px}
+.logo{display:flex;align-items:center;gap:10px;padding:0 8px 18px;color:#fff;font-weight:700}
+.logo img{width:34px;height:34px;background:#fff;border-radius:9px;padding:3px}
+.logo small{display:block;font-weight:400;font-size:.72rem;color:var(--sidebar-fg)}
+.side a{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;color:inherit;text-decoration:none;font-size:.92rem}
+.side a.on{background:var(--sidebar-active);color:#fff;font-weight:600}
+.side a.on::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--pink)}
+.side .grp{font-size:.72rem;opacity:.7;padding:14px 12px 4px}
+.side a .new{font-size:.66rem;background:var(--pink);color:#fff;border-radius:999px;padding:0 7px;margin-inline-start:auto}
+.main{padding:26px 28px;display:flex;flex-direction:column;gap:18px;grid-column:1;grid-row:1}
+.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.top h2{margin:0;font-size:1.75rem;font-weight:700}
+.top .sp{flex:1}
+.btn{font:inherit;border:0;cursor:pointer;border-radius:10px;display:inline-flex;align-items:center;gap:6px;font-weight:600}
+.btn-primary{background:var(--pink);color:#fff;padding:9px 16px}
+.btn-text{background:transparent;color:var(--muted);padding:9px 12px}
+.btn:focus-visible,.dd-btn:focus-visible,.seg button:focus-visible{outline:2px solid var(--pink);outline-offset:2px}
+.dd{position:relative}
+.dd-btn{display:flex;align-items:center;justify-content:space-between;gap:10px;font:inherit;border:0;background:var(--chip);color:var(--fg);border-radius:10px;padding:7px 12px;cursor:pointer;text-align:right;width:100%}
+.dd-btn::after{content:"";width:7px;height:7px;border-left:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg) translateY(-2px);flex:none}
+.menu{position:absolute;z-index:30;top:calc(100% + 6px);right:0;left:0;min-width:170px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 14px 34px -12px rgba(11,37,55,.4);padding:5px;display:grid;max-height:260px;overflow:auto}
+.menu button{font:inherit;text-align:right;border:0;background:transparent;color:var(--fg);padding:8px 12px;border-radius:8px;cursor:pointer;display:flex;justify-content:space-between}
+.menu button:hover{background:var(--hover)}
+.menu button[aria-selected="true"]{color:var(--pink);font-weight:600}
+.menu button[aria-selected="true"]::after{content:"✓"}
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:grid;gap:2px}
+.tile small{color:var(--muted);font-size:.8rem}
+.tile b{font-size:1.35rem;font-variant-numeric:tabular-nums;direction:ltr;text-align:right}
+.tile span{color:var(--muted);font-size:.74rem}
+.tile.profit b{color:var(--credit)}
+.tile.due{background:var(--pink-soft);border-color:transparent}.tile.due b{color:var(--pink)}
+.tools{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.search{flex:1 1 240px;display:flex;align-items:center;gap:8px;background:var(--chip);border-radius:10px;padding:8px 12px;color:var(--muted)}
+.search input{border:0;background:transparent;font:inherit;color:var(--fg);flex:1;min-width:0;outline:none}
+.seg{display:inline-flex;background:var(--chip);border-radius:10px;padding:3px}
+.seg button{font:inherit;font-size:.88rem;border:0;background:transparent;color:var(--fg);padding:6px 14px;border-radius:8px;cursor:pointer}
+.seg button.on{background:var(--surface);box-shadow:0 1px 3px rgba(11,37,55,.18);font-weight:600}
+.list{border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.lhead,.lrow{display:grid;grid-template-columns:82px minmax(0,1fr) 110px 120px 110px 92px;gap:12px;align-items:center;padding:11px 14px}
+.lhead{font-size:.75rem;color:var(--muted);padding-block:8px;background:var(--hover)}
+.lhead span:nth-child(n+3){text-align:left}
+.lrow{border-top:1px solid var(--line);cursor:pointer}
+.lrow:hover{background:var(--hover)}
+.ldate{font-variant-numeric:tabular-nums;color:var(--muted);font-size:.85rem}
+.who b{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.who span{display:block;color:var(--muted);font-size:.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.n{font-variant-numeric:tabular-nums;direction:ltr;text-align:left;white-space:nowrap;font-weight:600}
+.n small{display:block;font-weight:400;font-size:.72rem;color:var(--muted)}
+.n.cost{color:var(--fg);font-weight:500}
+.n.profit{color:var(--credit)}
+.st{justify-self:end;font-size:.74rem;font-weight:600;border-radius:999px;padding:2px 10px;white-space:nowrap}
+.st.paid{background:color-mix(in srgb,var(--credit) 15%,transparent);color:var(--credit)}
+.st.due{background:var(--pink-soft);color:var(--pink)}
+.lfoot{display:grid;grid-template-columns:82px minmax(0,1fr) 110px 120px 110px 92px;gap:12px;padding:10px 14px;border-top:2px solid var(--line);background:var(--hover);font-weight:700}
+.lrow.new{animation:flash 2.6s ease-out}
+@keyframes flash{0%,55%{background:var(--pink-soft)}100%{background:transparent}}
+.legend{display:flex;gap:16px;font-size:.8rem;color:var(--muted);flex-wrap:wrap;margin-top:-8px}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-inline-end:6px}
+/* النافذة */
+.sheet-bg{position:fixed;inset:0;z-index:40;background:rgba(6,20,31,.62);backdrop-filter:blur(3px);display:grid;place-items:start center;padding:40px 16px 16px;overflow:auto}
+.sheet{width:min(560px,100%);background:var(--surface);border:1px solid var(--line);border-radius:18px;display:grid;gap:16px;padding:0 0 18px;box-shadow:0 30px 70px -20px rgba(6,20,31,.6)}
+.sheet-head{padding:16px 20px;border-bottom:1px solid var(--line);text-align:center;font-size:1.08rem}
+.sheet-head small{display:block;color:var(--muted);font-size:.78rem;font-weight:400}
+.group{margin:0 20px;display:grid;gap:14px}
+.gt{font-size:.78rem;color:var(--muted);font-weight:600;margin:0 20px -8px;display:flex;align-items:center;gap:8px}
+.gt::after{content:"";flex:1;border-top:1px solid var(--line)}
+.field{display:grid;gap:6px}
+.field>label{font-size:.84rem;font-weight:600}
+.field input,.field .dd-btn{font:inherit;color:var(--fg);background:var(--field);border:1px solid var(--field-line);border-radius:10px;padding:10px 12px;height:46px;width:100%;outline:none}
+.field input:focus{border-color:var(--pink);box-shadow:0 0 0 3px var(--pink-soft)}
+.field input.num{direction:ltr;text-align:right;font-variant-numeric:tabular-nums}
+.field .hint{color:var(--muted);font-size:.78rem}
+.field .seg{display:flex}.field .seg button{flex:1;padding:8px 10px}
+.field .seg button.on{background:var(--fg);color:var(--surface);box-shadow:none}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
+.amtcur{display:grid;grid-template-columns:1fr 92px;gap:6px}
+.res{margin:0 20px;display:grid;grid-template-columns:1fr auto;gap:4px 12px;background:var(--field);border:1px solid var(--field-line);border-radius:12px;padding:12px 14px;font-size:.9rem}
+.res span{color:var(--muted)}.res b{direction:ltr;text-align:left;font-variant-numeric:tabular-nums}
+.res .t{border-top:1px solid var(--line);padding-top:8px;margin-top:4px;color:var(--fg);font-weight:600}
+.res .t+b{color:var(--credit);font-size:1.2rem;padding-top:8px;margin-top:4px;border-top:1px solid var(--line)}
+.res .t+b.neg{color:var(--pink)}
+.goes{margin:0 20px;font-size:.82rem;color:var(--muted);display:grid;gap:4px}
+.goes div{display:flex;gap:8px}.goes div::before{content:"↳";color:var(--pink)}
+.sheet-foot{display:flex;gap:8px;padding:14px 20px 0;border-top:1px solid var(--line)}
+.btn-primary:disabled{background:var(--chip);color:var(--muted);cursor:not-allowed}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:70;background:var(--navy);color:#fff;padding:8px 18px;border-radius:999px;font-size:.9rem}
+/* تحت الشاشة */
+h3{margin:0 0 6px;font-size:1.15rem}
+.changes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 28px;padding:0;margin:0;list-style:none;counter-reset:c}
+.changes li{counter-increment:c;display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:start;padding:10px 0;border-top:1px solid var(--line)}
+.changes li::before{content:counter(c);width:26px;height:26px;border-radius:50%;background:var(--pink-soft);color:var(--pink);display:grid;place-items:center;font-weight:700;font-size:.82rem}
+.changes b{display:block}.changes span{color:var(--muted);font-size:.9rem}
+.risk li::before{background:var(--chip);color:var(--fg);content:"!"}
+@media (max-width:900px){.tiles{grid-template-columns:1fr 1fr}}
+@media (max-width:820px){.app{grid-template-columns:1fr}.side{display:none}.main{padding:18px 14px}.changes{grid-template-columns:1fr}
+  .lhead{display:none}
+  .lrow,.lfoot{grid-template-columns:minmax(0,1fr) auto;gap:2px 12px}
+  .lrow .ldate{grid-column:1;grid-row:2;font-size:.75rem}
+  .lrow .who{grid-column:1;grid-row:1}
+  .lrow .cost{display:none}
+  .lrow .req{grid-column:2;grid-row:1}
+  .lrow .profit{grid-column:2;grid-row:2;font-size:.82rem}
+  .lrow .st{grid-column:1;grid-row:3;justify-self:start}
+  .lfoot>*:nth-child(1),.lfoot>*:nth-child(3),.lfoot>*:nth-child(6){display:none}}
+@media (max-width:520px){.two{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+/* RTL: كل الأعمدة والأرقام بتبدأ من اليمين */
+.n{text-align:right!important;direction:ltr;unicode-bidi:isolate}
+.lhead,.lrow,.lfoot,.grp-row{display:grid;grid-template-columns:minmax(0,1fr) 100px 80px 110px 100px;gap:12px;align-items:center;padding:11px 14px}
+.lhead span{text-align:right}
+.lrow{cursor:default;border-top:1px solid var(--line)}
+.grp-row{border-top:1px solid var(--line);background:var(--hover);font-weight:600}
+.grp-row .who span{font-weight:400}
+.lrow.sub{padding-block:8px;padding-inline-start:30px}
+.lrow.sub .n{font-weight:500}
+.pc{display:flex!important;align-items:center;gap:6px;color:var(--fg)!important;font-size:.88rem!important}
+.pc b{display:inline!important;font-weight:500}
+.mo{font-style:normal;font-size:.72rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.stt{font-style:normal;font-size:.7rem;border-radius:999px;padding:0 8px;color:var(--muted);box-shadow:inset 0 0 0 1px var(--line)}
+.stt.ok{color:var(--credit);box-shadow:none;background:color-mix(in srgb,var(--credit) 15%,transparent)}
+.n.rate{color:var(--muted)}
+.ico{display:inline-block;width:17px;height:17px;flex:none;vertical-align:middle;background:currentColor;-webkit-mask:var(--m) center/contain no-repeat;mask:var(--m) center/contain no-repeat}
+.ico.fb{--m:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23000%22%20stroke-width%3D%221.9%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%223%22%20y%3D%223%22%20width%3D%2218%22%20height%3D%2218%22%20rx%3D%225%22/%3E%3Cpath%20d%3D%22M15.5%208H14a2%202%200%200%200-2%202v11M9.5%2013h5.5%22/%3E%3C/svg%3E")}
+.ico.ig{--m:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23000%22%20stroke-width%3D%221.9%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%223%22%20y%3D%223%22%20width%3D%2218%22%20height%3D%2218%22%20rx%3D%225%22/%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%224%22/%3E%3Ccircle%20cx%3D%2217.3%22%20cy%3D%226.7%22%20r%3D%22.6%22%20fill%3D%22%23000%22/%3E%3C/svg%3E")}
+.legend .ico{width:15px;height:15px;margin-inline-end:6px;border-radius:0;background:currentColor!important}
+.btn-soft{background:var(--chip);color:var(--fg);padding:9px 14px}
+.vtabs{display:flex;gap:22px;border-bottom:1px solid var(--line)}
+.vtabs button{font:inherit;font-weight:600;border:0;background:transparent;color:var(--muted);padding:8px 2px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.vtabs button.on{color:var(--fg);border-bottom-color:var(--pink)}
+.tabpane{display:flex;flex-direction:column;gap:18px}
+.tools{justify-content:flex-start}
+.mdd{min-width:170px}
+.mdd .dd-btn{min-width:170px}
+.mmenu{min-width:200px;right:0;left:auto}
+.chkrow{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;cursor:pointer;font-variant-numeric:tabular-nums}
+.chkrow:hover{background:var(--hover)}
+.chkrow input{accent-color:var(--pink);width:17px;height:17px}
+.chkrow.all{border-bottom:1px solid var(--line);border-radius:8px 8px 0 0;font-weight:600}
+.mnote{margin:4px 12px 2px;color:var(--muted);font-size:.72rem}
+.mstate{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--line);box-shadow:inset -3px 0 0 var(--muted);border-radius:14px;padding:12px 16px}
+.mstate>div{flex:1;min-width:0;display:grid}
+.mstate span{color:var(--muted);font-size:.85rem}
+.mstate.done{box-shadow:inset -3px 0 0 var(--credit)}.mstate.done b{color:var(--credit)}
+.mstate.meta{box-shadow:inset -3px 0 0 var(--pink)}
+.mstate strong{font-size:1.4rem;font-variant-numeric:tabular-nums;direction:ltr}
+.mstate strong.due{color:var(--pink)}
+.ihead,.irow{display:grid;grid-template-columns:100px minmax(0,1fr) 90px 120px 100px;gap:12px;align-items:center;padding:11px 14px;text-align:right}
+.ihead{font-size:.75rem;color:var(--muted);padding-block:8px;background:var(--hover)}
+.irow{border-top:1px solid var(--line)}
+.irow.new{animation:flash 2.6s ease-out}
+.mid{font-variant-numeric:tabular-nums;direction:ltr;text-align:right;unicode-bidi:isolate}
+.muted{color:var(--muted);font-size:.88rem}
+.pnote{margin:0;color:var(--muted);font-size:.88rem;flex:1}
+.empty{margin:0;padding:24px;text-align:center;color:var(--muted);border-top:1px solid var(--line)}
+.toggles{display:flex;gap:8px}
+.tg{flex:1;font:inherit;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px;height:46px;border-radius:10px;border:1px solid var(--field-line);background:var(--field);color:var(--muted);cursor:pointer}
+.tg.on{border-color:var(--fg);background:var(--surface);color:var(--fg);box-shadow:inset 0 0 0 1px var(--fg)}
+.tg.on::before{content:"✓";color:var(--pink)}
+.tg:not(.on) .ico{filter:grayscale(1);opacity:.5}
+.tg:focus-visible{outline:2px solid var(--pink);outline-offset:2px}
+.hint.bad{color:var(--pink)}
+.field input[readonly]{color:var(--muted)}
+.res b.okc{color:var(--credit)}.res b.neg{color:var(--pink)}.res b.warnc{color:#B26B00}
+.sheet.wide{width:min(640px,100%)}
+.sheet-hint{margin:0 20px;color:var(--muted);font-size:.8rem}
+.group .sheet-hint{margin:0}
+.sheet-foot{flex-wrap:wrap}
+.drop{position:relative;display:grid;justify-items:center;gap:4px;text-align:center;padding:28px 16px;border:1.5px dashed var(--field-line);border-radius:14px;background:var(--field);cursor:pointer;color:var(--muted)}
+.drop b{color:var(--fg)}.drop span{font-size:.82rem}
+.drop.over,.drop:hover{border-color:var(--pink);background:var(--pink-soft)}
+.drop input{position:absolute;width:1px;height:1px;opacity:0}
+.linkish{border:0;background:transparent;color:var(--pink);font:inherit;font-size:.86rem;cursor:pointer;justify-self:start;padding:0}
+.ptable-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+.ptable{width:100%;border-collapse:collapse;font-size:.86rem;min-width:460px}
+.ptable th{font-size:.74rem;color:var(--muted);text-align:right;padding:8px 10px;background:var(--hover);font-weight:600}
+.ptable td{padding:8px 10px;border-top:1px solid var(--line);vertical-align:middle;text-align:right}
+.ptable .ico{width:15px;height:15px}
+.ok{color:var(--credit);font-weight:600}
+.ptable .dd-btn{padding:5px 10px;font-size:.84rem}
+.dd-btn.warnb{background:var(--pink-soft);color:var(--pink)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .res b.warnc{color:#F2B54A}}
+:root[data-theme="dark"] .res b.warnc{color:#F2B54A}
+@media (max-width:820px){
+  .lhead{display:none}
+  .lrow,.lfoot,.grp-row{grid-template-columns:minmax(0,1fr) auto auto;gap:2px 12px}
+  .lrow>.n:nth-child(2),.lrow>.n.rate,.grp-row>*:nth-child(2),.grp-row>*:nth-child(3),.lfoot>*:nth-child(2),.lfoot>*:nth-child(3){display:none}
+  .lrow.sub{padding-inline-start:20px}
+  .ihead{display:none}
+  .irow{grid-template-columns:minmax(0,1fr) auto;gap:2px 12px}
+  .irow .mid{grid-column:1;grid-row:2;font-size:.8rem;color:var(--muted)}
+  .irow>span:nth-child(3),.irow>span:nth-child(4){display:none}
+  .irow .n{grid-column:2;grid-row:1/3}
+  .tools .search{flex-basis:100%}
+}
+.changes b,.changes span{grid-column:2}
+@media (max-width:820px){
+  .lrow .who,.lrow .req,.lrow .profit,.lfoot>*{grid-column:auto!important;grid-row:auto!important}
+  .lrow .profit{font-size:inherit}
+  .lfoot>*:nth-child(1),.lfoot>*:nth-child(4),.lfoot>*:nth-child(5){display:block!important}
+}
+.maplist{gap:8px}.maprow{display:grid;grid-template-columns:minmax(0,1fr) 20px minmax(0,1fr);gap:8px;align-items:center;font-size:.88rem}.maprow span{unicode-bidi:plaintext;text-align:right}.maprow i{font-style:normal;color:var(--muted);text-align:center}.maprow .dd-btn{height:38px;padding:6px 10px}.gt{font-size:.78rem;color:var(--muted);font-weight:600;margin:0 20px -8px;display:flex;align-items:center;gap:8px}.gt::after{content:"";flex:1;border-top:1px solid var(--line)}#skip:disabled{opacity:.5;cursor:not-allowed}.maplist .hint{font-size:.78rem;color:var(--muted)}.ihead,.irow{grid-template-columns:100px minmax(0,1fr) 80px 170px 90px!important}
+.addc{color:var(--pink)!important;border-top:1px solid var(--line)!important;border-radius:0 0 8px 8px!important;font-weight:600}.tile span b.estv{color:var(--fg);font-size:inherit;font-weight:600;display:inline;direction:ltr;unicode-bidi:isolate}
+.lhead,.lrow,.lfoot,.grp-row{grid-template-columns:minmax(0,1fr) 100px 80px 110px 100px 32px}
+.lrow.sub{position:relative}
+.rmore{width:30px;height:30px;border:0;border-radius:8px;background:transparent;color:var(--muted);font-size:1.2rem;line-height:1;cursor:pointer;justify-self:end}
+.rmore:hover{background:var(--chip);color:var(--fg)}
+.rmore:focus-visible{outline:2px solid var(--pink);outline-offset:2px}
+.menu.rmenu{left:8px;right:auto;top:40px;width:180px;min-width:0}
+.menu.rmenu .danger{color:var(--pink)}
+.menu.rmenu hr{border:0;border-top:1px solid var(--line);margin:4px 0;width:100%}
+.warnbox{margin:0 20px;background:var(--pink-soft);border-radius:10px;padding:9px 12px;font-size:.85rem}
+.cf{position:fixed;inset:0;z-index:55;background:rgba(6,20,31,.62);display:grid;place-items:center;padding:16px}
+.cf>div{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;width:min(380px,100%);display:grid;gap:12px;text-align:center}
+.cf p{margin:0;color:var(--muted);font-size:.9rem}.cf .row2{display:flex;gap:8px;justify-content:center}
+.btn-danger{background:var(--pink);color:#fff;padding:9px 16px}
+@media (max-width:820px){.lrow,.lfoot,.grp-row{grid-template-columns:minmax(0,1fr) auto auto 30px!important}}
+#nc{z-index:50}
+.field label em{display:none}
+.field textarea{font:inherit;color:var(--fg);background:var(--field);border:1px solid var(--field-line);border-radius:10px;padding:10px 12px;width:100%;outline:none;resize:none}
+.field textarea:focus{border-color:var(--pink);box-shadow:0 0 0 3px var(--pink-soft)}
+.field input[dir="ltr"]{text-align:right}
+.field .err{color:var(--pink);font-size:.78rem}
+.dup{margin:0 20px;background:var(--pink-soft);color:var(--fg);border-radius:10px;padding:9px 12px;font-size:.88rem}
+body{padding:0;background:var(--surface)}
+html,body{min-height:100%}
+.main{padding:26px 28px}
+@media (max-width:820px){.main{padding:18px 14px}}
+</style>
+</head><body>
+      <main class="main">
+        <div class="top">
+          <h2>الإعلانات الممولة</h2>
+          <span class="sp"></span>
+          <button class="btn btn-primary" id="openNew" type="button">＋ حملة</button>
+          <button class="btn btn-soft" id="openImp" type="button" hidden>استيراد من ميتا</button>
+        </div>
+
+        <div class="vtabs" role="tablist">
+          <button class="on" data-tab="camps" role="tab">الحملات</button>
+          <button data-tab="invs" role="tab">فواتير ميتا</button>
+        </div>
+
+        <!-- الحملات -->
+        <div id="tabCamps" class="tabpane">
+          <div class="tools">
+            <div class="dd mdd" data-multi="months">
+              <button class="dd-btn" type="button" id="mBtn"><span>كل الشهور</span></button>
+              <div class="menu mmenu" hidden>
+                <label class="chkrow all"><input type="checkbox" id="mAll"><span>كل الشهور</span></label>
+                <label class="chkrow"><input type="checkbox" value="10/2026" checked><span>10/2026</span></label>
+                <label class="chkrow"><input type="checkbox" value="9/2026"><span>9/2026</span></label>
+                <label class="chkrow"><input type="checkbox" value="8/2026"><span>8/2026</span></label>
+                <p class="mnote">بدون اختيار = كل الشهور</p>
+              </div>
+            </div>
+            <div class="seg" id="segPlat">
+              <button class="on" data-p="">الكل</button><button data-p="فيس">فيس</button><button data-p="انستا">انستا</button>
+            </div>
+            <label class="search"><span aria-hidden="true">⌕</span><input placeholder="دوّر باسم الزبون" id="q"></label>
+          </div>
+
+          <div class="mstate" id="mstate">
+            <div><b id="msTitle"></b><span id="msSub"></span></div>
+            <button class="btn btn-primary" id="openRec" type="button">مطابقة واعتماد</button>
+          </div>
+
+          <div class="tiles">
+            <div class="tile"><small>الصرف على ميتا</small><b id="tSpend">$0</b><span id="tCount"></span></div>
+            <div class="tile"><small>المطلوب من الزباين</small><b id="tReq">₪0</b><span>الصرف × سعر البيع</span></div>
+            <div class="tile"><small>تكلفتنا بالشيكل</small><b id="tCost">₪0</b><span>الصرف × سعر الدولار الفعلي</span></div>
+            <div class="tile profit"><small>ربح براند</small><b id="tProfit">₪0</b><span id="tPct"></span></div>
+          </div>
+
+          <div class="list">
+            <div class="lhead"><span>الزبون والحملة</span><span>الصرف</span><span>سعر البيع</span><span>المطلوب</span><span>الربح</span><span></span></div>
+            <div id="rows"></div>
+            <div class="lfoot"><span>المجموع</span><span class="n" id="fSpend"></span><span></span><span class="n" id="fReq"></span><span class="n profit" id="fProfit"></span><span></span></div>
+          </div>
+          <div class="legend"><span><i class="ico fb"></i>فيس</span><span><i class="ico ig"></i>انستا</span><span><i style="background:var(--credit)"></i>معتمد: نزل على كشف الزبون</span></div>
+        </div>
+
+        <!-- الفواتير -->
+        <div id="tabInvs" class="tabpane" hidden>
+          <div class="tools">
+            <p class="pnote">سجّل الفاتورة يوم ما تندفع: بتنخصم بالدولار من حساب بنك فلسطين مباشرة، وبتسدّ حساب ميتا.</p>
+            <button class="btn btn-primary" id="openInv" type="button">＋ فاتورة</button>
+          </div>
+          <div class="list">
+            <div class="ihead"><span>التاريخ</span><span>رقم الفاتورة على ميتا</span><span>عن شهر</span><span>من</span><span>المبلغ</span></div>
+            <div id="irows"></div>
+          </div>
+          <div class="mstate meta">
+            <div><b>رصيد حساب ميتا</b><span>حملات معتمدة ناقص فواتير مدفوعة</span></div>
+            <strong id="metaBal">$0</strong>
+          </div>
+        </div>
+      </main>
+<!-- حملة جديدة -->
+<div class="sheet-bg" id="sheet" hidden>
+  <div class="sheet" role="dialog" aria-label="حملة جديدة">
+    <div class="sheet-head"><b id="shT">حملة جديدة</b><small>اسم الحملة هو اسم الزبون</small></div>
+    <p class="warnbox" id="edWarn" hidden></p>
+    <div class="group">
+      <div class="two">
+        <div class="field"><label>الزبون</label>
+          <div class="dd" data-dd="client"><button class="dd-btn" type="button"><span>اختار الزبون</span></button>
+            <div class="menu" hidden><button data-rate="5">ساق الله</button><button data-rate="5">مطعم الريّان</button><button data-rate="5">عيادة النور</button><button data-rate="4.5">متجر لمسة</button><button data-rate="5.5">حلويات السلطان</button><button class="addc" data-add="1">＋ زبون جديد</button></div>
+          </div>
+        </div>
+        <div class="field"><label>الشهر</label>
+          <div class="dd" data-dd="month"><button class="dd-btn" type="button"><span>10/2026</span></button>
+            <div class="menu" hidden><button aria-selected="true">10/2026</button><button>9/2026</button><button>8/2026</button></div>
+          </div>
+        </div>
+      </div>
+      <div class="field"><label>وين انعملت</label>
+        <div class="toggles">
+          <button type="button" class="tg on" data-p="فيس" aria-pressed="true"><i class="ico fb"></i>فيس</button>
+          <button type="button" class="tg" data-p="انستا" aria-pressed="false"><i class="ico ig"></i>انستا</button>
+        </div>
+        <span class="hint" id="tgHint">حملة على فيس بس</span>
+      </div>
+      <div class="two">
+        <div class="field"><label>مبلغ الصرف</label><input id="fSpendIn" class="num" inputmode="decimal" placeholder="0.00"><span class="hint">بالدولار، زي لوحة ميتا</span></div>
+        <div class="field"><label>سعر البيع للدولار</label><input id="fSell" class="num" inputmode="decimal" placeholder="5.00"><span class="hint" id="sellHint">بينزل آخر سعر استعملته للزبون، وبتعدّله لهالحملة</span></div>
+      </div>
+    </div>
+    <div class="res">
+      <span>المطلوب من الزبون</span><b id="rReq">₪0.00</b>
+      <span>التكلفة بسعر 3.00 مثال</span><b id="rCost">₪0.00</b>
+      <span class="t">ربح براند</span><b id="rProfit">₪0.00</b>
+    </div>
+    <div class="sheet-foot">
+      <button class="btn btn-primary" id="save" disabled>حفظ</button>
+      <button class="btn btn-text" data-close>إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- استيراد -->
+<div class="sheet-bg" id="imp" hidden>
+  <div class="sheet wide" role="dialog" aria-label="استيراد من ميتا">
+    <div class="sheet-head"><b>استيراد من ميتا</b><small id="impStep">الخطوة 1 من 2: ارفع الملف</small></div>
+    <div id="imp1" class="group">
+      <label class="drop" id="drop"><input type="file" accept=".xlsx,.csv" id="impFile"><b>اسحب ملف الإكسل هون أو اضغط لتختاره</b><span>الملف اللي بتنزّله من مدير إعلانات ميتا</span></label>
+      <button class="linkish" id="impSample" type="button">جرّب بملف مثال</button>
+    </div>
+    <div id="imp2" class="group" hidden>
+      <div class="ptable-wrap"><table class="ptable">
+        <thead><tr><th>الحملة بميتا</th><th>وين</th><th>الصرف</th><th>الزبون</th></tr></thead>
+        <tbody>
+          <tr><td>ساق الله</td><td><i class="ico fb"></i> فيس</td><td class="n">$80.00</td><td><span class="ok">ساق الله ✓</span></td></tr>
+          <tr><td>ساق الله</td><td><i class="ico ig"></i> انستا</td><td class="n">$40.00</td><td><span class="ok">ساق الله ✓</span></td></tr>
+          <tr><td>النور مواعيد</td><td><i class="ico fb"></i><i class="ico ig"></i> الاثنين</td><td class="n">$120.00</td><td><span class="ok">عيادة النور ✓</span></td></tr>
+          <tr><td>Lamsa winter</td><td><i class="ico ig"></i> انستا</td><td class="n">$75.00</td><td>
+            <div class="dd" data-dd="map"><button class="dd-btn warnb" type="button"><span>اختار الزبون</span></button><div class="menu" hidden><button>متجر لمسة</button><button>حلويات السلطان</button></div></div>
+          </td></tr>
+        </tbody>
+      </table></div>
+      <p class="sheet-hint">الربط اللي بتختاره بينحفظ للمرة الجاية.</p>
+    </div>
+    <div class="sheet-foot">
+      <button class="btn btn-primary" id="impGo" disabled>استيراد</button>
+      <button class="btn btn-text" data-close>إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- مطابقة -->
+<div class="sheet-bg" id="rec" hidden>
+  <div class="sheet" role="dialog" aria-label="مطابقة واعتماد">
+    <div class="sheet-head"><b>مطابقة واعتماد</b><small>الضايل من الماضي + حملات الشهر − الفواتير المدفوعة = اللي بيترحل</small></div>
+    <div class="group">
+      <div class="field"><label>الشهر</label>
+        <div class="dd" data-dd="recMonth"><button class="dd-btn" type="button"><span>10/2026</span></button>
+          <div class="menu" hidden><button aria-selected="true">10/2026</button></div>
+        </div>
+      </div>
+    </div>
+    <div class="res calc">
+      <span>ضايل من الشهر الماضي</span><b id="cPrev">$0</b>
+      <span>＋ حملات الشهر بالنظام</span><b id="cCamp">$0</b>
+      <span>− الفواتير المدفوعة</span><b id="cInv">$0</b>
+      <span class="t">المفروض يترحل للشهر الجاي</span><b id="cCarry" style="color:var(--pink)">$0</b>
+    </div>
+    <div class="group">
+      <div class="field"><label>الضايل على لوحة ميتا</label><input id="rMeta" class="num" inputmode="decimal" placeholder="0.00"><span class="hint">المبلغ اللي لسا ما انفوتر، زي ما هو بلوحة الإعلانات</span></div>
+    </div>
+    <div class="res">
+      <span class="t" style="border:0;padding:0;margin:0">الفرق</span><b id="cDiff" style="border:0;padding:0;margin:0">—</b>
+    </div>
+    <p class="sheet-hint" id="recNote"></p>
+    <div class="sheet-foot">
+      <button class="btn btn-primary" id="approve" disabled>تأكيد واعتماد</button>
+      <button class="btn btn-soft" id="skip" hidden>تخطي الفرق واعتماد</button>
+      <button class="btn btn-text" data-close>إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- زبون جديد -->
+<div class="sheet-bg" id="nc" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="ncTitle">
+    <div class="sheet-head"><b id="ncTitle">زبون جديد</b></div>
+    <div class="group">
+      <div class="field"><label for="ncOrg">الجهة</label><input id="ncOrg" autocomplete="off" placeholder="اختياري، مثلاً: صيدلية الشافي"></div>
+      <div class="field"><label for="ncName">الاسم <em>مطلوب</em></label><input id="ncName" autocomplete="off" placeholder="اسم الشخص اللي بنتعامل معه"></div>
+      <div class="field"><label for="ncPhone">الهاتف</label><input id="ncPhone" inputmode="tel" dir="ltr" maxlength="10" placeholder="05xxxxxxxx"><small class="err" id="ncPhoneErr" hidden>الرقم لازم يكون 10 أرقام ويبدأ بـ05</small></div>
+      <div class="field"><label for="ncNotes">ملاحظات</label><textarea id="ncNotes" rows="2" placeholder="اختياري"></textarea></div>
+    </div>
+    <div class="dup" id="ncDupBox" hidden>في زبون شبهه: <b id="ncDupName"></b>. تأكد إنه مش نفسه قبل ما تحفظ.</div>
+    <p class="sheet-hint">إذا الجهة فاضية، الاسم بيطلع مكانها بالقائمة.</p>
+    <div class="sheet-foot"><button type="button" class="btn btn-primary" id="ncSave" disabled>حفظ</button><button type="button" class="btn btn-text" data-close>إلغاء</button></div>
+  </div>
+</div>
+
+<!-- فاتورة -->
+<div class="sheet-bg" id="inv" hidden>
+  <div class="sheet" role="dialog" aria-label="فاتورة ميتا">
+    <div class="sheet-head"><b>فاتورة ميتا</b><small>بتنخصم بالدولار من حساب بنك فلسطين</small></div>
+    <div class="group">
+      <div class="two">
+        <div class="field"><label>تاريخ الفاتورة</label><input id="iDate" class="num" value="6/11/2026"><span class="hint">نفس منتقي التاريخ المعتمد بالنظام</span></div>
+        <div class="field"><label>المبلغ</label><input id="iAmt" class="num" inputmode="decimal" placeholder="0.00"><span class="hint">بالدولار</span></div>
+      </div>
+      <div class="two">
+        <div class="field"><label>رقم الفاتورة على ميتا</label><input id="iId" class="num" placeholder="مثلاً 8471203356"></div>
+        <div class="field"><label>سعر الدولار يوم الدفع</label><input id="iIls" class="num" inputmode="decimal" placeholder="3.00"><span class="hint" id="iRate">لحساب الربح بالشيكل بس</span></div>
+      </div>
+      <div class="two">
+        <div class="field"><label>عن شهر</label>
+          <div class="dd" data-dd="iMonth"><button class="dd-btn" type="button"><span>10/2026</span></button>
+            <div class="menu" hidden><button aria-selected="true">10/2026</button><button>9/2026</button></div>
+          </div>
+        </div>
+        <div class="field"><label>انخصمت من</label>
+          <div class="dd" data-dd="iFund"><button class="dd-btn" type="button"><span>بنك فلسطين · دولار</span></button>
+            <div class="menu" hidden><button aria-selected="true">بنك فلسطين · دولار</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="sheet-foot">
+      <button class="btn btn-primary" id="iSave" disabled>حفظ الفاتورة</button>
+      <button class="btn btn-text" data-close>إلغاء</button>
+    </div>
+  </div>
+</div>
+<div class="cf" id="cf" hidden><div role="alertdialog" aria-labelledby="cfT"><b id="cfT">حذف الحملة؟</b><p id="cfText"></p><div class="row2"><button class="btn btn-danger" id="cfYes">احذف</button><button class="btn btn-text" id="cfNo">إلغاء</button></div></div></div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const RATE=3, SKIP=2, CARRY={"10/2026":20};
+let camps=[
+ {c:"ساق الله",m:"10/2026",p:["فيس"],spend:80,sell:5},
+ {c:"ساق الله",m:"10/2026",p:["انستا"],spend:40,sell:5},
+ {c:"عيادة النور",m:"10/2026",p:["فيس","انستا"],spend:120,sell:5},
+ {c:"متجر لمسة",m:"10/2026",p:["انستا"],spend:75,sell:4.5},
+ {c:"حلويات السلطان",m:"10/2026",p:["فيس"],spend:60,sell:5.5},
+ {c:"ساق الله",m:"9/2026",p:["فيس"],spend:100,sell:5},
+ {c:"عيادة النور",m:"9/2026",p:["فيس"],spend:90,sell:5},
+ {c:"متجر لمسة",m:"9/2026",p:["انستا"],spend:50,sell:4.5}
+];
+let invs=[
+ {d:"6/10/2026",id:"8470019922",m:"9/2026",f:"بنك فلسطين",amt:240,ils:3},
+ {d:"18/10/2026",id:"8471002210",m:"10/2026",f:"بنك فلسطين",amt:200,ils:3.02},
+ {d:"6/11/2026",id:"8471203356",m:"10/2026",f:"بنك فلسطين",amt:170,ils:3}
+];
+let approved=new Set(["9/2026"]), plat="", months=new Set(["10/2026"]);
+const f2=v=>Number(v).toLocaleString("en-US",{minimumFractionDigits:0,maximumFractionDigits:2});
+const ico=p=>p.map(x=>`<i class="ico ${x==="فيس"?"fb":"ig"}"></i>`).join("");
+const plab=p=>p.length===2?"فيس وانستا بحملة وحدة":p[0];
+function shown(){const q=$("q").value.trim();return camps.filter(r=>(!months.size||months.has(r.m))&&(!plat||r.p.includes(plat))&&(!q||r.c.includes(q)))}
+function render(){
+  const rows=shown(), multi=months.size!==1;
+  const groups={};rows.forEach(r=>(groups[r.c]=groups[r.c]||[]).push(r));
+  let ts=0,tr=0,tc=0;
+  $("rows").innerHTML=Object.entries(groups).map(([c,list])=>{
+    let gs=0,gr=0,gc=0;
+    const subs=list.map(r=>{const req=r.spend*r.sell,cost=r.spend*RATE;gs+=r.spend;gr+=req;gc+=cost;
+      return `<div class="lrow sub${r.isNew?" new":""}"><div class="who"><span class="pc">${ico(r.p)}<b>${plab(r.p)}</b>${multi?`<em class="mo">${r.m}</em>`:""}${approved.has(r.m)?`<em class="stt ok">معتمد</em>`:`<em class="stt">مسودة</em>`}</span></div>
+      <span class="n">$${f2(r.spend)}</span><span class="n rate">× ${f2(r.sell)}</span><span class="n req">₪${f2(req)}</span><span class="n profit">₪${f2(req-cost)}</span><button type="button" class="rmore" data-i="${camps.indexOf(r)}" aria-label="خيارات الحملة">⋯</button><div class="menu rmenu" hidden><button data-ed="${camps.indexOf(r)}">تعديل</button><hr><button class="danger" data-del="${camps.indexOf(r)}">حذف</button></div></div>`}).join("");
+    ts+=gs;tr+=gr;tc+=gc;
+    return `<div class="grp-row"><div class="who"><b>${c}</b><span>${list.length>1?list.length+" حملات":"حملة وحدة"}</span></div><span class="n">$${f2(gs)}</span><span></span><span class="n">₪${f2(gr)}</span><span class="n profit">₪${f2(gr-gc)}</span><span></span></div>${subs}`}).join("")||`<p class="empty">ما في حملات بهالاختيار</p>`;
+  camps.forEach(r=>delete r.isNew);
+  $("tSpend").textContent="$"+f2(ts);$("tCount").textContent=Object.keys(groups).length+" زباين · "+rows.length+" حملات";
+  $("tReq").textContent="₪"+f2(tr);$("tCost").textContent="₪"+f2(tc);$("tProfit").textContent="₪"+f2(tr-tc);
+  const carryUsd=[...new Set(rows.map(r=>r.m))].filter(m=>!approved.has(m)||m==="10/2026").reduce((a,m)=>a+(CARRY[m]||0),0), avgSell=ts?tr/ts:0, est=carryUsd*(avgSell-RATE);
+  $("tPct").innerHTML=carryUsd?"منه <b class='estv'>₪"+f2(est)+"</b> تقديري، لأن $"+f2(carryUsd)+" لسا ما اندفعت":"كله مؤكد على فواتير مدفوعة";
+  $("fSpend").textContent="$"+f2(ts);$("fReq").textContent="₪"+f2(tr);$("fProfit").textContent="₪"+f2(tr-tc);
+  // حالة الشهور
+  const ms=[...new Set(rows.map(r=>r.m))];const pend=ms.filter(m=>!approved.has(m));
+  $("mstate").classList.toggle("done",!pend.length);
+  $("msTitle").textContent=pend.length?"لسا مسودة: "+pend.join(" · "):"كل الشهور المعروضة معتمدة";
+  $("msSub").textContent=pend.length?"المبالغ ما نزلت على كشوف الزباين. طابق مع فواتير ميتا واعتمد.":"نزلت المبالغ على كشوف الزباين وعلى حساب ميتا.";
+  $("openRec").hidden=!pend.length;
+  renderInv();
+}
+function renderInv(){
+  $("irows").innerHTML=invs.map(i=>`<div class="irow${i.isNew?" new":""}"><span class="ldate">${i.d}</span><span class="mid">${i.id}</span><span>${i.m}</span><span class="muted">${i.f}${i.ils?" · بسعر "+i.ils.toFixed(2):""}</span><span class="n">$${f2(i.amt)}</span></div>`).join("");
+  invs.forEach(i=>delete i.isNew);
+  const ap=camps.filter(r=>approved.has(r.m)).reduce((a,r)=>a+r.spend,0), pd=invs.filter(i=>approved.has(i.m)).reduce((a,i)=>a+i.amt,0);
+  const b=ap-pd;$("metaBal").textContent=b?"$"+f2(b):"مسدّد";$("metaBal").className=b?"due":"";
+}
+$("q").addEventListener("input",render);
+document.querySelectorAll("#segPlat button").forEach(b=>b.onclick=()=>{document.querySelectorAll("#segPlat button").forEach(x=>x.classList.toggle("on",x===b));plat=b.dataset.p;render()});
+document.querySelectorAll(".vtabs button").forEach(b=>b.onclick=()=>{document.querySelectorAll(".vtabs button").forEach(x=>x.classList.toggle("on",x===b));$("tabCamps").hidden=b.dataset.tab!=="camps";$("tabInvs").hidden=b.dataset.tab!=="invs"});
+
+// فلتر الشهور المتعدد
+const mdd=document.querySelector(".mdd"),mmenu=mdd.querySelector(".menu"),mboxes=[...mmenu.querySelectorAll('.chkrow:not(.all) input')];
+mdd.querySelector(".dd-btn").onclick=e=>{e.stopPropagation();const o=mmenu.hidden;document.querySelectorAll(".dd .menu").forEach(m=>m.hidden=true);mmenu.hidden=!o};
+mmenu.onclick=e=>e.stopPropagation();
+function syncMonths(){months=new Set(mboxes.filter(b=>b.checked).map(b=>b.value));$("mAll").checked=months.size===mboxes.length;
+  $("mBtn").firstElementChild.textContent=(!months.size||months.size===mboxes.length)?"كل الشهور":[...months].join(" · ");render()}
+mboxes.forEach(b=>b.onchange=syncMonths);
+$("mAll").onchange=()=>{mboxes.forEach(b=>b.checked=$("mAll").checked);syncMonths()};
+
+// قوائم
+const ddVal={};
+document.querySelectorAll(".dd[data-dd]").forEach(dd=>{
+  const btn=dd.querySelector(".dd-btn"),menu=dd.querySelector(".menu");
+  ddVal[dd.dataset.dd]=(menu.querySelector('[aria-selected="true"]')||{}).textContent||"";
+  btn.onclick=e=>{e.stopPropagation();const o=menu.hidden;document.querySelectorAll(".dd .menu").forEach(m=>m.hidden=true);menu.hidden=!o};
+  menu.querySelectorAll("button").forEach(o=>o.onclick=e=>{e.stopPropagation();if(o.dataset.add){menu.hidden=true;$("nc").hidden=false;setTimeout(()=>$("ncOrg").focus(),30);return}menu.querySelectorAll("button").forEach(x=>x.removeAttribute("aria-selected"));o.setAttribute("aria-selected","true");btn.firstElementChild.textContent=o.textContent;btn.classList.remove("warnb");ddVal[dd.dataset.dd]=o.textContent;menu.hidden=true;
+    if(dd.dataset.dd==="client"){$("fSell").value=Number(o.dataset.rate).toFixed(2);$("sellHint").textContent="آخر سعر استعملته لـ"+o.textContent+"، وبتعدّله لهالحملة"}
+    if(dd.dataset.dd==="map")$("impGo").disabled=false;
+    calc();rc();ic()});
+});
+document.addEventListener("click",()=>document.querySelectorAll(".dd .menu").forEach(m=>m.hidden=true));
+
+const num=el=>parseFloat(String(el.value).replace(/,/g,""))||0;
+const tgs=[...document.querySelectorAll(".tg")];
+tgs.forEach(t=>t.onclick=()=>{const on=t.getAttribute("aria-pressed")!=="true";t.setAttribute("aria-pressed",on);t.classList.toggle("on",on);calc()});
+const selP=()=>tgs.filter(t=>t.classList.contains("on")).map(t=>t.dataset.p);
+function calc(){
+  const s=num($("fSpendIn")),sell=num($("fSell")),p=selP();
+  $("tgHint").textContent=!p.length?"فعّل منصة وحدة على الأقل":p.length===2?"حملة وحدة على فيس وانستا مع بعض. للحملات المنفصلة سجّل كل وحدة لحالها.":"حملة على "+p[0]+" بس";
+  $("tgHint").classList.toggle("bad",!p.length);
+  $("rReq").textContent="₪"+(s*sell).toFixed(2);$("rCost").textContent="₪"+(s*RATE).toFixed(2);
+  const pr=s*sell-s*RATE;$("rProfit").textContent="₪"+pr.toFixed(2);$("rProfit").classList.toggle("neg",pr<0);
+  $("save").disabled=!(ddVal.client&&s>0&&sell>0&&p.length);
+}
+$("fSpendIn").oninput=$("fSell").oninput=calc;
+document.querySelectorAll(".sheet-bg").forEach(bg=>{bg.onclick=e=>{if(e.target===bg)bg.hidden=true};bg.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>bg.hidden=true)});
+function toast(t){const el=$("toast");el.textContent=t;el.hidden=false;setTimeout(()=>el.hidden=true,2800)}
+let editI=null;
+function setDD(k,v){const dd=document.querySelector(`.dd[data-dd="${k}"]`),btn=dd.querySelector(".dd-btn");ddVal[k]=v;btn.firstElementChild.textContent=v||"اختار الزبون";dd.querySelectorAll(".menu button").forEach(x=>x.toggleAttribute("aria-selected",x.textContent===v))}
+function openSheet(i){editI=i;const r=i==null?null:camps[i];
+  $("shT").textContent=r?"تعديل حملة":"حملة جديدة";$("save").textContent=r?"احفظ التعديل":"حفظ";
+  setDD("client",r?r.c:"");setDD("month",r?r.m:"10/2026");
+  tgs.forEach(t=>{const on=r?r.p.includes(t.dataset.p):t.dataset.p==="فيس";t.classList.toggle("on",on);t.setAttribute("aria-pressed",on)});
+  $("fSpendIn").value=r?r.spend.toFixed(2):"";$("fSell").value=r?r.sell.toFixed(2):"";
+  const ap=r&&approved.has(r.m);$("edWarn").hidden=!ap;
+  if(ap)$("edWarn").textContent="شهر "+r.m+" معتمد. التعديل بينزل قيد عكسي على كشف الزبون وحساب ميتا، والشهر بيرجع مسودة لحد ما تطابقه من جديد.";
+  $("sheet").hidden=false;calc()}
+$("openNew").onclick=()=>openSheet(null);
+$("save").onclick=()=>{const rec={c:ddVal.client,m:ddVal.month,p:selP(),spend:num($("fSpendIn")),sell:num($("fSell")),isNew:true};
+  if(editI!=null){const old=camps[editI];if(approved.has(old.m))approved.delete(old.m);if(approved.has(rec.m))approved.delete(rec.m);camps[editI]=rec;$("sheet").hidden=true;render();toast("انحفظ تعديل حملة "+rec.c);return}
+  camps.unshift(rec);$("sheet").hidden=true;render();toast("انحفظت حملة "+rec.c+" لشهر "+rec.m)};
+const closeR=()=>document.querySelectorAll(".rmenu").forEach(m=>m.hidden=true);
+document.addEventListener("click",closeR);
+let delI=null;
+$("rows").addEventListener("click",e=>{
+  const mb=e.target.closest(".rmore");if(mb){e.stopPropagation();const m=mb.nextElementSibling,o=m.hidden;closeR();document.querySelectorAll(".dd .menu").forEach(x=>x.hidden=true);m.hidden=!o;return}
+  const ed=e.target.closest("[data-ed]");if(ed){e.stopPropagation();closeR();return openSheet(+ed.dataset.ed)}
+  const dl=e.target.closest("[data-del]");if(dl){e.stopPropagation();closeR();delI=+dl.dataset.del;const r=camps[delI];
+    $("cfText").innerHTML="حملة «"+r.c+"» على "+plab(r.p)+" لشهر "+r.m+" بقيمة <bdi>$"+f2(r.spend)+"</bdi>."+(approved.has(r.m)?"<br>الشهر معتمد، فبينزل قيد عكسي على كشف الزبون وحساب ميتا، والشهر بيرجع مسودة.":"<br>لسا مسودة، فبتنحذف نهائياً.");
+    $("cf").hidden=false;$("cfNo").focus()}});
+$("cfNo").onclick=()=>$("cf").hidden=true;
+$("cf").onclick=e=>{if(e.target.id==="cf")$("cf").hidden=true};
+$("cfYes").onclick=()=>{const r=camps[delI];if(approved.has(r.m))approved.delete(r.m);camps.splice(delI,1);$("cf").hidden=true;render();toast("انحذفت حملة "+r.c)};
+
+// استيراد
+$("openImp").onclick=()=>{$("imp1").hidden=false;$("imp2").hidden=true;$("impStep").textContent="الخطوة 1 من 2: ارفع الملف";$("impGo").disabled=true;$("imp").hidden=false};
+const toStep2=()=>{$("imp1").hidden=true;$("imp2").hidden=false;$("impStep").textContent="الخطوة 2 من 2: راجع الربط · حملة وحدة بدها زبون";$("impGo").disabled=!ddVal.map};
+$("impSample").onclick=toStep2;$("impFile").onchange=toStep2;
+const drop=$("drop");["dragover","dragenter"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add("over")}));
+["dragleave","drop"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove("over");if(ev==="drop")toStep2()}));
+$("impGo").onclick=()=>{$("imp").hidden=true;toast("انستوردت 4 حملات كمسودة")};
+
+// مطابقة
+const carry={"9/2026":15};
+function rc(){
+  const m=ddVal.recMonth||"10/2026";
+  const prev=carry["9/2026"]||0, camp=camps.filter(r=>r.m===m).reduce((a,r)=>a+r.spend,0), inv=invs.filter(i=>i.m===m).reduce((a,i)=>a+i.amt,0);
+  const should=+(prev+camp-inv).toFixed(2), meta=num($("rMeta")), has=$("rMeta").value.trim()!=="", d=+(meta-should).toFixed(2);
+  $("cPrev").textContent="$"+f2(prev);$("cCamp").textContent="$"+f2(camp);$("cInv").textContent="$"+f2(inv);$("cCarry").textContent="$"+f2(should);
+  const el=$("cDiff");
+  if(!has){el.textContent="—";el.className=""}else if(d===0){el.textContent="مطابق ✓";el.className="okc"}else{el.textContent=(d>0?"ميتا أكثر بـ":"ميتا أقل بـ")+"$"+f2(Math.abs(d));el.className=Math.abs(d)<=SKIP?"warnc":"neg"}
+  const mapped=true;
+  $("approve").disabled=!(has&&d===0&&mapped);
+  $("skip").hidden=!(has&&d!==0&&Math.abs(d)<=SKIP);$("skip").disabled=!mapped;
+  if(has&&!mapped){$("recNote").dataset.m="1"}
+  $("recNote").textContent=!has?"اكتب الضايل من لوحة ميتا عشان نقارن.":d===0?"مطابق. بعد التأكيد بتنزل خدمة «إعلان ممول» على كشف كل زبون، و$"+f2(should)+" بيترحل للشهر الجاي.":Math.abs(d)<=SKIP?"فرق بسيط، أقل من "+SKIP+" دولار. إذا تخطيته بينسجل تسوية على حساب ميتا، وبيترحل رقم لوحة ميتا.":"الفرق كبير. راجع الحملات أو الفواتير قبل الاعتماد.";
+}
+$("rMeta").oninput=rc;
+$("openRec").onclick=()=>{$("rec").hidden=false;rc()};
+const doApprove=skip=>{const m=ddVal.recMonth||"10/2026";approved.add(m);$("rec").hidden=true;render();toast(skip?"انعتمد "+m+" مع تخطي الفرق، وانسجلت تسوية":"انعتمد "+m+" ونزلت المبالغ على كشوف الزباين")};
+$("approve").onclick=()=>doApprove(false);$("skip").onclick=()=>doApprove(true);
+
+// فاتورة
+function ic(){$("iSave").disabled=!(num($("iAmt"))>0&&num($("iIls"))>0&&$("iId").value.trim()&&$("iDate").value.trim())}
+$("iIls").oninput=$("iAmt").oninput=$("iId").oninput=$("iDate").oninput=ic;
+$("openInv").onclick=()=>{$("inv").hidden=false;ic()};
+$("iSave").onclick=()=>{invs.push({d:$("iDate").value,id:$("iId").value.trim(),m:ddVal.iMonth,f:ddVal.iFund,amt:num($("iAmt")),ils:num($("iIls")),isNew:true});$("inv").hidden=true;renderInv();toast("انحفظت الفاتورة وانخصمت $"+f2(num($("iAmt")))+" من "+ddVal.iFund)};
+const names=()=>[...document.querySelectorAll('[data-dd="client"] .menu button:not(.addc)')].map(b=>b.textContent);
+const norm=t=>t.replace(/[أإآ]/g,"ا").replace(/ة/g,"ه").replace(/ى/g,"ي").replace(/\s+/g," ").trim();
+function ncCheck(){const ph=$("ncPhone").value.trim(),okP=!ph||/^05\d{8}$/.test(ph);$("ncPhoneErr").hidden=okP||ph.length<2;
+  const o=norm($("ncOrg").value),n=norm($("ncName").value);let dup=null;
+  if(o.length>=3||n.length>=3)dup=names().find(x=>(o.length>=3&&norm(x).includes(o))||(n.length>=3&&norm(x).includes(n)));
+  $("ncDupBox").hidden=!dup;if(dup)$("ncDupName").textContent=dup;
+  $("ncSave").disabled=!$("ncName").value.trim()||!okP}
+["ncOrg","ncName","ncPhone"].forEach(id=>$(id).addEventListener("input",ncCheck));
+$("ncNotes").addEventListener("input",()=>{const t=$("ncNotes");t.style.height="";t.style.height=t.scrollHeight+"px"});
+$("ncSave").onclick=()=>{const v=$("ncOrg").value.trim()||$("ncName").value.trim(),dd=document.querySelector('[data-dd="client"]'),menu=dd.querySelector(".menu"),btn=dd.querySelector(".dd-btn");
+  const nb=document.createElement("button");nb.textContent=v;nb.dataset.rate=5;menu.insertBefore(nb,menu.querySelector(".addc"));
+  nb.onclick=e=>{e.stopPropagation();ddVal.client=v;btn.firstElementChild.textContent=v;menu.querySelectorAll("button").forEach(x=>x.toggleAttribute("aria-selected",x===nb));$("fSell").value="5.00";$("sellHint").textContent="بتقدر تعدّله لهالحملة";menu.hidden=true;calc()};
+  nb.click();$("nc").hidden=true;["ncOrg","ncName","ncPhone","ncNotes"].forEach(id=>$(id).value="");ncCheck();toast("انضاف "+v+" للزبائن وانختار بالحملة")};
+render();
+</script>
+
+</body></html>
