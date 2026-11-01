@@ -179,7 +179,7 @@ h3{margin:0 0 6px;font-size:1.15rem}
 .mstate.meta{box-shadow:inset -3px 0 0 var(--pink)}
 .mstate strong{font-size:1.4rem;font-variant-numeric:tabular-nums;direction:ltr}
 .mstate strong.due{color:var(--pink)}
-.ihead,.irow{display:grid;grid-template-columns:100px minmax(0,1fr) 90px 120px 100px;gap:12px;align-items:center;padding:11px 14px;text-align:right}
+.ihead,.irow{display:grid;grid-template-columns:100px minmax(0,1fr) 140px 100px;gap:12px;align-items:center;padding:11px 14px;text-align:right}
 .ihead{font-size:.75rem;color:var(--muted);padding-block:8px;background:var(--hover)}
 .irow{border-top:1px solid var(--line)}
 .irow.new{animation:flash 2.6s ease-out}
@@ -321,7 +321,7 @@ html,body{min-height:100%}
             <button class="btn btn-primary" id="openInv" type="button">＋ فاتورة</button>
           </div>
           <div class="list">
-            <div class="ihead"><span>التاريخ</span><span>رقم الفاتورة على ميتا</span><span>عن شهر</span><span>من</span><span>المبلغ</span></div>
+            <div class="ihead"><span>تاريخ الفاتورة</span><span>رقم الفاتورة على ميتا</span><span>من</span><span>المبلغ</span></div>
             <div id="irows"></div>
           </div>
           <div class="mstate meta">
@@ -462,12 +462,7 @@ html,body{min-height:100%}
         <div class="field"><label>رقم الفاتورة على ميتا</label><input id="iId" class="num" placeholder="مثلاً 8471203356"></div>
         <div class="field"><label>سعر الدولار يوم الدفع</label><input id="iIls" class="num" inputmode="decimal" placeholder="3.00"><span class="hint" id="iRate">لحساب الربح بالشيكل بس</span></div>
       </div>
-      <div class="two">
-        <div class="field"><label>عن شهر</label>
-          <div class="dd" data-dd="iMonth"><button class="dd-btn" type="button"><span>10/2026</span></button>
-            <div class="menu" hidden><button aria-selected="true">10/2026</button><button>9/2026</button></div>
-          </div>
-        </div>
+      <div>
         <div class="field"><label>انخصمت من</label>
           <div class="dd" data-dd="iFund"><button class="dd-btn" type="button"><span>بنك فلسطين · دولار</span></button>
             <div class="menu" hidden><button aria-selected="true">بنك فلسطين · دولار</button></div>
@@ -497,10 +492,11 @@ let camps=[
  {c:"عيادة النور",m:"9/2026",p:["فيس"],spend:90,sell:5},
  {c:"متجر لمسة",m:"9/2026",p:["انستا"],spend:50,sell:4.5}
 ];
+const imon=i=>{const p=i.d.split("/");return +p[1]+"/"+p[2]};
 let invs=[
- {d:"6/10/2026",id:"8470019922",m:"9/2026",f:"بنك فلسطين",amt:240,ils:3},
- {d:"18/10/2026",id:"8471002210",m:"10/2026",f:"بنك فلسطين",amt:200,ils:3.02},
- {d:"6/11/2026",id:"8471203356",m:"10/2026",f:"بنك فلسطين",amt:170,ils:3}
+ {d:"28/9/2026",id:"8470019922",f:"بنك فلسطين",amt:240,ils:3},
+ {d:"18/10/2026",id:"8471002210",f:"بنك فلسطين",amt:200,ils:3.02},
+ {d:"30/10/2026",id:"8471203356",f:"بنك فلسطين",amt:170,ils:3}
 ];
 let approved=new Set(["9/2026"]), plat="", months=new Set(["10/2026"]);
 const S=v=>Number(v).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})+" ₪",D=v=>Number(v).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})+" $";
@@ -534,9 +530,9 @@ function render(){
   renderInv();
 }
 function renderInv(){
-  $("irows").innerHTML=invs.map(i=>`<div class="irow${i.isNew?" new":""}"><span class="ldate">${i.d}</span><span class="mid">${i.id}</span><span>${i.m}</span><span class="muted">${i.f}${i.ils?" · بسعر "+i.ils.toFixed(2):""}</span><span class="n">${D(i.amt)}</span></div>`).join("");
+  $("irows").innerHTML=invs.map(i=>`<div class="irow${i.isNew?" new":""}"><span class="ldate">${i.d}</span><span class="mid">${i.id}</span><span class="muted">${i.f}${i.ils?" · بسعر "+i.ils.toFixed(2):""}</span><span class="n">${D(i.amt)}</span></div>`).join("");
   invs.forEach(i=>delete i.isNew);
-  const ap=camps.filter(r=>approved.has(r.m)).reduce((a,r)=>a+r.spend,0), pd=invs.filter(i=>approved.has(i.m)).reduce((a,i)=>a+i.amt,0);
+  const ap=camps.filter(r=>approved.has(r.m)).reduce((a,r)=>a+r.spend,0), pd=invs.filter(i=>approved.has(imon(i))).reduce((a,i)=>a+i.amt,0);
   const b=ap-pd;$("metaBal").textContent=b?D(b):"مسدّد";$("metaBal").className=b?"due":"";
 }
 $("q").addEventListener("input",render);
@@ -619,7 +615,7 @@ $("impGo").onclick=()=>{$("imp").hidden=true;toast("انستوردت 4 حملا�
 const carry={"9/2026":15};
 function rc(){
   const m=ddVal.recMonth||"10/2026";
-  const prev=carry["9/2026"]||0, camp=camps.filter(r=>r.m===m).reduce((a,r)=>a+r.spend,0), inv=invs.filter(i=>i.m===m).reduce((a,i)=>a+i.amt,0);
+  const prev=carry["9/2026"]||0, camp=camps.filter(r=>r.m===m).reduce((a,r)=>a+r.spend,0), inv=invs.filter(i=>imon(i)===m).reduce((a,i)=>a+i.amt,0);
   const should=+(prev+camp-inv).toFixed(2), meta=num($("rMeta")), has=$("rMeta").value.trim()!=="", d=+(meta-should).toFixed(2);
   $("cPrev").textContent=D(prev);$("cCamp").textContent=D(camp);$("cInv").textContent=D(inv);$("cCarry").textContent=D(should);
   const el=$("cDiff");
@@ -639,7 +635,7 @@ $("approve").onclick=()=>doApprove(false);$("skip").onclick=()=>doApprove(true);
 function ic(){$("iSave").disabled=!(num($("iAmt"))>0&&num($("iIls"))>0&&$("iId").value.trim()&&$("iDate").value.trim())}
 $("iIls").oninput=$("iAmt").oninput=$("iId").oninput=$("iDate").oninput=ic;
 $("openInv").onclick=()=>{$("inv").hidden=false;ic()};
-$("iSave").onclick=()=>{invs.push({d:$("iDate").value,id:$("iId").value.trim(),m:ddVal.iMonth,f:ddVal.iFund,amt:num($("iAmt")),ils:num($("iIls")),isNew:true});$("inv").hidden=true;renderInv();toast("انحفظت الفاتورة وانخصمت "+D(num($("iAmt")))+" من "+ddVal.iFund)};
+$("iSave").onclick=()=>{invs.push({d:$("iDate").value,id:$("iId").value.trim(),f:ddVal.iFund,amt:num($("iAmt")),ils:num($("iIls")),isNew:true});$("inv").hidden=true;renderInv();toast("انحفظت الفاتورة وانخصمت "+D(num($("iAmt")))+" من "+ddVal.iFund)};
 const names=()=>[...document.querySelectorAll('[data-dd="client"] .menu button:not(.addc)')].map(b=>b.textContent);
 const norm=t=>t.replace(/[أإآ]/g,"ا").replace(/ة/g,"ه").replace(/ى/g,"ي").replace(/\s+/g," ").trim();
 function ncCheck(){const ph=$("ncPhone").value.trim(),okP=!ph||/^05\d{8}$/.test(ph);$("ncPhoneErr").hidden=okP||ph.length<2;
