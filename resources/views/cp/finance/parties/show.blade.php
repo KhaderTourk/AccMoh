@@ -406,7 +406,7 @@
         const cur = $('xCur');
         const curCode = () => cur.selectedOptions[0].dataset.code;
         if (tx.kind === 'charge' && WORKER && L.salary) { $('xAmt').value = L.salary; $('xHint').textContent = 'الراتب الشهري ' + num(L.salary) + ' ₪'; }
-        if ((tx.kind === 'pay' || tx.kind === 'take') && $('xHint')) {
+        if ((tx.kind === 'pay' || tx.kind === 'take' || tx.kind === 'discount') && $('xHint')) {
             const v = balanceBy('ILS');
             const owe = tx.kind === 'pay' ? v : v;
             if (owe > 0.005) $('xHint').innerHTML = `${esc(P.pos)} ${num(owe)} ₪ · <button type="button" class="cs-fill" id="xFill">عبّي الكل</button>`;

@@ -430,7 +430,7 @@
             else if (t.price) $('xHint').textContent = 'السعر المعتاد: ' + num(t.price);
             if (tx.kind === 'sub' && !$('xAmt').value && (t.price || t.last)) $('xAmt').value = String(t.price || t.last);
         }
-        if (tx.kind === 'payment') {
+        if (tx.kind === 'payment' || tx.kind === 'discount') {
             const v = balanceBy('ILS');
             if (v > 0.005) $('xHint').innerHTML = `عليه ${num(v)} ₪ · <button type="button" class="cs-fill" id="xFill">عبّي الكل</button>`;
         }
