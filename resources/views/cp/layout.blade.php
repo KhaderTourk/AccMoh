@@ -18,6 +18,7 @@
             } catch (e) {}
         })();
     </script>
+    @include('cp.partials.keep-view')
     <link rel="dns-prefetch" href="https://fonts.googleapis.com">
     <link rel="dns-prefetch" href="https://fonts.gstatic.com">
     <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
