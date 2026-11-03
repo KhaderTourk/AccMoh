@@ -200,6 +200,14 @@
         fPhone.value = @json(old('phone', ''));
         check();
     @endif
+
+    /* ——— ضل مكانك بعد الحفظ أو الحذف ——— */
+    const kept = window.cpKeep && cpKeep.take();
+    if (kept) {
+        filter = kept.filter || filter; $('clQ').value = kept.q || '';
+        document.querySelectorAll('.cl-seg button').forEach((x) => x.classList.toggle('on', x.dataset.f === filter));
+    }
+    if (window.cpKeep) cpKeep.track(() => ({ filter, q: $('clQ').value }));
     render();
 })();
 </script>

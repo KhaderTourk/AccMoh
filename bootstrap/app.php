@@ -16,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(\App\Http\Middleware\CompressResponse::class);
         $middleware->web(append: [
             \App\Http\Middleware\NormalizeDisplayDates::class,
+            \App\Http\Middleware\KeepListQueryOnRedirect::class,
         ]);
         $middleware->api(append: [
             \App\Http\Middleware\NormalizeDisplayDates::class,
