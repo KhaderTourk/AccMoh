@@ -492,6 +492,17 @@
         $('xDate').value = dayLabel(parseDay($('xDate').value));
     });
 
+
+    /* ——— ضل مكانك بعد الحفظ أو الحذف ——— */
+    const kept = window.cpKeep && cpKeep.take();
+    if (kept) {
+        view = kept.view || view; cType = kept.cType || cType; sub = new Set(kept.sub || []);
+        preset = kept.preset || preset; range = kept.range || null;
+        document.querySelectorAll('.cs-tabs button').forEach((x) => x.classList.toggle('on', x.dataset.view === view));
+        $('csType').querySelectorAll('button').forEach((x) => x.classList.toggle('on', x.dataset.t === cType));
+        if (range && preset === 'custom') { $('csFrom').value = range.from; $('csTo').value = range.to; }
+    }
+    if (window.cpKeep) cpKeep.track(() => ({ view, cType, sub: [...sub], preset, range }));
     renderBalance();
     render();
 })();
