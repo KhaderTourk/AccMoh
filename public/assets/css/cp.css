@@ -2359,3 +2359,21 @@ html.dark .bl-card { background: #1e293b; }
     .bl-head { display: none; }
     .db-v { font-size: 1.35rem; }
 }
+
+/* ——— التسجيل السريع (§11) ——— */
+.qe-nav { display: flex; align-items: center; gap: .6rem; width: 100%; padding: .6rem .75rem; margin-bottom: .4rem; border: 0; border-radius: .8rem; background: var(--cp-primary); color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+.qe-nav kbd { margin-right: auto; font: inherit; font-size: .75rem; opacity: .8; border: 1px solid rgba(255, 255, 255, .5); border-radius: .35rem; padding: 0 .35rem; }
+.qe-fab { display: none; }
+@media (max-width: 1023px) {
+    .qe-fab { display: grid; place-items: center; position: fixed; left: 1rem; bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px)); z-index: 45; width: 3.4rem; height: 3.4rem; border-radius: 50%; border: 0; background: var(--cp-primary); color: #fff; box-shadow: 0 10px 24px rgba(251, 0, 91, .35); cursor: pointer; }
+    .qe-fab .material-symbols-outlined { font-size: 1.8rem; }
+}
+.qe-dialog { max-width: 32rem; }
+.qe-group { font-size: .8rem; font-weight: 800; color: var(--cp-muted); margin: .6rem 0 .3rem; }
+.qe-ops { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
+.qe-ops button, .qe-list button { display: flex; flex-direction: column; align-items: flex-start; gap: .1rem; text-align: right; padding: .65rem .75rem; border: 1px solid var(--cp-line); border-radius: .8rem; background: none; font: inherit; color: inherit; cursor: pointer; }
+.qe-ops button:hover, .qe-list button:hover { border-color: var(--cp-primary); }
+.qe-ops .material-symbols-outlined { color: var(--cp-primary); }
+.qe-ops small, .qe-list small { font-size: .72rem; color: var(--cp-muted); }
+.qe-types { margin-bottom: .5rem; }
+.qe-list { display: grid; gap: .35rem; max-height: 45vh; overflow-y: auto; margin-top: .5rem; }

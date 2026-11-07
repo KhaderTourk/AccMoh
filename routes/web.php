@@ -11,6 +11,7 @@ use App\Http\Controllers\Cp\CashPaymentController;
 use App\Http\Controllers\Cp\PartyBalanceMemoController;
 use App\Http\Controllers\Cp\PersonController;
 use App\Http\Controllers\Cp\PinController;
+use App\Http\Controllers\Cp\QuickEntryController;
 use App\Http\Controllers\Cp\VendorController;
 use App\Http\Controllers\Cp\VendorChargeController;
 use App\Http\Controllers\Cp\TransferController;
@@ -78,6 +79,7 @@ Route::prefix('cp')->name('cp.')->middleware(['cp.auth', 'cp.check'])->group(fun
     Route::get('/persons/{person}/export-pdf', [PersonController::class, 'exportPdf'])->name('persons.export-pdf');
     Route::post('/persons/{person}/restore', [PersonController::class, 'restore'])->name('persons.restore');
     Route::resource('persons', PersonController::class);
+    Route::get('/quick/accounts', [QuickEntryController::class, 'accounts'])->name('quick.accounts');
     Route::post('/pin/{kind}/{id}', PinController::class)->whereIn('kind', ['client', 'vendor', 'person'])->whereNumber('id')->name('pin.toggle');
 
     Route::get('/payments/incoming', [CashPaymentController::class, 'incoming'])->name('payments.incoming');
