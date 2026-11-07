@@ -22,7 +22,7 @@ use Illuminate\Validation\ValidationException;
  */
 class ClientSubscriptionController extends Controller
 {
-    public function store(Request $request)
+    public function store(Request $request, ClientWorkService $work)
     {
         $data = $request->validate([
             'client_id' => ['required', 'exists:clients,id'],
@@ -35,7 +35,7 @@ class ClientSubscriptionController extends Controller
         $client = Client::query()->findOrFail($data['client_id']);
         $type = filled($data['service_type_id'] ?? null) ? ServiceType::query()->find($data['service_type_id']) : null;
 
-        ClientSubscription::query()->create([
+        $sub = ClientSubscription::query()->create([
             'client_id' => $client->id,
             'service_type_id' => $type?->id,
             'title' => $type?->name ?: trim((string) $data['title']),
@@ -46,8 +46,32 @@ class ClientSubscriptionController extends Controller
             'notes' => $data['notes'] ?? null,
         ]);
 
+        // أول شهر بينسجل فوراً على الكشف (قرار 1/11/2026)
+        $first = $sub->starts_on->format('Y-m');
+        DB::transaction(fn () => $this->recordMonth($sub, $first, $sub->suggestedAmount($first), $work));
+        [$days] = $sub->daysIn($first);
+
         return redirect()->route('cp.clients.show', $client)
-            ->with('success', 'انضاف الاشتراك. الشهر الأول بيتحسب من يوم البداية، وأول الشهر الجاي بتطلع فاتورته بعدد الأيام مع فاتورة الشهر الجديد.');
+            ->with('success', 'انضاف الاشتراك، وانسجّل أول شهر'.($days < 30 ? " ({$days} يوم من 30)" : '').'. بعدها بيذكّرك أول كل شهر.');
+    }
+
+    /** بيسجّل خدمة شهر من الاشتراك على كشف الزبون، إذا مش مسجّلة. */
+    protected function recordMonth(ClientSubscription $sub, string $period, string $amount, ClientWorkService $work): bool
+    {
+        if (Money::isZero($amount) || $sub->months()->where('period', $period)->exists()) {
+            return false;
+        }
+        $service = $work->create([
+            'client_id' => $sub->client_id,
+            'service_type_id' => $sub->service_type_id,
+            'title' => $sub->monthTitle($period),
+            'amount' => $amount,
+            'currency_id' => $sub->currency_id,
+            'service_date' => $sub->serviceDateFor($period),
+        ]);
+        $service->forceFill(['subscription_id' => $sub->id, 'period' => $period])->save();
+
+        return true;
     }
 
     /** Stop a subscription; a month already recorded for the last month gets its amount by days. */
@@ -124,20 +148,9 @@ class ClientSubscriptionController extends Controller
                 if (! $sub || ! $sub->isBillable($period) || $sub->months()->where('period', $period)->exists()) {
                     continue;
                 }
-                $amount = Money::of($item['amount'] ?? $sub->suggestedAmount($period));
-                if (Money::isZero($amount)) {
-                    continue;
+                if ($this->recordMonth($sub, $period, Money::of($item['amount'] ?? $sub->suggestedAmount($period)), $work)) {
+                    $done++;
                 }
-                $service = $work->create([
-                    'client_id' => $sub->client_id,
-                    'service_type_id' => $sub->service_type_id,
-                    'title' => $sub->monthTitle($period),
-                    'amount' => $amount,
-                    'currency_id' => $sub->currency_id,
-                    'service_date' => $sub->serviceDateFor($period),
-                ]);
-                $service->forceFill(['subscription_id' => $sub->id, 'period' => $period])->save();
-                $done++;
             }
         });
 

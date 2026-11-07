@@ -64,7 +64,7 @@ class ServicePhasesTest extends TestCase
         $this->assertSame('1500.00', (string) $type->default_price);
         $this->assertSame('ديكور', ServiceGroup::query()->find($type->service_group_id)?->name);
 
-        $this->actingAs($this->user)->get(route('cp.settings.index'))->assertOk()->assertSee('تصميم · تنفيذ');
+        $this->actingAs($this->user)->get(route('cp.settings.index'))->assertOk()->assertSee('تصميم وتنفيذ');
     }
 
     public function test_work_phase_saved_only_for_phased_services_and_report_splits_it(): void

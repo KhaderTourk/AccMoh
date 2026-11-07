@@ -40,7 +40,6 @@
                         <button type="button" data-o="transfer">تحويل رصيد</button>
                         <button type="button" data-o="memo">رصيد سابق</button>
                     @elseif($kind === 'worker')
-                        <button type="button" data-o="advance">سلفة</button>
                         <button type="button" data-o="discount">خصم</button>
                         <button type="button" data-o="memo">رصيد سابق</button>
                     @else
@@ -359,6 +358,9 @@
             title = K.title + ' · ' + p.name;
             hid = hidden('party_key', pk) + hidden('fund_id', L.fundId) + hidden('payment_method_id', p.id) + hidden('name', D.title);
             fields = moneyFields(K.amtLabel) + dateField(K.date);
+            // الموظف: كل اللي بيطلعله «دفعة»، والسلفة صارت وصف (تسليم 1/11 §12)
+            if (WORKER && kind === 'pay') fields += `<div class="cl-field"><label for="xNotes">الوصف</label><input id="xNotes" name="notes" maxlength="255" placeholder="اكتب أو اختار">
+                <div class="cs-chips cs-desc" id="xDesc">${['راتب', 'سلفة', 'مكافأة', 'عمل إضافي'].map((w) => `<button type="button" data-w="${w}">${w}</button>`).join('')}</div></div>`;
         } else if (kind === 'advance') {
             const opts = L.methods.map((p) => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
             hid = hidden('party_key', pk) + hidden('fund_id', L.fundId) + hidden('name', D.title) + hidden('kind', 'advance');
@@ -384,7 +386,7 @@
                 <div class="cl-field"><label for="xOther">الحساب التاني</label><select id="xOther" class="cs-sel">${opts}</select><small class="cs-hint" id="xOtherAfter"></small></div>`
                 + plainMoney() + dateField(K.date);
         }
-        fields += '<div class="cl-field"><label for="xNotes">ملاحظات</label><textarea id="xNotes" name="notes" rows="2" placeholder="اختياري"></textarea></div>';
+        if (!fields.includes('id="xNotes"')) fields += '<div class="cl-field"><label for="xNotes">ملاحظات</label><textarea id="xNotes" name="notes" rows="2" placeholder="اختياري"></textarea></div>';
         $('txTitle').textContent = title;
         $('txHidden').innerHTML = hid;
         $('txFields').innerHTML = fields;
@@ -395,6 +397,8 @@
         setTimeout(() => (kind === 'charge' && $('xWhat').value ? $('xAmt') : ($('xWhat') || $('xAmt'))).focus(), 30);
     }
     function wireTx() {
+        const desc = $('xDesc');
+        if (desc) desc.addEventListener('click', (e) => { const b = e.target.closest('[data-w]'); if (!b) return; $('xNotes').value = b.dataset.w; desc.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); });
         const cur = $('xCur');
         const curCode = () => cur.selectedOptions[0].dataset.code;
         if (tx.kind === 'charge' && WORKER && L.salary) { $('xAmt').value = L.salary; $('xHint').textContent = 'الراتب الشهري ' + num(L.salary) + ' ₪'; }

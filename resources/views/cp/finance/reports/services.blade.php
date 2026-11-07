@@ -21,16 +21,16 @@
     <div class="rounded-2xl border bg-white dark:bg-slate-800 sr-wrap">
         <table class="sr-table">
             <thead>
-                <tr><th>الخدمة</th><th class="n">تصميم</th><th class="n">تنفيذ</th><th class="n">الاثنين مع بعض</th><th class="n">بدون تحديد</th><th class="n">المجموع</th></tr>
+                <tr><th>الخدمة</th><th class="n">تصميم وتنفيذ</th><th class="n">تصميم</th><th class="n">تنفيذ</th><th class="n">بدون تحديد</th><th class="n">المجموع</th></tr>
             </thead>
             <tbody>
                 @forelse($sections as $sec)
-                    <tr class="g"><td>{{ $sec['name'] }}</td><td class="n">{{ $n($sec['design']) }}</td><td class="n">{{ $n($sec['execution']) }}</td><td class="n">{{ $n($sec['both']) }}</td><td class="n">{{ $n($sec['none']) }}</td><td class="n">{{ $n($sec['total']) }}</td></tr>
+                    <tr class="g"><td>{{ $sec['name'] }}</td><td class="n">{{ $n($sec['both']) }}</td><td class="n">{{ $n($sec['design']) }}</td><td class="n">{{ $n($sec['execution']) }}</td><td class="n">{{ $n($sec['none']) }}</td><td class="n">{{ $n($sec['total']) }}</td></tr>
                     @foreach($sec['rows'] as $r)
                         <tr>
                             <td>{{ $r['name'] }}@if($r['off']) <small class="text-slate-400">· موقوفة</small>@endif <small class="text-slate-400">· {{ $r['n'] }} حركة</small></td>
                             @if($r['phases'])
-                                <td class="n">{{ $n($r['design']) }}</td><td class="n">{{ $n($r['execution']) }}</td><td class="n">{{ $n($r['both']) }}</td><td class="n">{{ $n($r['none']) }}</td>
+                                <td class="n">{{ $n($r['both']) }}</td><td class="n">{{ $n($r['design']) }}</td><td class="n">{{ $n($r['execution']) }}</td><td class="n">{{ $n($r['none']) }}</td>
                             @else
                                 <td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">—</td>
                             @endif
@@ -43,7 +43,7 @@
             </tbody>
             @if($sections->isNotEmpty())
                 <tfoot>
-                    <tr class="t"><td>المجموع ₪</td><td class="n">{{ $n($grand['design']) }}</td><td class="n">{{ $n($grand['execution']) }}</td><td class="n">{{ $n($grand['both']) }}</td><td class="n">{{ $n($grand['none']) }}</td><td class="n">{{ $n($grand['total']) }}</td></tr>
+                    <tr class="t"><td>المجموع ₪</td><td class="n">{{ $n($grand['both']) }}</td><td class="n">{{ $n($grand['design']) }}</td><td class="n">{{ $n($grand['execution']) }}</td><td class="n">{{ $n($grand['none']) }}</td><td class="n">{{ $n($grand['total']) }}</td></tr>
                 </tfoot>
             @endif
         </table>

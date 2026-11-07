@@ -36,7 +36,8 @@ class ClientService extends Model
         'notes',
     ];
 
-    public const PHASES = ['design' => 'تصميم', 'execution' => 'تنفيذ', 'both' => 'تصميم وتنفيذ'];
+    // الترتيب دايماً من اليمين: تصميم وتنفيذ · تصميم · تنفيذ (تسليم 1/11 §2.6)
+    public const PHASES = ['both' => 'تصميم وتنفيذ', 'design' => 'تصميم', 'execution' => 'تنفيذ'];
 
     protected function casts(): array
     {
