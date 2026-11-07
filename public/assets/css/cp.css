@@ -2377,3 +2377,41 @@ html.dark .bl-card { background: #1e293b; }
 .qe-ops small, .qe-list small { font-size: .72rem; color: var(--cp-muted); }
 .qe-types { margin-bottom: .5rem; }
 .qe-list { display: grid; gap: .35rem; max-height: 45vh; overflow-y: auto; margin-top: .5rem; }
+
+/* الإعلانات الممولة (تسليم 1/11 §1) */
+.ad-ico { width: 1rem; height: 1rem; vertical-align: -.15rem; color: #475569; }
+.ad-err { background: #fff0f5; color: #b0003f; border-radius: .8rem; padding: .7rem 1rem; margin: 0 0 .8rem; font-weight: 600; }
+.ad-warn { background: #fff8e6; color: #8a5a00; border-radius: .7rem; padding: .5rem .8rem; font-size: .85rem; }
+.ad-months { position: relative; }
+.ad-months > summary { list-style: none; cursor: pointer; }
+.ad-months form { position: absolute; z-index: 20; inset-inline-start: 0; top: calc(100% + .3rem); background: #fff; border-radius: .9rem; padding: .7rem; box-shadow: 0 12px 30px rgba(11,37,55,.18); display: grid; gap: .35rem; min-width: 11rem; max-height: 60vh; overflow: auto; }
+html.dark .ad-months form { background: #1e293b; }
+.ad-groups { display: grid; gap: .8rem; }
+.ad-group { background: #fff; border-radius: 1rem; padding: .4rem .9rem; box-shadow: 0 1px 3px rgba(11,37,55,.08); }
+html.dark .ad-group, html.dark .ad-mcard { background: #1e293b; }
+.ad-group header { display: flex; justify-content: space-between; align-items: baseline; gap: .5rem; padding: .5rem 0; border-bottom: 1px solid #eef1f5; font-weight: 700; }
+.ad-group header small { color: #64748b; font-weight: 500; }
+.ad-row { position: relative; display: grid; grid-template-columns: 4.5rem 3rem 1fr auto auto auto; align-items: center; gap: .5rem; padding: .55rem 0; border-bottom: 1px solid #f3f5f8; }
+.ad-row:last-child { border-bottom: 0; }
+.ad-month { color: #475569; font-variant-numeric: tabular-nums; }
+.ad-calc { color: #64748b; font-size: .85rem; text-align: start; }
+.ad-lock { font-size: 1rem; color: #94a3b8; }
+.ad-row .cl-menu { position: absolute; inset-inline-end: 0; top: 100%; z-index: 10; }
+.ad-toggles { display: flex; gap: .8rem; padding-top: .4rem; }
+.ad-toggles label { display: flex; align-items: center; gap: .3rem; }
+.ad-limit { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin-bottom: .8rem; font-size: .9rem; }
+.ad-limit input { width: 4rem; }
+.ad-match { display: grid; gap: .8rem; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); }
+.ad-mcard { background: #fff; border-radius: 1rem; padding: .9rem; box-shadow: 0 1px 3px rgba(11,37,55,.08); border-inline-start: 4px solid #cbd5e1; }
+.ad-mcard.ok { border-inline-start-color: #0E8A5F; }
+.ad-mcard header { display: flex; justify-content: space-between; margin-bottom: .5rem; }
+.ad-badge { font-size: .75rem; background: #eef1f5; border-radius: 1rem; padding: .1rem .6rem; }
+.ad-mcard.ok .ad-badge { background: #e6f5ee; color: #0E8A5F; }
+.ad-mcard dl { margin: 0; display: grid; gap: .3rem; }
+.ad-mcard dl div { display: flex; justify-content: space-between; gap: .5rem; font-size: .9rem; }
+.ad-mcard dt { color: #64748b; }
+.ad-mcard dd { margin: 0; font-variant-numeric: tabular-nums; }
+.ad-mcard .ad-exp { border-top: 1px dashed #cbd5e1; padding-top: .3rem; font-weight: 700; }
+.ad-approve { display: flex; flex-wrap: wrap; gap: .5rem; align-items: end; margin-top: .7rem; }
+.ad-approve label { display: grid; gap: .2rem; font-size: .8rem; color: #64748b; flex: 1 1 9rem; }
+@media (max-width: 640px) { .ad-row { grid-template-columns: 4rem 2.6rem 1fr auto auto; } .ad-calc { grid-column: 1 / -1; order: 9; } }
