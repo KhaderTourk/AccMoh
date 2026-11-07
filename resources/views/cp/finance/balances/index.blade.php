@@ -1,91 +1,112 @@
 @extends('cp.layout')
 @section('title', 'الأدراج والأرصدة')
 @section('content')
-<div class="space-y-6">
-    <div class="overflow-x-auto rounded-2xl bg-white dark:bg-slate-800 border shadow-sm">
-        <table class="w-full text-sm text-right">
-            <thead class="bg-slate-50 dark:bg-slate-700/50">
-                <tr>
-                    <th class="px-4 py-3">الدرج / الطريقة</th>
-                    @foreach($snapshot['currencies'] as $currency)
-                        <th class="px-4 py-3">{{ $currency->name }} ({{ $currency->code }})</th>
-                    @endforeach
-                    <th class="px-4 py-3"></th>
-                </tr>
-            </thead>
-            <tbody class="divide-y dark:divide-slate-700">
-                @foreach($snapshot['funds'] as $fund)
-                    <tr class="bg-slate-50/70 dark:bg-slate-700/30 font-bold">
-                        <td class="px-4 py-3">{{ $fund->name }}</td>
-                        @foreach($snapshot['currencies'] as $currency)
-                            <td class="px-4 py-3">{{ $currency->format($snapshot['fundTotals'][$fund->id][$currency->id] ?? 0) }}</td>
-                        @endforeach
-                        <td class="px-4 py-3 whitespace-nowrap">
-                            <a href="{{ route('cp.payments.create', ['incoming', 'fund_id' => $fund->id]) }}" class="text-xs px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700">دفعة واردة</a>
-                            <a href="{{ route('cp.payments.create', ['outgoing', 'fund_id' => $fund->id]) }}" class="text-xs px-2 py-1 rounded-lg bg-rose-50 text-rose-700">دفعة صادرة</a>
-                        </td>
-                    </tr>
-                    @foreach($snapshot['methods'] as $method)
-                    <tr>
-                        <td class="px-4 py-2 ps-8 text-slate-600">{{ $method->name }}</td>
-                        @foreach($snapshot['currencies'] as $currency)
-                            <td class="px-4 py-2">{{ $currency->format($snapshot['cells'][$fund->id][$method->id][$currency->id] ?? 0) }}</td>
-                        @endforeach
-                        <td></td>
-                    </tr>
-                    @endforeach
-                @endforeach
-                <tr class="font-extrabold bg-primary/5">
-                    <td class="px-4 py-3">الإجمالي</td>
-                    @foreach($snapshot['currencies'] as $currency)
-                        <td class="px-4 py-3">{{ $currency->format($snapshot['grand'][$currency->id] ?? 0) }}</td>
-                    @endforeach
-                    <td></td>
-                </tr>
-            </tbody>
-        </table>
+@php
+    $n = fn ($v) => ($v < 0 ? '−' : '').number_format(abs((float) $v), 2).' ₪';
+    $tabs = $funds->mapWithKeys(fn ($f) => [$f->slug => $f->slug === 'family' ? 'شخصي' : ($f->slug === 'business' ? 'عمل' : $f->name)])->all() + ['all' => 'الكل'];
+    $fx = collect($rates)->except('ILS');
+@endphp
+<div class="cl-page bl-page">
+    <div class="cl-top">
+        <h1 class="cl-h">الأدراج والأرصدة</h1>
+        <div class="cl-sp"></div>
+        <a href="{{ route('cp.transfers.create') }}" class="cp-btn cp-btn-primary"><span class="material-symbols-outlined">swap_horiz</span> تحويل</a>
     </div>
 
-    <section class="rounded-2xl bg-white dark:bg-slate-800 border p-6">
-        <h2 class="font-bold mb-4 flex items-center gap-2"><span class="material-symbols-outlined text-primary">add_card</span> رصيد افتتاحي</h2>
-        <form method="post" action="{{ route('cp.balances.opening') }}" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3 items-end">
-            @csrf
-            <div>
-                <label class="text-xs text-slate-500">الدرج</label>
-                <select name="fund_id" required class="cp-input w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-                    @foreach($funds as $fund)<option value="{{ $fund->id }}">{{ $fund->name }}</option>@endforeach
-                </select>
+    <div class="bl-total">
+        <span>المجموع بسعر اليوم</span>
+        <b class="{{ $total < 0 ? 'due' : '' }}">{{ $n($total) }}</b>
+        <button type="button" class="bl-rates" id="blRatesBtn">
+            @forelse($fx as $code => $r)
+                <span>{{ $code === 'USD' ? 'الدولار' : ($code === 'JOD' ? 'الدينار' : $code) }} {{ rtrim(rtrim(number_format($r, 4), '0'), '.') }}</span>
+            @empty
+                <span>حدّد سعر الدولار والدينار</span>
+            @endforelse
+            <span class="material-symbols-outlined">edit</span>
+        </button>
+    </div>
+    <form class="bl-rates-form" id="blRatesForm" method="post" action="{{ route('cp.balances.rates') }}" hidden>
+        @csrf
+        @foreach($currencies->where('code', '!=', 'ILS') as $c)
+            <label>{{ $c->name }} بالشيكل <input name="rates[{{ $c->code }}]" inputmode="decimal" dir="ltr" value="{{ $rates[$c->code] ?? '' }}" placeholder="مثلاً 3.70"></label>
+        @endforeach
+        <button class="cp-btn cp-btn-primary">حفظ</button>
+        <small>السعر للمجاميع بس. كل حركة محفوظة بسعرها وقت التسجيل.</small>
+    </form>
+
+    <div class="cl-tools">
+        <div class="cl-seg" role="tablist">
+            @foreach($tabs as $key => $label)
+                <a href="{{ route('cp.balances.index', ['tab' => $key]) }}" class="{{ $tab === $key ? 'on' : '' }}" role="tab">{{ $label }}</a>
+            @endforeach
+        </div>
+    </div>
+
+    <div class="bl-grid">
+        @foreach($cards as $card)
+            <div class="bl-card">
+                <a class="bl-main" href="{{ route('cp.balances.show', ['method' => $card['method']->id, 'tab' => $tab]) }}">
+                    <span class="bl-name">{{ $card['method']->name }}</span>
+                    @if(!count($card['currencies']))
+                        <b class="bl-empty">فاضي</b>
+                    @else
+                        <b class="{{ $card['ils'] < 0 ? 'due' : '' }}">{{ $n($card['ils']) }}</b>
+                        <span class="bl-curs">
+                            @foreach($card['currencies'] as $c)<i class="{{ $c['negative'] ? 'due' : '' }}">{{ $c['label'] }}</i>@endforeach
+                        </span>
+                    @endif
+                </a>
+                <button type="button" class="cl-more" aria-label="خيارات {{ $card['method']->name }}">⋯</button>
+                <div class="cl-menu" hidden>
+                    <button type="button" data-settle="{{ $card['method']->id }}" data-name="{{ $card['method']->name }}">تسوية رصيد</button>
+                </div>
+                @if($tab === 'all' && count($card['currencies']))
+                    <div class="bl-split">
+                        @foreach($tabFunds as $f)
+                            <span>{{ $tabs[$f->slug] ?? $f->name }} {{ $n($card['byFund'][$f->id] ?? 0) }}</span>@if(!$loop->last) · @endif
+                        @endforeach
+                    </div>
+                @endif
             </div>
-            <div>
-                <label class="text-xs text-slate-500">طريقة الدفع</label>
-                <select name="payment_method_id" required class="cp-input w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-                    @foreach($paymentMethods as $m)<option value="{{ $m->id }}" @selected(payment_method_is_selected(old('payment_method_id'), $m))>{{ $m->name }}</option>@endforeach
-                </select>
-            </div>
-            <div>
-                <label class="text-xs text-slate-500">العملة</label>
-                <select name="currency_id" required class="cp-input w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-                    @foreach($currencies as $c)<option value="{{ $c->id }}">{{ $c->name }}</option>@endforeach
-                </select>
-            </div>
-            <div>
-                <label class="text-xs text-slate-500">المبلغ</label>
-                <input type="number" step="0.01" min="0.01" name="amount" required class="cp-input w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-            </div>
-            <div>
-                <label class="text-xs text-slate-500">التاريخ</label>
-                @include('cp.partials.date-field', ['name' => 'occurred_on', 'value' => old('occurred_on', date('Y-m-d')), 'required' => true, 'class' => 'cp-input w-full rounded-xl border px-3 py-2 dark:bg-slate-700 text-left'])
-            </div>
-            <button class="px-4 py-2 rounded-xl bg-primary text-white font-medium">تسجيل</button>
-            <div class="md:col-span-3 lg:col-span-3">
-                <label class="text-xs text-slate-500">الوصف</label>
-                <input type="text" name="description" value="{{ old('description') }}" placeholder="رصيد افتتاحي" class="cp-input w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-            </div>
-            <div class="md:col-span-3 lg:col-span-3">
-                <label class="text-xs text-slate-500">ملاحظة</label>
-                <input type="text" name="notes" value="{{ old('notes') }}" class="cp-input w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-            </div>
-        </form>
-    </section>
+        @endforeach
+    </div>
 </div>
+
+<div class="cl-sheet" id="blSheet" hidden>
+    <form class="cl-dialog" method="post" action="{{ route('cp.balances.settle') }}" role="dialog" aria-modal="true" aria-labelledby="blSheetT">
+        @csrf
+        <h2 id="blSheetT">تسوية رصيد</h2>
+        <input type="hidden" name="payment_method_id" id="blMethod">
+        <div class="cs-two">
+            <div class="cl-field"><label for="blFund">الدرج</label>
+                <select id="blFund" name="fund_id" class="cs-sel">@foreach($tabFunds as $f)<option value="{{ $f->id }}">{{ $tabs[$f->slug] ?? $f->name }}</option>@endforeach</select></div>
+            <div class="cl-field"><label for="blCur">العملة</label>
+                <select id="blCur" name="currency_id" class="cs-sel">@foreach($currencies as $c)<option value="{{ $c->id }}">{{ $c->code }} {{ $c->symbol }}</option>@endforeach</select></div>
+        </div>
+        <div class="cl-field"><label for="blActual">الموجود فعلياً</label><input id="blActual" name="actual" inputmode="decimal" dir="ltr" placeholder="0.00" required>
+            <small class="cs-hint">بتنسجل حركة «تسوية رصيد» بالفرق بينه وبين اللي بالنظام.</small></div>
+        <div class="cl-field"><label for="blNotes">ليش الفرق؟</label><textarea id="blNotes" name="notes" rows="2" required placeholder="ملاحظة إجبارية"></textarea></div>
+        <div class="cl-actions">
+            <button type="submit" class="cp-btn cp-btn-primary">سجّل التسوية</button>
+            <button type="button" class="cp-btn cp-btn-ghost" id="blCancel">إلغاء</button>
+        </div>
+    </form>
+</div>
+
+<script>
+(function () {
+    const $ = (id) => document.getElementById(id);
+    const close = () => document.querySelectorAll('.cl-menu').forEach((m) => { m.hidden = true; });
+    $('blRatesBtn').addEventListener('click', () => { $('blRatesForm').hidden = !$('blRatesForm').hidden; });
+    document.addEventListener('click', (e) => {
+        const more = e.target.closest('.bl-card .cl-more');
+        if (more) { e.stopPropagation(); const m = more.nextElementSibling; const open = m.hidden; close(); m.hidden = !open; return; }
+        const s = e.target.closest('[data-settle]');
+        if (s) { close(); $('blMethod').value = s.dataset.settle; $('blSheetT').textContent = 'تسوية رصيد · ' + s.dataset.name; $('blSheet').hidden = false; setTimeout(() => $('blActual').focus(), 30); return; }
+        if (!e.target.closest('.cl-menu')) close();
+    });
+    $('blCancel').addEventListener('click', () => { $('blSheet').hidden = true; });
+    $('blSheet').addEventListener('click', (e) => { if (e.target.id === 'blSheet') $('blSheet').hidden = true; });
+})();
+</script>
 @endsection

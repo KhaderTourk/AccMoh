@@ -535,6 +535,7 @@
     function renderSubs() {
         const S = D.subscriptions || [];
         $('csSubs').hidden = !S.length;
+        if (S.length && location.hash === '#csSubs') setTimeout(() => $('csSubs').scrollIntoView({ block: 'start' }), 50);
         if (!S.length) return;
         const active = S.filter((x) => !x.to || x.to >= D.today).length;
         $('csSubsN').textContent = active + ' فعّال';
@@ -586,6 +587,16 @@
     renderSubs();
     renderBalance();
     render();
+    /* ——— التسجيل السريع: فتح نفس نافذة الحركة (§11) ——— */
+    {
+        const qk = new URLSearchParams(location.search).get('quick');
+        const menu = (id) => setTimeout(() => document.querySelector(`[data-menu=${id}]`).click(), 60);
+        if (qk === 'in') menu('mPay');
+        else if (qk === 'out') openTx('refund', {});
+        else if (qk === 'take') openTx('goods', {});
+        else if (qk === 'give') openTx('service', { free: true });
+        if (qk) history.replaceState(null, '', location.pathname);
+    }
 })();
 </script>
 @endsection

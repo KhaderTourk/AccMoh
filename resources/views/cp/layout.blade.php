@@ -68,6 +68,9 @@
                 </div>
                 <nav class="flex-1 overflow-y-auto py-4 px-3">
                     <ul class="space-y-0.5">
+                        @if(cpCan('finance'))
+                        <li><button type="button" data-quick-open class="qe-nav"><span class="material-symbols-outlined">add</span><span>تسجيل سريع</span><kbd>N</kbd></button></li>
+                        @endif
                         <li>
                             <a href="{{ route('cp.dashboard') }}" class="cp-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary dark:hover:text-primary transition-colors {{ request()->routeIs('cp.dashboard') ? 'bg-primary/10 text-primary dark:bg-primary/20' : '' }}">
                                 <span class="material-symbols-outlined text-xl">dashboard</span>
@@ -260,6 +263,9 @@
         }
         $cpMore[] = ['url' => route('cp.offline'), 'icon' => 'cloud_off', 'label' => 'وضع عدم الاتصال'];
     ?>
+    @if(cpCan('finance'))
+        @include('cp.partials.quick-entry')
+    @endif
     <nav class="cp-bottom-nav cp-tabbar" aria-label="التنقل">
         @foreach($cpTabs as $tab)
             <a href="{{ route($tab['route']) }}" class="{{ request()->routeIs($tab['active']) ? 'is-active' : '' }}">

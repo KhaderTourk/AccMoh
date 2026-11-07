@@ -11,6 +11,7 @@ use App\Http\Controllers\Cp\CashPaymentController;
 use App\Http\Controllers\Cp\PartyBalanceMemoController;
 use App\Http\Controllers\Cp\PersonController;
 use App\Http\Controllers\Cp\PinController;
+use App\Http\Controllers\Cp\QuickEntryController;
 use App\Http\Controllers\Cp\VendorController;
 use App\Http\Controllers\Cp\VendorChargeController;
 use App\Http\Controllers\Cp\TransferController;
@@ -67,6 +68,9 @@ Route::prefix('cp')->name('cp.')->middleware(['cp.auth', 'cp.check'])->group(fun
 
     Route::get('/balances', [BalanceController::class, 'index'])->name('balances.index');
     Route::post('/balances/opening', [BalanceController::class, 'storeOpening'])->name('balances.opening');
+    Route::post('/balances/settle', [BalanceController::class, 'settle'])->name('balances.settle');
+    Route::post('/balances/rates', [BalanceController::class, 'rates'])->name('balances.rates');
+    Route::get('/balances/{method}', [BalanceController::class, 'show'])->whereNumber('method')->name('balances.show');
 
     Route::get('/balance-memos/transfer', [PartyBalanceMemoController::class, 'transferCreate'])->name('balance-memos.transfer');
     Route::post('/balance-memos/transfer', [PartyBalanceMemoController::class, 'transferStore'])->name('balance-memos.transfer.store');
@@ -75,6 +79,7 @@ Route::prefix('cp')->name('cp.')->middleware(['cp.auth', 'cp.check'])->group(fun
     Route::get('/persons/{person}/export-pdf', [PersonController::class, 'exportPdf'])->name('persons.export-pdf');
     Route::post('/persons/{person}/restore', [PersonController::class, 'restore'])->name('persons.restore');
     Route::resource('persons', PersonController::class);
+    Route::get('/quick/accounts', [QuickEntryController::class, 'accounts'])->name('quick.accounts');
     Route::post('/pin/{kind}/{id}', PinController::class)->whereIn('kind', ['client', 'vendor', 'person'])->whereNumber('id')->name('pin.toggle');
 
     Route::get('/payments/incoming', [CashPaymentController::class, 'incoming'])->name('payments.incoming');

@@ -501,6 +501,21 @@
     if (window.cpKeep) cpKeep.track(() => ({ view, cType, sub: [...sub], preset, range }));
     renderBalance();
     render();
+    /* ——— التسجيل السريع: فتح نفس نافذة الحركة (§11) ——— */
+    {
+        const qk = new URLSearchParams(location.search).get('quick');
+        const click = (sel) => setTimeout(() => { const el = document.querySelector(sel); if (el) el.click(); }, 60);
+        if (PERSON) {
+            if (qk === 'in') click('[data-menu=mG2]');
+            else if (qk === 'out') click('[data-menu=mG1]');
+            else if (qk === 'transfer') openTx('transfer', {});
+        } else {
+            if (qk === 'out') click('[data-menu=mG2]');
+            else if (qk === 'take') click('#bCharge');
+            else if (qk === 'give' && KIND.goods && !WORKER) openTx('goods', {});
+        }
+        if (qk) history.replaceState(null, '', location.pathname);
+    }
 })();
 </script>
 @endsection

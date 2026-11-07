@@ -4,96 +4,76 @@ namespace App\Http\Controllers\Cp;
 
 use App\Enums\TransactionType;
 use App\Http\Controllers\Controller;
-use App\Models\Client;
-use App\Models\ClientService;
+use App\Models\Currency;
 use App\Models\LedgerEntry;
-use App\Models\Person;
 use App\Services\Finance\BalanceService;
+use App\Services\Finance\PositionService;
+use App\Support\Rates;
 
+/**
+ * الرئيسية (تسليم 1/11 §9): معي · إلي · علي، والصافي، وهالشهر، والاشتراكات بانتظار التأكيد، وبدها متابعة، وآخر الحركات.
+ */
 class DashboardController extends Controller
 {
-    public function index(BalanceService $balances)
+    public const IN = [TransactionType::IncomingPayment, TransactionType::ClientPayment, TransactionType::FamilyLoanReceived, TransactionType::FamilyLoanRepaymentReceived];
+
+    public const OUT = [TransactionType::OutgoingPayment, TransactionType::Expense, TransactionType::FamilyLoanGiven, TransactionType::FamilyLoanRepaymentPaid];
+
+    public function index(BalanceService $balances, PositionService $positions)
     {
         $snapshot = $balances->snapshot();
-        $receivables = $balances->clientReceivables();
-        $personNet = $balances->personNet();
+        $codes = Currency::query()->pluck('code', 'id');
+        $withMe = 0.0;
+        foreach ($snapshot['grand'] as $currencyId => $amount) {
+            $withMe += Rates::toIls((float) $amount, $codes[$currencyId] ?? 'ILS');
+        }
+        $pos = $positions->summary();
+        $owed = array_sum($pos['owed']);
+        $owe = array_sum($pos['owe']);
+
+        // هالشهر وآخر 6 أشهر: الدفعات الواردة والصادرة بس، بدون التحويلات بين الأدراج، بالشيكل
+        $start = now()->startOfMonth()->subMonths(5);
+        $flow = [];
+        for ($i = 0; $i < 6; $i++) {
+            $flow[$start->copy()->addMonths($i)->format('Y-m')] = ['in' => 0.0, 'out' => 0.0];
+        }
+        $rows = LedgerEntry::query()
+            ->where('is_reversal', false)
+            ->where('occurred_on', '>=', $start->toDateString())
+            ->whereIn('transaction_type', array_merge(self::IN, self::OUT))
+            ->get(['transaction_type', 'currency_id', 'amount', 'occurred_on']);
+        foreach ($rows as $r) {
+            $key = $r->occurred_on->format('Y-m');
+            if (! isset($flow[$key])) {
+                continue;
+            }
+            $v = abs(Rates::toIls((float) $r->amount, $codes[$r->currency_id] ?? 'ILS'));
+            $flow[$key][in_array($r->transaction_type, self::IN, true) ? 'in' : 'out'] += $v;
+        }
 
         $recent = LedgerEntry::query()
             ->withoutArchivedParties()
+            ->whereNotIn('transaction_type', [TransactionType::TransferFee, TransactionType::TransferIn])
             ->with(['fund', 'paymentMethod', 'currency', 'related'])
-            ->orderByDesc('occurred_on')
-            ->orderByDesc('id')
-            ->limit(12)
-            ->get();
+            ->orderByDesc('occurred_on')->orderByDesc('id')
+            ->limit(8)->get();
 
-        $months = collect(range(5, 0))->map(fn ($i) => now()->startOfMonth()->subMonths($i));
-
-        $revenueByMonth = [];
-        $expenseByMonth = [];
-        foreach ($snapshot['currencies'] as $currency) {
-            foreach ($months as $month) {
-                $key = $month->format('Y-m');
-                $revenueByMonth[$currency->code][$key] = (float) LedgerEntry::query()
-                    ->where('currency_id', $currency->id)
-                    ->whereIn('transaction_type', [
-                        TransactionType::IncomingPayment,
-                        TransactionType::ClientPayment,
-                        TransactionType::FamilyLoanReceived,
-                        TransactionType::FamilyLoanRepaymentReceived,
-                    ])
-                    ->where('is_reversal', false)
-                    ->whereYear('occurred_on', $month->year)
-                    ->whereMonth('occurred_on', $month->month)
-                    ->sum('amount');
-
-                $expenseByMonth[$currency->code][$key] = abs((float) LedgerEntry::query()
-                    ->where('currency_id', $currency->id)
-                    ->whereIn('transaction_type', [
-                        TransactionType::OutgoingPayment,
-                        TransactionType::Expense,
-                        TransactionType::FamilyLoanGiven,
-                        TransactionType::FamilyLoanRepaymentPaid,
-                    ])
-                    ->where('is_reversal', false)
-                    ->whereYear('occurred_on', $month->year)
-                    ->whereMonth('occurred_on', $month->month)
-                    ->sum('amount'));
-            }
-        }
-
-        $methodDistribution = [];
-        foreach ($snapshot['methods'] as $method) {
-            foreach ($snapshot['currencies'] as $currency) {
-                $methodDistribution[$method->slug][$currency->code] = (float) ($snapshot['methodTotals'][$method->id][$currency->id] ?? 0);
-            }
-        }
+        $subs = tenantBusinessEnabled()
+            ? ClientSubscriptionController::pending(now()->format('Y-m'))->groupBy(fn ($r) => $r['client']->id)
+            : collect();
 
         return view('cp.dashboard', [
-            'snapshot' => $snapshot,
-            'receivables' => tenantBusinessEnabled() ? $receivables : [],
-            'personNet' => $personNet,
+            'withMe' => round($withMe, 2),
+            'owed' => $pos['owed'],
+            'owe' => $pos['owe'],
+            'net' => round($withMe + $owed - $owe, 2),
+            'flow' => $flow,
+            'month' => $flow[now()->format('Y-m')],
+            'subs' => $subs,
+            'topClients' => $pos['topClients'],
+            'topVendors' => $pos['topVendors'],
             'recent' => $recent,
-            'months' => $months->map(fn ($m) => $m->format('Y-m'))->values(),
-            'monthKeys' => $months->map(fn ($m) => $m->format('Y-m'))->values(),
-            'revenueByMonth' => $revenueByMonth,
-            'expenseByMonth' => $expenseByMonth,
-            'methodDistribution' => $methodDistribution,
-            'topIndebted' => tenantBusinessEnabled() ? $balances->topIndebtedClients(5) : collect(),
-            'topPaying' => tenantBusinessEnabled() ? $balances->topPayingClients(5) : collect(),
-            'workerPayables' => tenantBusinessEnabled() ? $balances->vendorPayables(\App\Enums\VendorType::Worker) : [],
-            'supplierPayables' => tenantBusinessEnabled() ? $balances->vendorPayables(\App\Enums\VendorType::Supplier) : [],
-            'counts' => [
-                'clients' => tenantBusinessEnabled() ? Client::query()->active()->count() : 0,
-                'persons' => Person::query()->active()->count(),
-                'open_services' => tenantBusinessEnabled()
-                    ? ClientService::query()
-                        ->billable()
-                        ->when(! \App\Support\ArchiveVisibility::showing(), function ($q) {
-                            $q->whereHas('client', fn ($client) => $client->where('is_active', true));
-                        })
-                        ->count()
-                    : 0,
-            ],
+            'rates' => Rates::today(),
         ]);
     }
 }
