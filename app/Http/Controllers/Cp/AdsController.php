@@ -7,10 +7,12 @@ use App\Http\Controllers\Controller;
 use App\Models\AdCampaign;
 use App\Models\AppSetting;
 use App\Models\Client;
+use App\Models\Currency;
 use App\Models\Fund;
 use App\Models\MetaInvoice;
 use App\Models\PaymentMethod;
 use App\Services\Finance\AdsService;
+use App\Support\Rates;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -19,35 +21,53 @@ class AdsController extends Controller
 {
     public function index(Request $request, AdsService $ads)
     {
-        $tab = in_array($request->query('tab'), ['campaigns', 'invoices', 'match'], true) ? $request->query('tab') : 'campaigns';
-        $campaigns = $ads->campaigns();
-        $periods = $ads->periods();
-        $months = array_filter((array) $request->query('m', []), fn ($p) => is_string($p) && preg_match('/^\d{4}-\d{2}$/', $p));
-        $platform = in_array($request->query('p'), ['fb', 'ig'], true) ? $request->query('p') : null;
-        $shown = $campaigns
-            ->when($months, fn ($c) => $c->whereIn('period', $months))
-            ->when($platform === 'fb', fn ($c) => $c->where('on_facebook', true))
-            ->when($platform === 'ig', fn ($c) => $c->where('on_instagram', true));
-        $groups = $shown->groupBy('client_id')->sortBy(fn ($g) => $g->first()->client?->directoryLabel());
-        $clients = Client::query()->active()->get()->sortBy(fn ($c) => $c->directoryLabel())->values();
-        $lastRates = $campaigns->sortByDesc('period')->unique('client_id')->mapWithKeys(fn ($c) => [$c->client_id => (float) $c->sell_rate]);
+        $tab = $request->query('tab') === 'invoices' ? 'invoices' : 'campaigns';
+        $rec = $ads->reconciliation();
+        $profit = $ads->profit();
+        $approved = collect($rec)->filter(fn ($r) => $r['month']?->isApproved())->keys()->all();
+        $usd = Currency::byCode('USD');
+        $lastInvoiceRate = (float) (MetaInvoice::query()->latest('invoice_date')->latest('id')->value('usd_rate') ?? 0);
+        $rate = $lastInvoiceRate ?: (float) (Rates::today()['USD'] ?? 0);
+        $campaigns = $ads->campaigns()->map(function (AdCampaign $c) use ($approved) {
+            return [
+                'id' => $c->id, 'client_id' => $c->client_id,
+                'name' => $c->client?->directoryLabel() ?? 'زبون محذوف',
+                'period' => $c->period, 'fb' => $c->on_facebook, 'ig' => $c->on_instagram,
+                'spend' => (float) $c->spend_usd, 'sell' => (float) $c->sell_rate, 'notes' => $c->notes,
+                'approved' => in_array($c->period, $approved, true),
+                'url' => $c->client ? route('cp.clients.show', $c->client) : null,
+            ];
+        })->values();
+        // سعر تكلفة الدولار لكل شهر (الفواتير بتسدّ الأقدم أول)، والشهر اللي لسا ما انسد ربحه تقديري
+        $monthCost = [];
+        foreach ($profit as $p => $row) {
+            $spend = $campaigns->where('period', $p)->sum('spend');
+            $monthCost[$p] = ['rate' => $spend > 0 ? round($row['cost'] / $spend, 6) : $rate, 'confirmed' => $row['confirmed']];
+        }
+        $openMonths = collect($rec)->reject(fn ($r) => $r['month']?->isApproved())->keys()->values();
+        $periods = $campaigns->pluck('period')->unique()->sortDesc()->values();
+        $thisMonth = now()->format('Y-m');
+        $methods = PaymentMethod::query()->where('is_active', true)->orderBy('id')->get();
+        $meta = $ads->metaVendor();
 
         return view('cp.finance.ads.index', [
             'tab' => $tab,
-            'groups' => $groups,
+            'campaigns' => $campaigns,
             'periods' => $periods,
-            'months' => array_values($months),
-            'platform' => $platform,
-            'clients' => $clients,
-            'lastRates' => $lastRates,
-            'approved' => collect($ads->reconciliation())->filter(fn ($r) => $r['month']?->isApproved())->keys()->all(),
-            'invoices' => MetaInvoice::query()->with(['fund', 'paymentMethod'])->orderByDesc('invoice_date')->orderByDesc('id')->get(),
-            'match' => array_reverse($ads->reconciliation(), true),
-            'profit' => $ads->profit(),
+            'defaultMonths' => $periods->contains($thisMonth) ? [$thisMonth] : [],
+            'monthCost' => $monthCost,
+            'rate' => $rate,
+            'clients' => Client::query()->active()->get()->sortBy(fn ($c) => $c->directoryLabel())->values()
+                ->map(fn ($c) => ['id' => $c->id, 'name' => $c->directoryLabel()]),
+            'lastRates' => $ads->campaigns()->sortByDesc('period')->unique('client_id')->mapWithKeys(fn ($c) => [$c->client_id => (float) $c->sell_rate]),
+            'rec' => collect($rec)->map(fn ($r) => array_merge($r, ['month' => null, 'approved' => (bool) $r['month']?->isApproved()]))->all(),
+            'openMonths' => $openMonths,
+            'invoices' => MetaInvoice::query()->with('paymentMethod')->orderByDesc('invoice_date')->orderByDesc('id')->get(),
+            'metaBalance' => round((float) $meta->outstandingAmount($usd->id), 2),
             'limit' => $ads->diffLimit(),
-            'funds' => Fund::query()->orderBy('id')->get(),
-            'methods' => PaymentMethod::query()->where('is_active', true)->orderBy('id')->get(),
-            'thisMonth' => now()->format('Y-m'),
+            'methods' => $methods,
+            'monthOpts' => collect(range(-12, 1))->map(fn ($i) => now()->startOfMonth()->addMonthsNoOverflow($i)->format('Y-m'))->merge($periods)->unique()->sortDesc()->values(),
+            'thisMonth' => $thisMonth,
         ]);
     }
 
@@ -78,6 +98,9 @@ class AdsController extends Controller
         $data = $request->validate([
             'client_id' => ['nullable', 'integer'],
             'new_client' => ['nullable', 'string', 'max:255'],
+            'new_company' => ['nullable', 'string', 'max:255'],
+            'new_phone' => ['nullable', 'regex:/^05\\d{8}$/'],
+            'new_notes' => ['nullable', 'string'],
             'period' => ['required', 'regex:/^\d{4}-\d{2}$/'],
             'on_facebook' => ['nullable', 'boolean'],
             'on_instagram' => ['nullable', 'boolean'],
@@ -92,7 +115,8 @@ class AdsController extends Controller
             $reopened = DB::transaction(function () use ($request, $ads, $campaign, $data) {
             $clientId = $data['client_id'] ?? null;
             if (filled($data['new_client'] ?? null)) {
-                $clientId = Client::query()->create(['name' => trim($data['new_client']), 'is_active' => true])->id;
+                $clientId = Client::query()->create(['name' => trim($data['new_client']), 'company_name' => $data['new_company'] ?? null,
+                    'phone' => $data['new_phone'] ?? null, 'notes' => $data['new_notes'] ?? null, 'is_active' => true])->id;
             }
             if (! $clientId || ! Client::query()->whereKey($clientId)->exists()) {
                 throw new FinanceException('اختار الزبون.');
@@ -123,13 +147,13 @@ class AdsController extends Controller
         $data = $request->validate([
             'invoice_date' => ['required', 'date'],
             'amount_usd' => ['required', 'numeric', 'gt:0'],
-            'meta_ref' => ['nullable', 'string', 'max:100'],
-            'fund_id' => ['required', 'integer'],
-            'payment_method_id' => ['required', 'integer'],
-            'paid_in' => ['required', 'in:ILS,USD'],
+            'meta_ref' => ['required', 'string', 'max:100'],
+            'source' => ['required', 'regex:/^\\d+:(ILS|USD)$/'],
             'usd_rate' => ['required', 'numeric', 'gt:0'],
             'notes' => ['nullable', 'string', 'max:500'],
         ]);
+        [$data['payment_method_id'], $data['paid_in']] = explode(':', $data['source']);
+        $data['fund_id'] = Fund::business()->id;
         try {
             $ads->recordInvoice($data);
         } catch (FinanceException $e) {
@@ -149,7 +173,7 @@ class AdsController extends Controller
             return back()->withInput()->withErrors(['ads' => $e->getMessage()])->with('adsPeriod', $period);
         }
 
-        return redirect()->route('cp.ads.index', ['tab' => 'match'])->with('success', 'انعتمد الشهر.');
+        return redirect()->route('cp.ads.index')->with('success', $request->boolean('skip') ? 'انعتمد شهر '.$period.' مع تخطي الفرق، وانسجلت تسوية.' : 'انعتمد شهر '.$period.' ونزلت المبالغ على كشوف الزباين.');
     }
 
     public function limit(Request $request)
@@ -157,6 +181,6 @@ class AdsController extends Controller
         $data = $request->validate(['limit' => ['required', 'numeric', 'min:0']]);
         AppSetting::put('ads.diff_limit', (string) $data['limit']);
 
-        return redirect()->route('cp.ads.index', ['tab' => 'match'])->with('success', 'انحفظ حد الفرق.');
+        return redirect()->route('cp.ads.index')->with('success', 'انحفظ حد الفرق.');
     }
 }

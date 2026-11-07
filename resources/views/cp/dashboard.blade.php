@@ -8,11 +8,12 @@
     $max = max(1, collect($flow)->flatMap(fn ($f) => [$f['in'], $f['out']])->max());
 @endphp
 <div class="db-page">
+    <div class="db-hello"><h1>أهلاً م. محمد</h1><span>{{ format_date(now()) }}</span></div>
     <div class="db-cards">
         <a class="db-card" href="{{ route('cp.balances.index') }}">
             <span class="db-k">معي</span>
             <b class="db-v">{{ $n($withMe) }}</b>
-            <small>مجموع كل الأدراج بسعر اليوم</small>
+            <small>بكل الأدراج، بسعر اليوم · الأدراج والأرصدة ‹</small>
         </a>
         <div class="db-card">
             <span class="db-k">إلي</span>
@@ -29,11 +30,11 @@
     <div class="db-net">
         <span>الصافي</span>
         <b class="{{ $net < 0 ? 'due' : '' }}">{{ $net < 0 ? '−' : '' }}{{ $n($net) }}</b>
-        <small>لو انسدّ كل إشي، هاد اللي بيضل معك</small>
+        <small>معي + إلي − علي: لو انسدّ كل إشي، هاد اللي بيضل معك</small>
     </div>
 
     <section class="db-panel">
-        <h2>هالشهر</h2>
+        <h2>هالشهر <small>{{ now()->month }}/{{ now()->year }}</small></h2>
         <div class="db-month">
             <div><span>دخل</span><b class="credit">{{ $n($month['in']) }}</b></div>
             <div><span>طلع</span><b class="due">{{ $n($month['out']) }}</b></div>
@@ -51,12 +52,13 @@
             @endforeach
         </div>
         <div class="db-legend"><span><i class="in"></i>دخل</span><span><i class="out"></i>طلع</span></div>
+        <p class="db-hint">الدفعات الواردة والصادرة بس، بدون التحويلات بين الأدراج، وبالشيكل.</p>
     </section>
 
     @if($subs->isNotEmpty())
     <section class="db-panel" id="dbSubs">
         <h2>اشتراكات شهر {{ now()->month }}/{{ now()->year }} بانتظار التأكيد <a href="{{ route('cp.subscriptions.confirm') }}">تأكيد الكل</a></h2>
-        <p class="db-hint">فواتير الاشتراكات جاهزة للتأكيد.</p>
+        <p class="db-hint">كل الزباين بمكان واحد. اكبس على الزبون لتراجع وتأكد.</p>
         @foreach($subs as $rows)
             @php($c = $rows->first()['client'])
             <a class="db-row" href="{{ route('cp.clients.show', $c) }}#csSubs">
@@ -70,9 +72,11 @@
     @if(count($topClients) || count($topVendors))
     <section class="db-panel">
         <h2>بدها متابعة</h2>
+        @if(count($topClients))<h3 class="db-sub">أكثر زبائن عليهم رصيد</h3>@endif
         @foreach($topClients as $r)
             <a class="db-row" href="{{ $r['url'] }}"><span>{{ $r['name'] }} <small>زبون</small></span><b class="due">{{ $n($r['amount']) }}</b></a>
         @endforeach
+        @if(count($topVendors))<h3 class="db-sub">أكثر موردين وموظفين إلهم</h3>@endif
         @foreach($topVendors as $r)
             <a class="db-row" href="{{ $r['url'] }}"><span>{{ $r['name'] }} <small>{{ $r['type'] }}</small></span><b class="credit">{{ $n($r['amount']) }}</b></a>
         @endforeach
@@ -80,7 +84,7 @@
     @endif
 
     <section class="db-panel">
-        <h2>آخر الحركات</h2>
+        <h2>آخر الحركات <small>من كل الأقسام</small></h2>
         @forelse($recent as $e)
             <div class="db-row">
                 <span>{{ $e->description }} <small>{{ $e->paymentMethod?->name }} · {{ format_date($e->occurred_on) }}</small></span>
