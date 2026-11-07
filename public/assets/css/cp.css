@@ -2287,3 +2287,75 @@ html.dark .cl-sort-btn { background: #1e293b; }
 .cs-custom .cs-pf-row .cs-date-in input { min-width: 0; height: 2.4rem; }
 .cs-custom .cs-pf-row .cs-cal { width: 2.4rem; }
 .cs-custom #csApply:disabled { opacity: .5; cursor: not-allowed; }
+
+/* ——— الرئيسية (§9) ——— */
+.db-page { display: grid; gap: 1rem; }
+.db-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: .75rem; }
+.db-card, .db-net, .db-panel { background: #fff; border: 1px solid var(--cp-line); border-radius: 1rem; padding: 1rem; color: inherit; text-decoration: none; }
+html.dark .db-card, html.dark .db-net, html.dark .db-panel { background: #1e293b; }
+.db-card { display: flex; flex-direction: column; gap: .3rem; }
+.db-k { font-size: .85rem; color: var(--cp-muted); font-weight: 700; }
+.db-v { font-size: 1.6rem; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.db-card small, .db-net small, .db-hint { color: var(--cp-muted); font-size: .8rem; }
+.db-line { display: flex; justify-content: space-between; gap: .5rem; font-size: .85rem; }
+.db-line b { white-space: nowrap; }
+.due { color: var(--cl-due); } .credit { color: var(--cl-credit); }
+.db-net { display: flex; flex-wrap: wrap; align-items: baseline; gap: .3rem 1rem; }
+.db-net > span { font-weight: 700; }
+.db-net b { font-size: 1.5rem; font-weight: 800; white-space: nowrap; }
+.db-net small { flex-basis: 100%; }
+.db-panel h2 { font-size: 1rem; font-weight: 800; margin: 0 0 .6rem; display: flex; justify-content: space-between; gap: .5rem; }
+.db-panel h2 a { font-size: .85rem; color: var(--cp-primary); font-weight: 700; }
+.db-month { display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem; margin-bottom: .8rem; }
+.db-month span { display: block; font-size: .8rem; color: var(--cp-muted); }
+.db-month b { font-size: 1.05rem; white-space: nowrap; }
+.db-bars { display: flex; gap: .5rem; align-items: flex-end; height: 8rem; }
+.db-bar { flex: 1; display: flex; flex-direction: column; align-items: center; gap: .25rem; height: 100%; }
+.db-bar-pair { flex: 1; width: 100%; display: flex; justify-content: center; align-items: flex-end; gap: 3px; }
+.db-bar-pair i { width: 40%; max-width: 1.1rem; border-radius: .3rem .3rem 0 0; min-height: 2px; }
+.db-bar small { font-size: .7rem; color: var(--cp-muted); }
+i.in { background: var(--cl-credit); } i.out { background: var(--cl-due); }
+.db-legend { display: flex; gap: 1rem; font-size: .8rem; color: var(--cp-muted); margin-top: .4rem; }
+.db-legend i { display: inline-block; width: .7rem; height: .7rem; border-radius: .2rem; margin-left: .3rem; vertical-align: middle; }
+.db-row { display: flex; justify-content: space-between; align-items: center; gap: .75rem; padding: .55rem .25rem; border-top: 1px solid var(--cp-line); color: inherit; text-decoration: none; }
+.db-row:first-of-type { border-top: 0; }
+.db-row span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.db-row small { color: var(--cp-muted); font-size: .75rem; margin-right: .3rem; }
+.db-row b { white-space: nowrap; }
+
+/* ——— الأدراج والأرصدة (§10) ——— */
+.cl-seg a { padding: .45rem .8rem; border-radius: .7rem; font-size: .85rem; font-weight: 600; color: var(--cp-muted); white-space: nowrap; text-decoration: none; }
+.cl-seg a.on { background: #fff; color: var(--cp-primary-900); box-shadow: 0 1px 3px rgba(15, 23, 42, .12); }
+html.dark .cl-seg a.on { background: #0f172a; color: #fff; }
+.bl-total { display: flex; flex-wrap: wrap; align-items: baseline; gap: .3rem 1rem; margin-bottom: .75rem; }
+.bl-total > span { color: var(--cp-muted); font-weight: 700; }
+.bl-total > b { font-size: 1.7rem; font-weight: 800; }
+.bl-rates { display: inline-flex; align-items: center; gap: .6rem; border: 0; background: none; font: inherit; font-size: .8rem; color: var(--cp-muted); cursor: pointer; flex-basis: 100%; padding: 0; }
+.bl-rates .material-symbols-outlined { font-size: 1rem; }
+.bl-rates-form { display: flex; flex-wrap: wrap; gap: .6rem; align-items: end; margin-bottom: .8rem; }
+.bl-rates-form label { display: flex; flex-direction: column; gap: .2rem; font-size: .8rem; }
+.bl-rates-form input { border: 1px solid #cbd5e1; border-radius: .6rem; padding: .4rem .6rem; width: 8rem; font: inherit; }
+.bl-rates-form small { flex-basis: 100%; color: var(--cp-muted); font-size: .75rem; }
+.bl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: .75rem; margin-bottom: 1rem; }
+.bl-card { position: relative; background: #fff; border: 1px solid var(--cp-line); border-radius: 1rem; padding: .9rem 1rem; }
+html.dark .bl-card { background: #1e293b; }
+.bl-main { display: flex; flex-direction: column; gap: .25rem; color: inherit; text-decoration: none; }
+.bl-name { font-weight: 700; color: var(--cp-muted); font-size: .9rem; }
+.bl-main b { font-size: 1.35rem; font-weight: 800; white-space: nowrap; }
+.bl-main b.bl-empty { color: var(--cl-zero); font-size: 1rem; }
+.bl-curs { display: flex; flex-wrap: wrap; gap: .2rem .7rem; font-size: .8rem; color: var(--cp-muted); }
+.bl-curs i { font-style: normal; white-space: nowrap; }
+.bl-card .cl-more { position: absolute; top: .5rem; left: .5rem; }
+.bl-card .cl-menu { top: 2.4rem; }
+.bl-split { margin-top: .4rem; padding-top: .4rem; border-top: 1px dashed var(--cp-line); font-size: .75rem; color: var(--cp-muted); }
+.bl-row { display: grid; grid-template-columns: 6.5rem 1fr 8rem 8rem; gap: .5rem; padding: .6rem .9rem; border-top: 1px solid var(--cp-line); align-items: center; font-size: .9rem; }
+.bl-row > span:nth-child(n+3) { text-align: right; white-space: nowrap; font-weight: 700; }
+.bl-head { font-size: .75rem; color: var(--cp-muted); border-top: 0; font-weight: 700; }
+.bl-desc small { display: block; color: var(--cp-muted); font-size: .75rem; }
+@media (max-width: 640px) {
+    .bl-row { grid-template-columns: 1fr auto; grid-template-areas: "desc amt" "date after"; }
+    .bl-row .bl-desc { grid-area: desc; } .bl-row .bl-date { grid-area: date; font-size: .75rem; color: var(--cp-muted); }
+    .bl-row > span:nth-child(3) { grid-area: amt; } .bl-row > span:nth-child(4) { grid-area: after; font-size: .8rem; }
+    .bl-head { display: none; }
+    .db-v { font-size: 1.35rem; }
+}

@@ -67,6 +67,9 @@ Route::prefix('cp')->name('cp.')->middleware(['cp.auth', 'cp.check'])->group(fun
 
     Route::get('/balances', [BalanceController::class, 'index'])->name('balances.index');
     Route::post('/balances/opening', [BalanceController::class, 'storeOpening'])->name('balances.opening');
+    Route::post('/balances/settle', [BalanceController::class, 'settle'])->name('balances.settle');
+    Route::post('/balances/rates', [BalanceController::class, 'rates'])->name('balances.rates');
+    Route::get('/balances/{method}', [BalanceController::class, 'show'])->whereNumber('method')->name('balances.show');
 
     Route::get('/balance-memos/transfer', [PartyBalanceMemoController::class, 'transferCreate'])->name('balance-memos.transfer');
     Route::post('/balance-memos/transfer', [PartyBalanceMemoController::class, 'transferStore'])->name('balance-memos.transfer.store');

@@ -535,6 +535,7 @@
     function renderSubs() {
         const S = D.subscriptions || [];
         $('csSubs').hidden = !S.length;
+        if (S.length && location.hash === '#csSubs') setTimeout(() => $('csSubs').scrollIntoView({ block: 'start' }), 50);
         if (!S.length) return;
         const active = S.filter((x) => !x.to || x.to >= D.today).length;
         $('csSubsN').textContent = active + ' فعّال';
