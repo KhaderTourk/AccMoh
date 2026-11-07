@@ -2427,7 +2427,7 @@ html.dark .ad-table, html.dark .ad-stats > div, html.dark .ad-metabal { backgrou
 .ad-tg.on { border-color: #0B2537; background: #0B2537; color: #fff; }
 .ad-tg.on::after { content: '✓'; font-size: .8rem; margin-inline-start: .15rem; }
 html.dark .ad-tg { background: #0f172a; border-color: #334155; color: #94a3b8; }
-html.dark .ad-tg.on { background: #e2e8f0; border-color: #e2e8f0; color: #0B2537; }
+html.dark .ad-tg.on { background: rgba(251,0,91,.16); border-color: #FB005B; color: #fff; }
 #adCamp .cs-hint { color: #94A3B8; font-size: .75rem; }
 #adCamp .cs-hint.ad-bad { color: #FB005B; }
 #adCamp .ad-warn { border: 1px solid #F5D9A8; }
@@ -2442,7 +2442,11 @@ html.dark .ad-tg.on { background: #e2e8f0; border-color: #e2e8f0; color: #0B2537
 html.dark .ad-calc3 { background: #0f172a; border-color: #334155; }
 html.dark .ad-calc3 > div + div { border-color: #334155; }
 html.dark .ad-calc3 > div:last-child { background: rgba(14,138,95,.12); }
-html.dark .ad-calc3 b { color: #e2e8f0; }
+html.dark .ad-calc3 b { color: #f1f5f9; }
+html.dark .ad-calc3 > div:nth-child(2) b { color: #94a3b8; }
+html.dark .ad-calc3 b.credit { color: #34d399; } html.dark .ad-calc3 b.due { color: #ff5c93; }
+html.dark .ad-calc3 span { color: #94a3b8; }
+html.dark #adCamp .cs-hint { color: #7c8aa0; }
 .ad-recl { margin: .4rem 0 .8rem; display: grid; gap: .3rem; }
 .ad-recl div { display: flex; justify-content: space-between; }
 .ad-recl dt { color: #64748b; } .ad-recl dd { margin: 0; font-variant-numeric: tabular-nums; }
