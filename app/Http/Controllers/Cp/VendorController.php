@@ -23,6 +23,7 @@ class VendorController extends Controller
         $currencies = Currency::query()->active()->get();
         $prefix = $type->routePrefix();
 
+        $pages = app(PartyPageService::class);
         $rows = Vendor::query()->ofType($type)->orderBy('name')->get()
             ->map(fn (Vendor $v) => [
                 'id' => $v->id,
@@ -31,7 +32,11 @@ class VendorController extends Controller
                 'phone' => (string) $v->phone,
                 'notes' => (string) $v->notes,
                 'archived' => ! $v->is_active,
-                'balances' => $this->balances($currencies, fn ($id) => $v->outstandingAmount($id)),
+                // موجب = عليه (لصالحنا)، سالب = إله، زي باقي القوائم
+                'balances' => $this->balances($currencies, fn ($id) => \App\Support\Money::neg($v->outstandingAmount($id))),
+                'pinned' => (bool) $v->is_pinned,
+                'pin' => route('cp.pin.toggle', ['kind' => 'vendor', 'id' => $v->id]),
+                ...\App\Support\PartyActivity::fromMovements($pages->movements($v), true),
                 'fields' => [
                     'detail' => (string) ($type === VendorType::Worker ? $v->job_title : $v->work_description),
                     'salary_amount' => $v->salary_amount ? (float) $v->salary_amount : null,
@@ -219,8 +224,7 @@ class VendorController extends Controller
             'kind' => $worker ? 'worker' : 'supplier',
             'noun' => $worker ? 'موظف' : 'مورد',
             'plural' => $worker ? 'الموظفين' : 'الموردين',
-            'pos' => 'إله', 'neg' => 'مقدّماً',
-            'posTab' => 'إلهم', 'negTab' => 'مقدّماً',
+            'pos' => 'إله', 'neg' => 'عليه',
             'g1' => $worker ? 'مستحقات' : 'خدمات', 'g2' => 'دفعات',
             'detail' => $worker ? 'المسمّى الوظيفي' : 'شو بيورّد',
             'legal' => true,

@@ -6,7 +6,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="theme-color" content="#FB005B">
     <link rel="manifest" href="{{ asset('manifest.webmanifest') }}">
-    <title>@yield('title', 'لوحة التحكم') — حسابات براند</title>
+    <title>@yield('title', 'الرئيسية') — حسابات براند</title>
     <script>
         // الثيم يُطبق قبل الرسم حتى لا يظهر وميض أبيض في الوضع الليلي
         (function () {
@@ -71,7 +71,7 @@
                         <li>
                             <a href="{{ route('cp.dashboard') }}" class="cp-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary dark:hover:text-primary transition-colors {{ request()->routeIs('cp.dashboard') ? 'bg-primary/10 text-primary dark:bg-primary/20' : '' }}">
                                 <span class="material-symbols-outlined text-xl">dashboard</span>
-                                <span>لوحة التحكم</span>
+                                <span>الرئيسية</span>
                             </a>
                         </li>
                         <li>
@@ -113,8 +113,6 @@
                                 <span class="material-symbols-outlined cp-chevron">expand_more</span>
                             </button>
                             <ul class="cp-section-content space-y-0.5">
-                                <li><a href="{{ route('cp.payments.incoming') }}" class="cp-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary transition-colors {{ request()->routeIs('cp.payments.incoming') || (request()->routeIs('cp.payments.create') && request()->route('direction') === 'incoming') ? 'bg-primary/10 text-primary dark:bg-primary/20' : '' }}"><span class="material-symbols-outlined text-xl">south_west</span><span>دفعات واردة</span></a></li>
-                                <li><a href="{{ route('cp.payments.outgoing') }}" class="cp-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary transition-colors {{ request()->routeIs('cp.payments.outgoing') || (request()->routeIs('cp.payments.create') && request()->route('direction') === 'outgoing') ? 'bg-primary/10 text-primary dark:bg-primary/20' : '' }}"><span class="material-symbols-outlined text-xl">north_east</span><span>دفعات صادرة</span></a></li>
                                 <li><a href="{{ route('cp.transfers.index') }}" class="cp-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary transition-colors {{ request()->routeIs('cp.transfers.*') ? 'bg-primary/10 text-primary dark:bg-primary/20' : '' }}"><span class="material-symbols-outlined text-xl">swap_horiz</span><span>التحويلات</span></a></li>
                                 <li><a href="{{ route('cp.ledger.index') }}" class="cp-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary transition-colors {{ request()->routeIs('cp.ledger.*') ? 'bg-primary/10 text-primary dark:bg-primary/20' : '' }}"><span class="material-symbols-outlined text-xl">menu_book</span><span>سجل الحركات</span></a></li>
                                 <li><a href="{{ route('cp.reports.index') }}" class="cp-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary transition-colors {{ request()->routeIs('cp.reports.*') ? 'bg-primary/10 text-primary dark:bg-primary/20' : '' }}"><span class="material-symbols-outlined text-xl">analytics</span><span>التقارير</span></a></li>
@@ -164,7 +162,7 @@
                     <button type="button" id="cp-sidebar-open" class="cp-icon-btn lg:hidden p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700" aria-label="فتح القائمة">
                         <span class="material-symbols-outlined text-2xl">menu</span>
                     </button>
-                    <h1 class="text-lg font-bold text-slate-800 dark:text-white truncate">@yield('title', 'لوحة التحكم')</h1>
+                    <h1 class="text-lg font-bold text-slate-800 dark:text-white truncate">@yield('title', 'الرئيسية')</h1>
                 </div>
                 <div class="flex items-center gap-2">
                     <button type="button" class="cp-search-trigger" data-cp-palette title="بحث سريع (Ctrl+K)" aria-label="بحث سريع">
@@ -250,12 +248,10 @@
         }
         $cpMore = [];
         if (tenantBusinessEnabled()) {
-            $cpMore[] = ['url' => route('cp.dashboard'), 'icon' => 'home', 'label' => 'لوحة التحكم'];
+            $cpMore[] = ['url' => route('cp.dashboard'), 'icon' => 'home', 'label' => 'الرئيسية'];
         }
         if (cpCan('finance')) {
             $cpMore[] = ['url' => route('cp.balances.index'), 'icon' => 'account_balance_wallet', 'label' => 'الأدراج والأرصدة'];
-            $cpMore[] = ['url' => route('cp.payments.incoming'), 'icon' => 'south_west', 'label' => 'دفعات واردة'];
-            $cpMore[] = ['url' => route('cp.payments.outgoing'), 'icon' => 'north_east', 'label' => 'دفعات صادرة'];
             $cpMore[] = ['url' => route('cp.transfers.index'), 'icon' => 'swap_horiz', 'label' => 'التحويلات'];
             $cpMore[] = ['url' => route('cp.reports.index'), 'icon' => 'analytics', 'label' => 'التقارير'];
             if (tenantBusinessEnabled()) {

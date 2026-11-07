@@ -18,7 +18,8 @@ class PersonController extends Controller
     public function index(Request $request)
     {
         $currencies = Currency::query()->active()->get();
-        $rows = Person::query()->orderBy('name')->get()->map(function (Person $p) use ($currencies) {
+        $pages = app(\App\Services\Finance\PartyPageService::class);
+        $rows = Person::query()->orderBy('name')->get()->map(function (Person $p) use ($currencies, $pages) {
             $balances = [];
             foreach ($currencies as $currency) {
                 $v = $p->netAmount($currency->id);
@@ -35,6 +36,9 @@ class PersonController extends Controller
                 'notes' => (string) $p->notes,
                 'archived' => ! $p->is_active,
                 'balances' => $balances,
+                'pinned' => (bool) $p->is_pinned,
+                'pin' => route('cp.pin.toggle', ['kind' => 'person', 'id' => $p->id]),
+                ...\App\Support\PartyActivity::fromMovements($pages->movements($p)),
                 'fields' => ['detail' => (string) $p->relationship],
                 'show' => route('cp.persons.show', $p),
                 'pdf' => route('cp.persons.export-pdf', $p),
@@ -148,8 +152,7 @@ class PersonController extends Controller
             'kind' => 'person',
             'noun' => 'شخص',
             'plural' => 'الأشخاص',
-            'pos' => 'بدي منه', 'neg' => 'إله عندي',
-            'posTab' => 'بدي منهم', 'negTab' => 'إلهم عندي',
+            'pos' => 'عليه', 'neg' => 'إله',
             'g1' => 'أعطيته', 'g2' => 'أخدت منه',
             'detail' => 'الصلة',
             'legal' => false,

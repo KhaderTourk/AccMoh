@@ -26,6 +26,7 @@ class Vendor extends Model
         return [
             'type' => VendorType::class,
             'is_active' => 'boolean',
+            'is_pinned' => 'boolean',
             'salary_amount' => 'decimal:2',
             'salary_from' => 'date',
             'salary_to' => 'date',

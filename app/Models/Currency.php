@@ -33,8 +33,7 @@ class Currency extends Model
     {
         $value = number_format((float) $amount, $this->decimal_places, '.', ',');
 
-        return $this->code === 'USD'
-            ? $this->symbol.$value
-            : $value.' '.$this->symbol;
+        // صيغة موحّدة بكل النظام: الرقم وبعده العملة، مثلاً 742.50 ₪ و120.00 $
+        return $value.' '.$this->symbol;
     }
 }
