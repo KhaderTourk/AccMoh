@@ -19,14 +19,14 @@
         </label>
         <div class="cl-seg" role="tablist" aria-label="عرض">
             <button type="button" class="on" data-f="all" role="tab">الكل</button>
-            <button type="button" data-f="due" role="tab">{{ $party['posTab'] }}</button>
-            <button type="button" data-f="credit" role="tab">{{ $party['negTab'] }}</button>
+            <button type="button" data-f="due" role="tab">عليه رصيد</button>
+            <button type="button" data-f="credit" role="tab">إله رصيد</button>
             <button type="button" data-f="arch" role="tab">مؤرشف</button>
         </div>
+        <div id="clSort"></div>
     </div>
 
-    <div class="cl-summary"><b id="clCount">0</b> {{ $party['noun'] }} · {{ $party['posTab'] }} <b id="clTotal">0</b></div>
-    <div class="cl-legend"><span><i class="due"></i>{{ $party['pos'] }}</span><span><i class="credit"></i>{{ $party['neg'] }}</span><span><i class="zero"></i>مسدّد</span></div>
+    <div class="cl-summary" id="clSummary"></div>
 
     <div class="cl-list" id="clList"></div>
 </div>
@@ -81,7 +81,8 @@
 
 <form method="post" id="clArchForm" hidden>@csrf<input type="hidden" name="_method" id="clArchMethod" value="DELETE"></form>
 
-<script type="application/json" id="clData">{!! json_encode(['rows' => $rows, 'flash' => $flash, 'storeUrl' => $storeUrl, 'party' => $party], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) !!}</script>
+<script type="application/json" id="clData">{!! json_encode(['rows' => $rows, 'flash' => $flash, 'storeUrl' => $storeUrl, 'party' => $party, 'today' => now()->toDateString(), 'symbols' => \App\Models\Currency::query()->pluck('symbol', 'code')], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) !!}</script>
+<script src="{{ asset('assets/js/cp-list.js') }}?v={{ @filemtime(public_path('assets/js/cp-list.js')) }}"></script>
 <script>
 (function () {
     const D = JSON.parse(document.getElementById('clData').textContent);
@@ -93,13 +94,14 @@
     const fmt = (n) => Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const dayLabel = (d) => { if (!d) return ''; const [y, m, dd] = d.split('-').map(Number); return dd + '/' + m + '/' + y; };
     let filter = 'all', editing = null;
+    const sorter = cpList.sortMenu($('clSort'), P.kind, () => render());
 
     const due = (c) => c.balances.some((b) => b.amount > 0);
     const credit = (c) => c.balances.some((b) => b.amount < 0);
     function amountHtml(c) {
         if (!c.balances.length) return '<div class="cl-amt zero">مسدّد</div>';
         return '<div class="cl-amt-wrap">' + c.balances.map((b) =>
-            `<div class="cl-amt ${b.amount > 0 ? 'due' : 'credit'}" title="${b.amount > 0 ? P.pos : P.neg}">${esc(b.label)}</div>`).join('') + '</div>';
+            `<div class="cl-amt ${b.amount > 0 ? 'due' : 'credit'}">${esc(b.label)}</div>`).join('') + '</div>';
     }
     function render() {
         const q = norm($('clQ').value);
@@ -107,25 +109,23 @@
         if (filter === 'due') list = list.filter(due);
         if (filter === 'credit') list = list.filter(credit);
         if (q) list = list.filter((c) => norm([c.name, c.sub, c.phone, c.notes].join(' ')).includes(q));
+        list = cpList.sort(list, sorter.get(), (c) => c.name, D.today);
         $('clList').innerHTML = list.length ? list.map((c) => `
             <div class="cl-row${c.id === D.flash ? ' is-new' : ''}" tabindex="0" data-id="${c.id}">
                 <div class="cl-av">${esc((c.name.trim()[0]) || '؟')}</div>
-                <div class="cl-who"><b>${esc(c.name)}</b><span>${esc(c.sub)}</span></div>
+                <div class="cl-who"><b>${c.pinned ? '<span class="cl-star">★</span> ' : ''}${esc(c.name)}</b><span>${esc(c.sub)}</span>${cpList.ageLine(c, D.today)}</div>
                 ${amountHtml(c)}
                 <button type="button" class="cl-more" aria-label="خيارات ${esc(c.name)}">⋯</button>
                 <div class="cl-menu" hidden>
                     <a href="${esc(c.pdf)}" target="_blank" rel="noopener">تصدير كشف حساب</a>
                     <button type="button" data-act="edit">تعديل</button>
+                    <button type="button" data-act="pin">${c.pinned ? 'إلغاء التثبيت' : '★ تثبيت'}</button>
                     <hr>
                     ${c.archived ? '<button type="button" data-act="restore">استرجاع من الأرشيف</button>' : '<button type="button" class="danger" data-act="archive">أرشفة</button>'}
                 </div>
             </div>`).join('')
             : `<p class="cl-empty">${filter === 'arch' ? 'ما في حدا مؤرشف.' : (q ? 'ما في حدا بهالاسم.' : 'ما في حدا هون.')}</p>`;
-        $('clCount').textContent = list.length;
-        const totals = {};
-        list.forEach((c) => c.balances.forEach((b) => { if (b.amount > 0) totals[b.label.replace(/[\d.,\s]/g, '')] = (totals[b.label.replace(/[\d.,\s]/g, '')] || 0) + b.amount; }));
-        const parts = Object.entries(totals).map(([s, v]) => fmt(v) + ' ' + s);
-        $('clTotal').textContent = parts.length ? parts.join(' · ') : '0.00';
+        $('clSummary').innerHTML = cpList.summary(list, P.noun, D.symbols);
         if (D.flash) { const el = document.querySelector('.cl-row.is-new'); if (el) el.scrollIntoView({ block: 'center' }); D.flash = 0; }
     }
     function closeMenus() { document.querySelectorAll('.cl-menu').forEach((m) => { m.hidden = true; }); }
@@ -145,7 +145,8 @@
     function action(act, c) {
         if (act === 'edit') return openSheet(c);
         if (act === 'restore') return submitArch(c.restore, 'POST');
-        const bal = c.balances.length ? ' رصيده مش صفر (' + c.balances.map((b) => (b.amount > 0 ? P.pos + ' ' : P.neg + ' ') + b.label).join('، ') + ')، وبيضل محفوظ مع حركاته.' : '';
+        if (act === 'pin') return cpList.pin(c).then(render).catch(() => window.alert('ما زبط التثبيت، جرّب كمان مرة.'));
+        const bal = c.balances.length ? ' رصيده مش صفر (' + c.balances.map((b) => (b.amount > 0 ? 'عليه ' : 'إله ') + b.label).join('، ') + ')، وبيضل محفوظ مع حركاته.' : '';
         const msg = 'أرشفة «' + c.name + '»؟' + bal + ' بتلاقيه بتاب «مؤرشف» وبتقدر ترجّعه.';
         const ask = window.cpConfirm ? window.cpConfirm(msg) : Promise.resolve(window.confirm(msg));
         ask.then((ok) => { if (ok) submitArch(c.archive, 'DELETE'); });

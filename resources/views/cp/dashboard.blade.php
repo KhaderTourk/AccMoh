@@ -1,6 +1,6 @@
 @extends('cp.layout')
 
-@section('title', 'لوحة التحكم المالية')
+@section('title', 'الرئيسية')
 
 @section('content')
 <div class="space-y-6">

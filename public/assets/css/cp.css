@@ -1977,7 +1977,7 @@ html.dark .cp-main nav[role="navigation"] span[aria-disabled] span {
 .cp-brand-mark.cp-brand-logo::after { display: none; }
 
 /* ——— قائمة الزبائن (واجهات براند، الدفعة 1) ——— */
-:root { --cl-due: #FB005B; --cl-credit: #0f9d58; --cl-zero: #94a3b8; }
+:root { --cl-due: #FB005B; --cl-credit: #0E8A5F; --cl-zero: #94a3b8; }
 .cl-page { max-width: 960px; margin: 0 auto; }
 .cl-top { display: flex; align-items: center; gap: .5rem; margin-bottom: 1rem; }
 .cl-h { font-size: 1.4rem; font-weight: 800; color: var(--cp-primary-900); margin: 0; }
@@ -2268,3 +2268,22 @@ html.dark .sub-days { color: #fbbf24; }
 .st-name .cs-sub-run { display: block; margin-top: .15rem; font-size: .78rem; color: #b45309; }
 html.dark .st-name .cs-sub-run { color: #fbbf24; }
 html.dark .cs-sub-due { color: #ff8fb4; }
+
+/* ——— قوائم الأطراف: الترتيب والتثبيت وسطر آخر دفعة (تسليم 1/11 §3 و§5) ——— */
+.cl-summary b.due { color: var(--cl-due); } .cl-summary b.credit { color: var(--cl-credit); }
+.cl-sort { position: relative; }
+.cl-sort-btn { display: inline-flex; align-items: center; gap: .3rem; height: 2.5rem; padding: 0 .8rem; border-radius: .8rem; border: 1px solid var(--cp-line); background: #fff; font: inherit; font-size: .85rem; font-weight: 600; color: inherit; cursor: pointer; white-space: nowrap; }
+html.dark .cl-sort-btn { background: #1e293b; }
+.cl-sort-btn .material-symbols-outlined { font-size: 1.15rem; }
+.cl-sort-menu { top: calc(100% + .3rem); right: auto; left: 0; }
+.cl-sort-menu button.on { color: var(--cp-primary); font-weight: 700; }
+.cl-who .cl-age { font-size: .75rem; color: var(--cp-muted); }
+.cl-who .cl-age.late { color: var(--cl-due); font-weight: 600; }
+.cl-star { color: #f5a524; }
+
+/* ——— فلتر الفترة الموحّد (§13) ——— */
+.cs-range-btn.on { border-color: var(--cp-primary); color: var(--cp-primary); background: rgba(251, 0, 91, .06); }
+.cs-custom .cs-pf-row { display: flex; flex-direction: column; align-items: stretch; gap: .25rem; }
+.cs-custom .cs-pf-row .cs-date-in input { min-width: 0; height: 2.4rem; }
+.cs-custom .cs-pf-row .cs-cal { width: 2.4rem; }
+.cs-custom #csApply:disabled { opacity: .5; cursor: not-allowed; }

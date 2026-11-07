@@ -24,7 +24,7 @@ class Person extends Model
 
     protected function casts(): array
     {
-        return ['is_active' => 'boolean'];
+        return ['is_active' => 'boolean', 'is_pinned' => 'boolean'];
     }
 
     public function getMorphClass()

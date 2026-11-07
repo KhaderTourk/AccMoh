@@ -81,18 +81,7 @@
             <button type="button" data-t="g2">{{ $party['g2'] }}</button>
             <button type="button" data-t="other">أخرى</button>
         </div>
-        <div class="cs-range">
-            <button type="button" class="cs-range-btn" id="csRangeBtn"><span class="material-symbols-outlined">calendar_month</span><span id="csRangeTxt">كل الوقت</span></button>
-            <div class="cl-menu cs-range-menu" id="csRangeMenu" hidden>
-                <div id="csPresets"></div>
-                <hr>
-                <div class="cs-custom">
-                    <label>من <input type="date" id="csFrom"></label>
-                    <label>لغاية <input type="date" id="csTo"></label>
-                    <button type="button" class="cp-btn cp-btn-primary" id="csApply">تطبيق</button>
-                </div>
-            </div>
-        </div>
+        @include('cp.partials.period-filter')
         <a class="cp-btn cs-pdf" id="csPdf" href="#" target="_blank" rel="noopener" hidden><span class="material-symbols-outlined">picture_as_pdf</span> تصدير الكشف PDF</a>
     </div>
     <div class="cs-chips" id="csChips"></div>
@@ -140,6 +129,8 @@
     const dayLabel = (d) => { if (!d) return ''; const [y, m, dd] = d.split('-').map(Number); return dd + '/' + m + '/' + y; };
     const iso = (dt) => dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
     const MOTION = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    /* اللون من جهة الطرف: «عليه» وردي و«إله» أخضر. عند الموظف والمورد الموجب = إله */
+    const tone = (v) => Math.abs(v) < 0.005 ? 'zero' : ((PERSON ? v : -v) > 0 ? 'due' : 'credit');
     const word = (v) => Math.abs(v) < 0.005 ? 'مسدّد' : (v > 0 ? P.pos : P.neg);
 
     let view = 'list', cType = 'all', sub = new Set(), range = null, preset = 'all';
@@ -150,8 +141,8 @@
         if (!codes.length) codes.push('ILS');
         $('csBalance').innerHTML = codes.map((code) => {
             const v = balanceBy(code);
-            const cls = Math.abs(v) < 0.005 ? 'zero' : (v > 0 ? 'due' : 'credit');
-            return `<div class="cs-bal ${cls}"><span>${word(v)}</span><b>${cls === 'zero' ? '0.00' : num(v)} ${esc(sym(code))}</b></div>`;
+            const cls = tone(v);
+            return `<div class="cs-bal ${cls}"><span>${cls === 'zero' ? 'مسدّد' : ''}</span><b>${cls === 'zero' ? '0.00' : num(v)} ${esc(sym(code))}</b></div>`;
         }).join('');
     }
 
@@ -170,7 +161,7 @@
         ];
     }
     function renderPresets() { $('csPresets').innerHTML = presets().map((p) => `<button type="button" data-p="${p[0]}" class="${preset === p[0] ? 'on' : ''}">${p[1]}</button>`).join(''); }
-    function rangeText() { return range ? `${range.label} · ${dayLabel(range.from)} – ${dayLabel(range.to)}` : 'كل الوقت'; }
+    function rangeText() { return range ? (preset === 'custom' ? `${dayLabel(range.from)} – ${dayLabel(range.to)}` : range.label) : 'كل الوقت'; }
     $('csRangeBtn').addEventListener('click', (e) => { e.stopPropagation(); const menu = $('csRangeMenu'); const open = menu.hidden; closeMenus(); menu.hidden = !open; renderPresets(); });
     $('csPresets').addEventListener('click', (e) => {
         const b = e.target.closest('[data-p]'); if (!b) return;
@@ -179,7 +170,7 @@
         closeMenus(); render();
     });
     $('csApply').addEventListener('click', () => {
-        let f = $('csFrom').value, t = $('csTo').value;
+        let f = cpPeriod.iso($('csFrom')), t = cpPeriod.iso($('csTo'));
         if (!f && !t) return;
         if (!f) f = '1900-01-01';
         if (!t) t = D.today;
@@ -222,16 +213,17 @@
         return { list, before };
     }
     function amountCell(m) {
-        const cls = m.delta > 0 ? 'due' : (m.delta < 0 ? 'credit' : 'zero');
+        const cls = tone(m.delta);
         return `<span class="cl-amt ${cls}">${m.delta < 0 ? '−' : ''}${num(m.amount)} ${esc(m.symbol)}</span>`;
     }
     function balCell(v, code) {
-        const cls = Math.abs(v) < 0.005 ? 'zero' : (v > 0 ? 'due' : 'credit');
+        const cls = tone(v);
         return `<span class="cs-run ${cls}">${cls === 'zero' ? 'مسدّد' : num(v) + ' ' + esc(sym(code))}</span>`;
     }
     function render() {
         renderChips();
         $('csRangeTxt').textContent = rangeText();
+        $('csRangeBtn').classList.toggle('on', !!range);
         const { list, before } = rows();
         const filtered = cType !== 'all' || sub.size;
         const pdf = $('csPdf');
@@ -245,8 +237,8 @@
         const tOut = list.filter((m) => m.delta < 0).reduce((a, m) => a - m.delta, 0);
         const beforeCodes = Object.keys(before).filter((c) => Math.abs(before[c]) >= 0.005);
         $('csSum').innerHTML = `<span>${list.length} حركة</span>`
-            + (tIn ? ` · <span>${esc(P.pos)} <b class="due">${num(tIn)}</b></span>` : '')
-            + (tOut ? ` · <span>نزل <b class="credit">${num(tOut)}</b></span>` : '')
+            + (tIn ? ` · <span>${esc(P.pos)} <b class="${tone(1)}">${num(tIn)}</b></span>` : '')
+            + (tOut ? ` · <span>نزل <b class="${tone(-1)}">${num(tOut)}</b></span>` : '')
             + (beforeCodes.length ? ` · <span>رصيد سابق ${beforeCodes.map((c) => num(before[c]) + ' ' + esc(sym(c))).join('، ')}</span>` : '');
 
         if (view === 'list') {
@@ -500,7 +492,7 @@
         preset = kept.preset || preset; range = kept.range || null;
         document.querySelectorAll('.cs-tabs button').forEach((x) => x.classList.toggle('on', x.dataset.view === view));
         $('csType').querySelectorAll('button').forEach((x) => x.classList.toggle('on', x.dataset.t === cType));
-        if (range && preset === 'custom') { $('csFrom').value = range.from; $('csTo').value = range.to; }
+        if (range && preset === 'custom') { $('csFrom').value = dayLabel(range.from); $('csTo').value = dayLabel(range.to); }
     }
     if (window.cpKeep) cpKeep.track(() => ({ view, cType, sub: [...sub], preset, range }));
     renderBalance();

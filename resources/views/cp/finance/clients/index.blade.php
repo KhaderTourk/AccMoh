@@ -17,14 +17,14 @@
         </label>
         <div class="cl-seg" role="tablist" aria-label="عرض">
             <button type="button" class="on" data-f="all" role="tab">الكل</button>
-            <button type="button" data-f="due" role="tab">عليهم رصيد</button>
-            <button type="button" data-f="credit" role="tab">إلهم رصيد</button>
+            <button type="button" data-f="due" role="tab">عليه رصيد</button>
+            <button type="button" data-f="credit" role="tab">إله رصيد</button>
             <button type="button" data-f="arch" role="tab">مؤرشف</button>
         </div>
+        <div id="clSort"></div>
     </div>
 
-    <div class="cl-summary"><b id="clCount">0</b> <span id="clCountWord">زبون</span> · المستحق عليهم <b id="clTotal">0</b></div>
-    <div class="cl-legend"><span><i class="due"></i>عليه للشركة</span><span><i class="credit"></i>إله رصيد عندنا</span><span><i class="zero"></i>مسدّد</span></div>
+    <div class="cl-summary" id="clSummary"></div>
 
     <div class="cl-list" id="clList"></div>
 </div>
@@ -64,7 +64,8 @@
 {{-- نموذج الأرشفة والاسترجاع --}}
 <form method="post" id="clArchForm" hidden>@csrf<input type="hidden" name="_method" id="clArchMethod" value="DELETE"></form>
 
-<script type="application/json" id="clData">{!! json_encode(['clients' => $clients, 'flash' => $flash, 'storeUrl' => route('cp.clients.store')], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) !!}</script>
+<script type="application/json" id="clData">{!! json_encode(['clients' => $clients, 'flash' => $flash, 'storeUrl' => route('cp.clients.store'), 'today' => now()->toDateString()], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) !!}</script>
+<script src="{{ asset('assets/js/cp-list.js') }}?v={{ @filemtime(public_path('assets/js/cp-list.js')) }}"></script>
 <script>
 (function () {
     const D = JSON.parse(document.getElementById('clData').textContent);
@@ -75,6 +76,7 @@
     const fmt = (n) => Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     let filter = 'all';
     let editing = null;
+    const sorter = cpList.sortMenu($('clSort'), 'client', () => render());
 
     const due = (c) => c.balances.some((b) => b.amount > 0);
     const credit = (c) => c.balances.some((b) => b.amount < 0);
@@ -83,7 +85,7 @@
     function amountHtml(c) {
         if (!c.balances.length) return '<div class="cl-amt zero">مسدّد</div>';
         return '<div class="cl-amt-wrap">' + c.balances.map((b) =>
-            `<div class="cl-amt ${b.amount > 0 ? 'due' : 'credit'}" title="${b.amount > 0 ? 'عليه' : 'إله'}">${esc(b.label)}</div>`
+            `<div class="cl-amt ${b.amount > 0 ? 'due' : 'credit'}">${esc(b.label)}</div>`
         ).join('') + '</div>';
     }
 
@@ -93,27 +95,25 @@
         if (filter === 'due') rows = rows.filter(due);
         if (filter === 'credit') rows = rows.filter(credit);
         if (q) rows = rows.filter((c) => norm([c.org, c.name, c.phone, c.notes].join(' ')).includes(q));
+        rows = cpList.sort(rows, sorter.get(), title, D.today);
 
         $('clList').innerHTML = rows.length ? rows.map((c) => `
             <div class="cl-row${c.id === D.flash ? ' is-new' : ''}" tabindex="0" data-id="${c.id}">
                 <div class="cl-av">${esc((title(c).trim()[0]) || '؟')}</div>
-                <div class="cl-who"><b>${esc(title(c))}</b><span>${esc(c.org ? c.name : '')}</span></div>
+                <div class="cl-who"><b>${c.pinned ? '<span class="cl-star">★</span> ' : ''}${esc(title(c))}</b><span>${esc(c.org ? c.name : '')}</span>${cpList.ageLine(c, D.today)}</div>
                 ${amountHtml(c)}
                 <button type="button" class="cl-more" aria-label="خيارات ${esc(title(c))}">⋯</button>
                 <div class="cl-menu" hidden>
                     <a href="${esc(c.pdf)}" target="_blank" rel="noopener">تصدير كشف حساب</a>
                     <button type="button" data-act="edit">تعديل</button>
+                    <button type="button" data-act="pin">${c.pinned ? 'إلغاء التثبيت' : '★ تثبيت'}</button>
                     <hr>
                     ${c.archived ? '<button type="button" data-act="restore">استرجاع من الأرشيف</button>' : '<button type="button" class="danger" data-act="archive">أرشفة</button>'}
                 </div>
             </div>`).join('')
             : `<p class="cl-empty">${filter === 'arch' ? 'ما في زبائن مؤرشفين.' : (q ? 'ما في زبون بهالاسم.' : 'ما في زبائن هون.')}</p>`;
 
-        $('clCount').textContent = rows.length;
-        const totals = {};
-        rows.forEach((c) => c.balances.forEach((b) => { if (b.amount > 0) totals[b.code] = (totals[b.code] || 0) + b.amount; }));
-        const parts = Object.entries(totals).map(([code, v]) => fmt(v) + ' ' + ((D.symbols || {})[code] || code));
-        $('clTotal').textContent = parts.length ? parts.join(' · ') : '0.00';
+        $('clSummary').innerHTML = cpList.summary(rows, 'زبون', D.symbols);
 
         if (D.flash) {
             const el = document.querySelector('.cl-row.is-new');
@@ -159,6 +159,7 @@
     function action(act, c) {
         if (act === 'edit') return openSheet(c);
         if (act === 'restore') return submitArch(c.restore, 'POST');
+        if (act === 'pin') return cpList.pin(c).then(render).catch(() => window.alert('ما زبط التثبيت، جرّب كمان مرة.'));
         if (act === 'archive') {
             const bal = c.balances.length ? ' رصيده مش صفر (' + c.balances.map((b) => (b.amount > 0 ? 'عليه ' : 'إله ') + b.label).join('، ') + ')، وبيضل محفوظ مع كل حركاته.' : '';
             const msg = 'أرشفة «' + title(c) + '»؟' + bal + ' بتلاقيه بتاب «مؤرشف» وبتقدر ترجّعه.';
