@@ -24,7 +24,7 @@ class AuthController extends Controller
             'password' => ['required'],
         ]);
 
-        if (! Auth::attempt($credentials, $request->boolean('remember'))) {
+        if (! Auth::attempt($credentials, true)) {
             return back()->withErrors(['email' => 'بيانات الدخول غير صحيحة.'])->onlyInput('email');
         }
 
