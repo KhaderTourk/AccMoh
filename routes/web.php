@@ -127,6 +127,14 @@ Route::prefix('cp')->name('cp.')->middleware(['cp.auth', 'cp.check'])->group(fun
         Route::post('/subscriptions/{subscription}/stop', [ClientSubscriptionController::class, 'stop'])->name('subscriptions.stop');
         Route::delete('/subscriptions/{subscription}', [ClientSubscriptionController::class, 'destroy'])->name('subscriptions.destroy');
 
+        Route::get('/ads', [\App\Http\Controllers\Cp\AdsController::class, 'index'])->name('ads.index');
+        Route::post('/ads/campaigns', [\App\Http\Controllers\Cp\AdsController::class, 'storeCampaign'])->name('ads.campaigns.store');
+        Route::put('/ads/campaigns/{campaign}', [\App\Http\Controllers\Cp\AdsController::class, 'updateCampaign'])->name('ads.campaigns.update');
+        Route::delete('/ads/campaigns/{campaign}', [\App\Http\Controllers\Cp\AdsController::class, 'destroyCampaign'])->name('ads.campaigns.destroy');
+        Route::post('/ads/invoices', [\App\Http\Controllers\Cp\AdsController::class, 'storeInvoice'])->name('ads.invoices.store');
+        Route::post('/ads/months/{period}/approve', [\App\Http\Controllers\Cp\AdsController::class, 'approve'])->name('ads.approve');
+        Route::post('/ads/limit', [\App\Http\Controllers\Cp\AdsController::class, 'limit'])->name('ads.limit');
+
         Route::resource('vendor-charges', VendorChargeController::class)->except(['index', 'show']);
 
         foreach (['workers', 'suppliers'] as $prefix) {
