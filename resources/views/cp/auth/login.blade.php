@@ -83,10 +83,6 @@
                         </button>
                     </div>
                 </div>
-                <label class="auth-remember">
-                    <input type="checkbox" name="remember" id="remember" value="1">
-                    <span>تذكرني</span>
-                </label>
                 <button type="submit" class="auth-submit">
                     <span class="material-symbols-outlined">login</span>
                     <span>تسجيل الدخول</span>

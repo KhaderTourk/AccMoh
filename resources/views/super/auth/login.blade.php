@@ -51,7 +51,6 @@
                     </button>
                 </div>
             </div>
-            <label class="auth-remember"><input type="checkbox" name="remember" value="1"> <span>تذكرني</span></label>
             <button class="auth-submit"><span class="material-symbols-outlined">login</span><span>دخول</span></button>
         </form>
         <p class="auth-foot">حسابات براند · لوحة المنصة</p>
