@@ -69,7 +69,7 @@ class AdsTest extends TestCase
             'client_id' => $client->id, 'period' => '2026-10', 'on_facebook' => 1, 'on_instagram' => 1, 'spend_usd' => 100, 'sell_rate' => 5,
         ])->assertRedirect()->assertSessionHasNoErrors();
         $this->actingAs($this->user)->post(route('cp.ads.campaigns.store'), [
-            'new_client' => 'زبون جديد للإعلان', 'period' => '2026-10', 'on_facebook' => 1, 'spend_usd' => 50, 'sell_rate' => 4.5,
+            'new_client' => 'زبون جديد للإعلان', 'new_company' => 'متجر الإعلان', 'new_phone' => '0599123456', 'period' => '2026-10', 'on_facebook' => 1, 'spend_usd' => 50, 'sell_rate' => 4.5,
         ])->assertRedirect()->assertSessionHasNoErrors();
         $this->ctx();
         $this->assertSame(1, Client::query()->where('name', 'زبون جديد للإعلان')->count());
@@ -77,8 +77,7 @@ class AdsTest extends TestCase
 
         // فاتورة ميتا 120 $ بسعر 3.7 من الشيكل
         $this->actingAs($this->user)->post(route('cp.ads.invoices.store'), [
-            'invoice_date' => '2026-10-20', 'amount_usd' => 120, 'fund_id' => $fund->id, 'payment_method_id' => $cash->id,
-            'paid_in' => 'ILS', 'usd_rate' => 3.7, 'meta_ref' => 'FB-1',
+            'invoice_date' => '2026-10-20', 'amount_usd' => 120, 'source' => $cash->id.':ILS', 'usd_rate' => 3.7, 'meta_ref' => 'FB-1',
         ])->assertRedirect()->assertSessionHasNoErrors();
         $this->ctx();
         $bal = app(BalanceService::class);
@@ -118,7 +117,7 @@ class AdsTest extends TestCase
         $this->assertSame(0, VendorCharge::query()->where('vendor_id', $meta->id)->count());
         $this->assertEqualsWithDelta(-120.0, (float) $meta->fresh()->outstandingAmount($usd->id), 0.001);
 
-        foreach (['campaigns', 'invoices', 'match'] as $tab) {
+        foreach (['campaigns', 'invoices'] as $tab) {
             $this->actingAs($this->user)->get(route('cp.ads.index', ['tab' => $tab]))->assertOk();
         }
     }

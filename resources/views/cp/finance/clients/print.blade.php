@@ -73,8 +73,8 @@
     <tr>
         @if($multiCurrency)<th>العملة</th>@endif
         @unless($filtered)<th>رصيد سابق</th>@endunless
-        <th>مدين (عليه)</th>
-        <th>دائن (له)</th>
+        <th>عليه</th>
+        <th>له</th>
         <th>{{ $filtered ? 'المجموع' : 'الرصيد' }}</th>
     </tr>
     @foreach($byCurrency as $cid => $items)
@@ -94,7 +94,7 @@
             @unless($filtered)<td>{{ $cur->format($open) }}</td>@endunless
             <td class="dr">{{ $cur->format($dr) }}</td>
             <td class="cr">{{ $cur->format($crd) }}</td>
-            <td>{{ $cur->format(Money::abs($end)) }}{{ Money::isNegative($end) ? ' (له)' : '' }}</td>
+            <td class="{{ Money::isNegative($end) ? 'cr' : (Money::isZero($end) ? '' : 'dr') }}">{{ $cur->format(Money::abs($end)) }}{{ Money::isNegative($end) ? ' (له)' : '' }}</td>
         </tr>
     @endforeach
 </table>
@@ -111,12 +111,12 @@
     <table class="st">
         <thead>
             <tr>
-                <th>م</th>
-                <th style="width:58px;">التاريخ</th>
+                <th class="w-n">م</th>
+                <th class="w-d">التاريخ</th>
                 <th>البيان</th>
-                <th style="width:72px;">مدين<span>عليه</span></th>
-                <th style="width:72px;">دائن<span>له</span></th>
-                <th style="width:80px;">{{ $filtered ? 'المجموع' : 'الرصيد' }}</th>
+                <th class="w-a">عليه</th>
+                <th class="w-a">له</th>
+                <th class="w-b">{{ $filtered ? 'المجموع' : 'الرصيد' }}</th>
             </tr>
         </thead>
         <tbody>
@@ -126,7 +126,7 @@
                 <td>{{ $from ? format_date($from) : '—' }}</td>
                 <td class="desc">رصيد سابق{{ !empty($summaryBy[$cid]['opening_overridden']) ? ' (معدّل للعرض)' : '' }}</td>
                 <td></td><td></td>
-                <td>{{ $cur->format($open) }}</td>
+                <td class="bal">{{ $cur->format($open) }}</td>
             </tr>
         @endunless
         @foreach($items as $i => $m)
@@ -149,7 +149,7 @@
                 </td>
                 <td class="dr">{{ $isCredit ? '' : $amt }}</td>
                 <td class="cr">{{ $isCredit ? $amt : '' }}</td>
-                <td>{{ $cur->format(Money::abs($running)) }}{{ Money::isNegative($running) ? ' له' : '' }}</td>
+                <td class="bal {{ Money::isNegative($running) ? 'is-cr' : (Money::isZero($running) ? '' : 'is-due') }}">{{ $cur->format(Money::abs($running)) }}{{ Money::isNegative($running) ? ' له' : '' }}</td>
             </tr>
         @endforeach
             <tr class="tot">
@@ -157,7 +157,7 @@
                 <td class="desc">المجموع</td>
                 <td class="dr">{{ $cur->format($dr) }}</td>
                 <td class="cr">{{ $cur->format($crd) }}</td>
-                <td>{{ $cur->format(Money::abs($running)) }}{{ Money::isNegative($running) ? ' له' : '' }}</td>
+                <td class="bal {{ Money::isNegative($running) ? 'is-cr' : (Money::isZero($running) ? '' : 'is-due') }}">{{ $cur->format(Money::abs($running)) }}{{ Money::isNegative($running) ? ' له' : '' }}</td>
             </tr>
         </tbody>
     </table>
@@ -168,7 +168,7 @@
 @php
     $dueRows = collect($summaries ?? [])->filter(fn ($r) => ! Money::isZero($r['closing']));
 @endphp
-<div class="due">
+<div class="due {{ $dueRows->isNotEmpty() && $dueRows->every(fn ($r) => Money::isNegative($r['closing'])) ? 'is-cr' : ($dueRows->isEmpty() ? 'is-cr' : 'is-due') }}">
     الرصيد المستحق بتاريخ {{ $dueDate }}:
     @forelse($dueRows as $r)
         {{ $r['currency']->format(Money::abs($r['closing'])) }} {{ Money::isNegative($r['closing']) ? '(له)' : '(عليه)' }}@if(!$loop->last) · @endif

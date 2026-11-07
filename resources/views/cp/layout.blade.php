@@ -99,9 +99,9 @@
                             </button>
                             <ul class="cp-section-content space-y-0.5">
                                 <li><a href="{{ route('cp.clients.index') }}" class="cp-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary transition-colors {{ request()->routeIs('cp.clients.*') ? 'bg-primary/10 text-primary dark:bg-primary/20' : '' }}"><span class="material-symbols-outlined text-xl">groups</span><span>الزبائن</span></a></li>
+                                <li><a href="{{ route('cp.ads.index') }}" class="cp-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary transition-colors {{ request()->routeIs('cp.ads.*') ? 'bg-primary/10 text-primary dark:bg-primary/20' : '' }}"><span class="material-symbols-outlined text-xl">campaign</span><span>الإعلانات الممولة</span><span class="cp-badge-new">جديد</span></a></li>
                                 <li><a href="{{ route('cp.workers.index') }}" class="cp-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary transition-colors {{ request()->routeIs('cp.workers.*') ? 'bg-primary/10 text-primary dark:bg-primary/20' : '' }}"><span class="material-symbols-outlined text-xl">badge</span><span>الموظفون</span></a></li>
                                 <li><a href="{{ route('cp.suppliers.index') }}" class="cp-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary transition-colors {{ request()->routeIs('cp.suppliers.*') ? 'bg-primary/10 text-primary dark:bg-primary/20' : '' }}"><span class="material-symbols-outlined text-xl">local_shipping</span><span>الموردون</span></a></li>
-                                <li><a href="{{ route('cp.ads.index') }}" class="cp-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary transition-colors {{ request()->routeIs('cp.ads.*') ? 'bg-primary/10 text-primary dark:bg-primary/20' : '' }}"><span class="material-symbols-outlined text-xl">campaign</span><span>الإعلانات الممولة</span></a></li>
                             </ul>
                         </li>
                         @endif
@@ -255,6 +255,9 @@
             $cpMore[] = ['url' => route('cp.dashboard'), 'icon' => 'home', 'label' => 'الرئيسية'];
         }
         if (cpCan('finance')) {
+            if (tenantBusinessEnabled()) {
+                $cpMore[] = ['url' => route('cp.ads.index'), 'icon' => 'campaign', 'label' => 'الإعلانات الممولة'];
+            }
             $cpMore[] = ['url' => route('cp.balances.index'), 'icon' => 'account_balance_wallet', 'label' => 'الأدراج والأرصدة'];
             $cpMore[] = ['url' => route('cp.transfers.index'), 'icon' => 'swap_horiz', 'label' => 'التحويلات'];
             $cpMore[] = ['url' => route('cp.reports.index'), 'icon' => 'analytics', 'label' => 'التقارير'];

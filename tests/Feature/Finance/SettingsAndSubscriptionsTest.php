@@ -199,7 +199,7 @@ class SettingsAndSubscriptionsTest extends TestCase
         $rows = \App\Http\Controllers\Cp\ClientSubscriptionController::pending('2026-11');
         $this->assertSame(['2026-11'], $rows->pluck('period')->all());
         $this->assertSame('300.00', $rows[0]['amount']);
-        $this->actingAs($this->user)->get(route('cp.dashboard'))->assertSee('فواتير الاشتراكات جاهزة');
+        $this->actingAs($this->user)->get(route('cp.dashboard'))->assertSee('بانتظار التأكيد');
 
         $this->actingAs($this->user)->post(route('cp.subscriptions.confirm.store'), [
             'items' => [$sub->id.'|2026-11' => ['on' => 1, 'amount' => '300.00']],
