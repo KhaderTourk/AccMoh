@@ -18,7 +18,13 @@
     } else {
         $periodText = 'كل الوقت';
     }
-    $word = fn ($v) => abs($v) < 0.005 ? '' : ' ('.($v > 0 ? $profile['pos'] : $profile['neg']).')';
+    // «إله» بالكشف بتنكتب «له»، ولون كل عمود حسب معناه: عليه وردي، له أخضر
+    $posW = str_replace('إله', 'له', $profile['pos']);
+    $negW = str_replace('إله', 'له', $profile['neg']);
+    $posCls = $posW === 'عليه' ? 'dr' : 'cr';
+    $negCls = $posCls === 'dr' ? 'cr' : 'dr';
+    $word = fn ($v) => abs($v) < 0.005 ? '' : ' ('.($v > 0 ? $posW : $negW).')';
+    $tone = fn ($v) => abs($v) < 0.005 ? '' : (($v > 0) === ($posCls === 'dr') ? 'is-due' : 'is-cr');
     $logo = public_path('assets/icons/brand-logo.png');
 @endphp
 <title>{{ $docTitle }} — {{ $name }}</title>
@@ -32,7 +38,7 @@
             <td style="width:46px;">@if(is_file($logo))<img src="{{ $logo }}" style="width:40px;height:40px;">@endif</td>
             <td><div class="co">براند للحلول الإبداعية المتكاملة</div><div class="co-sub">حسابات براند المالية</div></td>
         @else
-            <td><div class="co">حساب شخصي</div><div class="co-sub">م. محمد عمار الشيخ</div></td>
+            <td><div class="co">حساب شخصي · م. محمد عمار الشيخ</div></td>
         @endif
         <td>
             <div class="doc">{{ $docTitle }}</div>
@@ -66,17 +72,17 @@
     <table class="st">
         <thead>
             <tr>
-                <th>م</th>
-                <th style="width:58px;">التاريخ</th>
+                <th class="w-n">م</th>
+                <th class="w-d">التاريخ</th>
                 <th>البيان</th>
-                <th style="width:72px;">مدين<span>{{ $profile['pos'] }}</span></th>
-                <th style="width:72px;">دائن<span>{{ $profile['neg'] }}</span></th>
-                <th style="width:84px;">{{ $filtered ? 'المجموع' : 'الرصيد' }}</th>
+                <th class="w-a">{{ $posW }}</th>
+                <th class="w-a">{{ $negW }}</th>
+                <th class="w-b">{{ $filtered ? 'المجموع' : 'الرصيد' }}</th>
             </tr>
         </thead>
         <tbody>
         @if($from)
-            <tr class="open"><td class="n">—</td><td>{{ format_date($from) }}</td><td class="desc">رصيد سابق</td><td></td><td></td><td>{{ $fmt($open, $code) }}{{ $word($open) }}</td></tr>
+            <tr class="open"><td class="n">—</td><td>{{ format_date($from) }}</td><td class="desc">رصيد سابق</td><td></td><td></td><td class="bal {{ $tone($open) }}">{{ $fmt($open, $code) }}{{ $word($open) }}</td></tr>
         @endif
         @foreach($items as $i => $m)
             @php
@@ -92,16 +98,16 @@
                     <div class="t">{{ $m['kind'] }}@if(!empty($m['fx'])) · سعر الصرف: {{ $m['fx'] }}@endif</div>
                     @if(filled($m['notes']))<div class="t" style="white-space:pre-line;">{{ $m['notes'] }}</div>@endif
                 </td>
-                <td class="dr">{{ $d > 0 ? $fmt($d, $code) : '' }}</td>
-                <td class="cr">{{ $d < 0 ? $fmt($d, $code) : '' }}</td>
-                <td>{{ $fmt($run, $code) }}{{ $word($run) }}</td>
+                <td class="{{ $posCls }}">{{ $d > 0 ? $fmt($d, $code) : '' }}</td>
+                <td class="{{ $negCls }}">{{ $d < 0 ? $fmt($d, $code) : '' }}</td>
+                <td class="bal {{ $tone($run) }}">{{ $fmt($run, $code) }}{{ $word($run) }}</td>
             </tr>
         @endforeach
             <tr class="tot">
                 <td></td><td></td><td class="desc">المجموع</td>
-                <td class="dr">{{ $fmt($dr, $code) }}</td>
-                <td class="cr">{{ $fmt($cr, $code) }}</td>
-                <td>{{ $fmt($run, $code) }}{{ $word($run) }}</td>
+                <td class="{{ $posCls }}">{{ $fmt($dr, $code) }}</td>
+                <td class="{{ $negCls }}">{{ $fmt($cr, $code) }}</td>
+                <td class="bal {{ $tone($run) }}">{{ $fmt($run, $code) }}{{ $word($run) }}</td>
             </tr>
         </tbody>
     </table>
@@ -109,9 +115,10 @@
     <p class="small" style="text-align:center;padding:14px;">لا حركات{{ ($from || $to) ? ' في هذه الفترة' : '' }}.</p>
 @endforelse
 
-<div class="due">
+@php($nonZero = collect($balance)->filter(fn ($v) => abs($v) >= 0.005))
+@php($tones = $nonZero->map(fn ($v) => $tone($v))->unique())
+<div class="due {{ $tones->count() === 1 ? $tones->first() : ($nonZero->isEmpty() ? 'is-cr' : '') }}">
     الرصيد بتاريخ {{ format_date(now()) }}:
-    @php($nonZero = collect($balance)->filter(fn ($v) => abs($v) >= 0.005))
     @forelse($nonZero as $code => $v)
         {{ $fmt($v, $code) }}{{ $word($v) }}@if(!$loop->last) · @endif
     @empty
