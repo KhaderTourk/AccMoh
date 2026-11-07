@@ -55,11 +55,13 @@ class PartyPageService
             $method = $p->paymentMethod?->name ?: 'دفعة';
             $advance = $p->kind === 'advance';
             $delta = $isPerson ? ($out ? $p->amount : Money::neg($p->amount)) : Money::neg($p->amount);
-            $rows->push($this->row('payment', $p, $p->occurred_on, $p->amount, $p->currency, $p->notes, $delta) + [
-                'group' => $advance ? 'other' : ($isPerson ? ($out ? 'g1' : 'g2') : 'g2'),
-                'kind' => $advance ? 'سلفة' : $method,
-                'title' => $advance ? 'سلفة · '.$method : ($isPerson ? ($out ? 'أعطيته · ' : 'أخدت منه · ') : 'دفعة · ').$method,
-                'icon' => $advance ? 'savings' : ($isPerson && ! $out ? 'south_west' : 'payments'),
+            // السلفة صارت وصف (تسليم 1/11 §12): الحركات القديمة بتنعرض كدفعة ووصفها «سلفة»، بدون تغيير بالرصيد
+            $notes = $advance && ! filled($p->notes) ? 'سلفة' : $p->notes;
+            $rows->push($this->row('payment', $p, $p->occurred_on, $p->amount, $p->currency, $notes, $delta) + [
+                'group' => $isPerson ? ($out ? 'g1' : 'g2') : 'g2',
+                'kind' => $method,
+                'title' => ($isPerson ? ($out ? 'أعطيته · ' : 'أخدت منه · ') : 'دفعة · ').$method,
+                'icon' => $isPerson && ! $out ? 'south_west' : 'payments',
                 'edit' => route('cp.payments.edit', $p),
                 'delete' => route('cp.payments.destroy', $p),
                 'fx' => $this->fx($p),

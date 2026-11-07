@@ -127,86 +127,84 @@ class SettingsAndSubscriptionsTest extends TestCase
             ->assertOk()->assertSee('"kind":"استرداد"', false);
     }
 
-    public function test_monthly_subscription_is_confirmed_by_month_and_prorated(): void
+    public function test_monthly_subscription_records_first_month_now_and_uses_30_day_months(): void
     {
+        $this->travelTo(CarbonImmutable::parse('2026-10-20 10:00'));
         $client = Client::query()->create(['name' => 'زبون الاشتراك', 'is_active' => true]);
         $type = ServiceType::query()->create(['name' => 'استضافة', 'billing' => 'monthly', 'is_active' => true]);
 
         $this->actingAs($this->user)->post(route('cp.subscriptions.store'), [
-            'client_id' => $client->id, 'service_type_id' => $type->id, 'amount' => 310, 'starts_on' => '17/8/2026',
+            'client_id' => $client->id, 'service_type_id' => $type->id, 'amount' => 300, 'starts_on' => '17/8/2026',
         ])->assertRedirect(route('cp.clients.show', $client));
         $sub = ClientSubscription::query()->firstOrFail();
 
-        // Nothing is billed until a month is confirmed.
-        $this->assertSame('0.00', $client->fresh()->outstandingAmount($this->ils->id));
-        $this->assertSame('150.00', $sub->suggestedAmount('2026-08')); // 15 of 31 days
-        $this->assertSame(['2026-08', '2026-09', '2026-10'], $sub->pendingMonths('2026-10'));
-
-        $this->actingAs($this->user)->get(route('cp.subscriptions.confirm', ['month' => '2026-10']))
-            ->assertOk()->assertSee('زبون الاشتراك')->assertSee('150.00');
+        // أول شهر بينسجل فوراً: 30 − 17 + 1 = 14 يوم من 30، بتاريخ أول الشهر
+        $first = ClientService::query()->where('period', '2026-08')->firstOrFail();
+        $this->assertSame('140.00', $first->amount);
+        $this->assertSame('2026-08-01', $first->service_date->toDateString());
+        $this->assertStringContainsString('(14 يوم من 30)', $first->title);
+        $this->assertSame('140.00', $client->fresh()->outstandingAmount($this->ils->id));
+        $this->assertSame(['2026-09', '2026-10'], $sub->pendingMonths('2026-10'));
 
         $this->actingAs($this->user)->post(route('cp.subscriptions.confirm.store'), [
             'month' => '2026-10',
             'items' => [
-                $sub->id.'|2026-08' => ['on' => 1, 'amount' => '150.00'],
-                $sub->id.'|2026-09' => ['on' => 1, 'amount' => '310.00'],
-                $sub->id.'|2026-10' => ['amount' => '310.00'],
+                $sub->id.'|2026-09' => ['on' => 1, 'amount' => '300.00'],
+                $sub->id.'|2026-10' => ['amount' => '300.00'],
             ],
         ])->assertRedirect();
-        $this->assertSame('460.00', $client->fresh()->outstandingAmount($this->ils->id));
-        $this->assertSame(['2026-10'], $sub->fresh()->pendingMonths('2026-10'));
+        $this->assertSame('440.00', $client->fresh()->outstandingAmount($this->ils->id));
 
-        // Confirming the same month twice records it once.
+        // تأكيد نفس الشهر مرتين بيسجّله مرة وحدة
         $this->actingAs($this->user)->post(route('cp.subscriptions.confirm.store'), [
-            'items' => [$sub->id.'|2026-09' => ['on' => 1, 'amount' => '310.00']],
+            'items' => [$sub->id.'|2026-09' => ['on' => 1, 'amount' => '300.00']],
         ]);
-        $this->assertSame('460.00', $client->fresh()->outstandingAmount($this->ils->id));
+        $this->assertSame('440.00', $client->fresh()->outstandingAmount($this->ils->id));
 
-        // Stopping mid-month adjusts a recorded last month by days instead of repeating it.
+        // وقف بنص الشهر: الأيام = يوم الإيقاف
         $this->actingAs($this->user)->post(route('cp.subscriptions.stop', $sub), ['ends_on' => '10/9/2026'])->assertRedirect();
-        $this->assertSame('103.33', ClientService::query()->where('period', '2026-09')->value('amount')); // 10 of 30 days
+        $this->assertSame('100.00', ClientService::query()->where('period', '2026-09')->value('amount'));
         $this->assertSame([], $sub->fresh()->pendingMonths('2026-10'));
 
         $this->actingAs($this->user)->delete(route('cp.subscriptions.destroy', $sub))->assertSessionHas('error');
     }
 
-    public function test_mid_month_start_waits_for_next_month_then_bills_days_and_new_month_separately(): void
+    public function test_partial_month_rules_day_31_and_february(): void
+    {
+        $client = Client::query()->create(['name' => 'زبون الأيام', 'is_active' => true]);
+        $sub = new ClientSubscription(['client_id' => $client->id, 'title' => 'x', 'amount' => 300, 'starts_on' => '2026-12-31']);
+        $this->assertSame([1, 30], $sub->daysIn('2026-12')); // يوم 31 بينحسب 30
+        $this->assertSame([30, 30], $sub->daysIn('2027-01'));
+
+        $feb = new ClientSubscription(['client_id' => $client->id, 'title' => 'x', 'amount' => 300, 'starts_on' => '2027-02-01', 'ends_on' => '2027-02-28']);
+        $this->assertSame([30, 30], $feb->daysIn('2027-02')); // شباط 30
+        $this->assertSame('300.00', $feb->suggestedAmount('2027-02'));
+    }
+
+    public function test_mid_month_start_is_recorded_now_and_next_month_is_full(): void
     {
         $this->travelTo(CarbonImmutable::parse('2026-10-15 10:00'));
         $client = Client::query()->create(['name' => 'زبون نص شهر', 'is_active' => true]);
         $type = ServiceType::query()->create(['name' => 'إدارة صفحات', 'billing' => 'monthly', 'is_active' => true]);
         $this->actingAs($this->user)->post(route('cp.subscriptions.store'), [
-            'client_id' => $client->id, 'service_type_id' => $type->id, 'amount' => 310, 'starts_on' => '15/10/2026',
+            'client_id' => $client->id, 'service_type_id' => $type->id, 'amount' => 300, 'starts_on' => '15/10/2026',
         ])->assertRedirect();
         $sub = ClientSubscription::query()->firstOrFail();
 
-        // During the first month nothing is due yet; the client page shows the running days.
+        $this->assertSame('160.00', ClientService::query()->where('period', '2026-10')->value('amount')); // 16 يوم من 30
         $this->assertCount(0, \App\Http\Controllers\Cp\ClientSubscriptionController::pending('2026-10'));
-        $this->assertSame(1, $sub->accruing()['days']);
-        $this->actingAs($this->user)->post(route('cp.subscriptions.confirm.store'), [
-            'items' => [$sub->id.'|2026-10' => ['on' => 1, 'amount' => '310.00']],
-        ]);
-        $this->assertSame(0, ClientService::query()->count());
+        $this->assertNull($sub->accruing());
 
-        // On the 1st of the next month: October by its 17 days, and a new full invoice for November.
         $this->travelTo(CarbonImmutable::parse('2026-11-01 08:00'));
         $rows = \App\Http\Controllers\Cp\ClientSubscriptionController::pending('2026-11');
-        $this->assertSame(['2026-10', '2026-11'], $rows->pluck('period')->all());
-        $this->assertSame([17, 31], [$rows[0]['days'], $rows[0]['inMonth']]);
-        $this->assertSame('170.00', $rows[0]['amount']);
-        $this->assertSame('310.00', $rows[1]['amount']);
+        $this->assertSame(['2026-11'], $rows->pluck('period')->all());
+        $this->assertSame('300.00', $rows[0]['amount']);
         $this->actingAs($this->user)->get(route('cp.dashboard'))->assertSee('فواتير الاشتراكات جاهزة');
-        $this->actingAs($this->user)->get(route('cp.subscriptions.confirm'))->assertOk()->assertSee('17 يوم من 31');
 
         $this->actingAs($this->user)->post(route('cp.subscriptions.confirm.store'), [
-            'items' => [
-                $sub->id.'|2026-10' => ['on' => 1, 'amount' => '170.00'],
-                $sub->id.'|2026-11' => ['on' => 1, 'amount' => '310.00'],
-            ],
+            'items' => [$sub->id.'|2026-11' => ['on' => 1, 'amount' => '300.00']],
         ])->assertRedirect();
-        $this->assertSame(2, ClientService::query()->where('subscription_id', $sub->id)->count());
-        $this->assertStringContainsString('(17 يوم من 31)', ClientService::query()->where('period', '2026-10')->value('title'));
-        $this->assertSame('480.00', $client->fresh()->outstandingAmount($this->ils->id));
+        $this->assertSame('460.00', $client->fresh()->outstandingAmount($this->ils->id));
         $this->assertCount(0, \App\Http\Controllers\Cp\ClientSubscriptionController::pending('2026-11'));
     }
 
@@ -224,14 +222,16 @@ class SettingsAndSubscriptionsTest extends TestCase
         $this->assertSame(['2026-09', '2026-10'], $periods);
     }
 
-    public function test_monthly_service_drops_phases_and_can_be_saved_switched_off(): void
+    public function test_service_settings_have_no_billing_and_keep_phases(): void
     {
+        // «طريقة الفوترة» انشالت من الإعدادات: الخدمة الجديدة لمرة وحدة، وتصميم وتنفيذ بيضل
         $this->actingAs($this->user)->post(route('cp.settings.services.store'), [
-            'name' => 'صيانة شهرية', 'billing' => 'monthly', 'has_phases' => 1, 'default_price' => 200, 'is_active' => 0,
+            'name' => 'صيانة', 'has_phases' => 1, 'default_price' => 200, 'is_active' => 0,
         ])->assertRedirect();
-        $t = ServiceType::query()->where('name', 'صيانة شهرية')->firstOrFail();
-        $this->assertTrue($t->isMonthly());
-        $this->assertFalse($t->has_phases);
+        $t = ServiceType::query()->where('name', 'صيانة')->firstOrFail();
+        $this->assertFalse($t->isMonthly());
+        $this->assertTrue($t->has_phases);
         $this->assertFalse($t->is_active);
+        $this->actingAs($this->user)->get(route('cp.settings.index'))->assertOk()->assertDontSee('طريقة الفوترة');
     }
 }

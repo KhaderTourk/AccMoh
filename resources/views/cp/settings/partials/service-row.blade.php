@@ -1,7 +1,7 @@
 <div class="st-row{{ $s['active'] ? '' : ' is-off' }}">
     <div class="st-name">
         <b>{{ $s['name'] }}</b>
-        <span><i class="st-bill {{ $s['billing'] }}">{{ $s['billing'] === 'monthly' ? 'شهرية' : 'لمرة وحدة' }}</i>@if($s['phases']) · <i class="st-phase">تصميم · تنفيذ</i>@endif · {{ $uses($s['uses']) }}</span>
+        <span>@if($s['phases'])<i class="st-phase">تصميم وتنفيذ</i> · @endif{{ $uses($s['uses']) }}</span>
     </div>
     {!! $switch($s) !!}
     <div class="st-act">

@@ -230,7 +230,8 @@ class SettingsController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'service_group_id' => ['nullable', Rule::exists('service_groups', 'id')],
             'new_group_name' => ['nullable', 'string', 'max:100'],
-            'billing' => ['required', Rule::in(['once', 'monthly'])],
+            // «طريقة الفوترة» انشالت من الإعدادات (قرار 1/11): بتنختار عند إضافة الخدمة على الزبون. العمود بيضل بالقاعدة.
+            'billing' => ['sometimes', Rule::in(['once', 'monthly'])],
             'has_phases' => ['sometimes', 'boolean'],
             'default_price' => ['nullable', 'numeric', 'gte:0'],
             'is_active' => ['sometimes', 'boolean'],
@@ -243,7 +244,10 @@ class SettingsController extends Controller
                 ?? ServiceGroup::query()->create(['name' => $newGroup, 'sort_order' => (int) ServiceGroup::query()->max('sort_order') + 1])->id;
         }
         // الخدمة الشهرية اشتراك بسعر شهري، فما إلها شقّين تصميم وتنفيذ.
-        $data['has_phases'] = $data['billing'] === 'once' && $request->boolean('has_phases');
+        $data['has_phases'] = $request->boolean('has_phases');
+        if (! $current && ! isset($data['billing'])) {
+            $data['billing'] = 'once';
+        }
         $data['default_price'] = filled($data['default_price'] ?? null) ? $data['default_price'] : null;
         $data['name'] = trim($data['name']);
         $dup = ServiceType::query()->where('name', $data['name'])

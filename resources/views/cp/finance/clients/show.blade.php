@@ -293,7 +293,7 @@
         L.serviceTypes.forEach((t) => {
             const g = t.group || '';
             if (g !== last) { if (g || last !== null) html += `<span class="cs-mgroup">${esc(g || 'بدون مجموعة')}</span>`; last = g; }
-            html += `<button type="button" data-s="${t.id}">${esc(t.name)}${t.monthly ? ' <small>· شهرية</small>' : ''}</button>`;
+            html += `<button type="button" data-s="${t.id}">${esc(t.name)}</button>`;
         });
         $('mSvc').innerHTML = html + (html ? '<hr>' : '') + '<button type="button" class="cs-mfree" data-s="free">أخرى…</button>';
     }
@@ -303,7 +303,7 @@
         closeMenus();
         if (b.dataset.s === 'free') { openTx('service', { free: true }); return; }
         const t = L.serviceTypes.find((x) => x.id === +b.dataset.s);
-        openTx(t.monthly ? 'sub' : 'service', { typeId: t.id });
+        openTx('service', { typeId: t.id });
     });
     $('mPay').addEventListener('click', (e) => { const b = e.target.closest('[data-m]'); if (b) { closeMenus(); openTx('payment', { methodId: +b.dataset.m }); } });
     $('mOther').addEventListener('click', (e) => { const b = e.target.closest('[data-o]'); if (b) { closeMenus(); openTx(b.dataset.o, {}); } });
@@ -367,16 +367,16 @@
             const t = L.serviceTypes.find((x) => x.id === opt.typeId);
             title = 'خدمة · ' + t.name;
             hid = hidden('client_id', D.client.id) + hidden('service_type_id', t.id);
-            fields = (t.phases ? '<div class="cl-field"><label>نوع الشغل</label><div class="cl-seg cs-phase" id="xPhase">'
-                + [['design', 'تصميم'], ['execution', 'تنفيذ'], ['both', 'تصميم وتنفيذ']].map(([v, l]) => `<button type="button" data-p="${v}"${v === 'both' ? ' class="on"' : ''}>${l}</button>`).join('')
-                + '</div><input type="hidden" name="work_phase" id="xPhaseIn" value="both"><p class="st-hint">سعر واحد للشغلتين. إذا السعر مفصول، سجّلهم حركتين.</p></div>' : '')
+            fields = billSeg('once') + (t.phases ? '<div class="cl-field"><label>نوع الشغل <small>(اختياري)</small></label><div class="cl-seg cs-phase" id="xPhase">'
+                + [['both', 'تصميم وتنفيذ'], ['design', 'تصميم'], ['execution', 'تنفيذ']].map(([v, l]) => `<button type="button" data-p="${v}">${l}</button>`).join('')
+                + '</div><input type="hidden" name="work_phase" id="xPhaseIn" value=""></div>' : '')
                 + moneyFields(K.amtLabel) + dateField(K.date);
         } else if (kind === 'sub') {
             const t = L.serviceTypes.find((x) => x.id === opt.typeId);
             title = 'اشتراك شهري · ' + t.name;
             hid = hidden('client_id', D.client.id) + hidden('service_type_id', t.id);
-            fields = moneyFields(K.amtLabel, true) + dateField(K.date, 'يوم البداية')
-                + '<p class="st-note cs-sub-note" id="xSubNote">الشهر الأول بيتحسب من يوم البداية. أول يوم بالشهر الجاي بيطلعلك تنبيه بعدد الأيام وفاتورتها، ومعها فاتورة جديدة للشهر الجديد.</p>';
+            fields = billSeg('sub') + moneyFields(K.amtLabel, true) + subFields()
+                + '<p class="st-note cs-sub-note" id="xSubNote"></p>';
         } else if (kind === 'refund') {
             const opts = L.methods.map((p) => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
             hid = hidden('party_key', partyKey) + hidden('fund_id', L.fundId) + hidden('name', D.client.title) + hidden('kind', 'refund');
@@ -424,7 +424,7 @@
             if (v > 0.005) $('xHint').innerHTML = `عليه ${num(v)} ₪ · <button type="button" class="cs-fill" id="xFill">عبّي الكل</button>`;
         }
         const ph = $('xPhase');
-        if (ph) ph.addEventListener('click', (e) => { const b = e.target.closest('[data-p]'); if (!b) return; ph.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); $('xPhaseIn').value = b.dataset.p; });
+        if (ph) ph.addEventListener('click', (e) => { const b = e.target.closest('[data-p]'); if (!b) return; const off = b.classList.contains('on'); ph.querySelectorAll('button').forEach((x) => x.classList.toggle('on', !off && x === b)); $('xPhaseIn').value = off ? '' : b.dataset.p; });
         const dir = $('xDir');
         if (dir) dir.addEventListener('click', (e) => { const b = e.target.closest('[data-d]'); if (!b) return; dir.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); $('xDirIn').value = b.dataset.d; check(); });
         cur.addEventListener('change', () => {
@@ -432,8 +432,11 @@
             if ($('xRateWrap')) { $('xRateWrap').hidden = !fx; if (fx && !$('xRate').value) { const r = L.rates[cur.value]; if (r) $('xRate').value = r; } }
             check();
         });
-        $('xToday').addEventListener('click', () => { $('xDate').value = dayLabel(D.today); check(); });
-        $('xPick').addEventListener('change', () => { if ($('xPick').value) $('xDate').value = dayLabel($('xPick').value); check(); });
+        if ($('xToday')) $('xToday').addEventListener('click', () => { $('xDate').value = dayLabel(D.today); check(); });
+        if ($('xPick')) $('xPick').addEventListener('change', () => { if ($('xPick').value) $('xDate').value = dayLabel($('xPick').value); check(); });
+        const bill = $('xBill');
+        if (bill) bill.addEventListener('click', (e) => { const b = e.target.closest('[data-b]'); if (b && !b.classList.contains('on')) openTx(b.dataset.b === 'sub' ? 'sub' : 'service', { typeId: tx.opt.typeId }); });
+        ['xMonth', 'xMode', 'xDay'].forEach((id) => { if ($(id)) $(id).addEventListener('change', () => { if (id === 'xMode') $('xDayWrap').hidden = $('xMode').value !== 'mid'; check(); }); });
         $('txFields').addEventListener('input', check);
         const fill = $('xFill'); if (fill) fill.addEventListener('click', () => { $('xAmt').value = balanceBy('ILS').toFixed(2); check(); });
         check();
@@ -456,8 +459,9 @@
         const fx = code !== 'ILS' && tx.kind !== 'memo';
         const a = parseFloat($('xAmt').value);
         const ils = ilsAmount();
+        if (tx.kind === 'sub') subSync();
         const day = parseDay($('xDate').value);
-        $('xDateErr').hidden = !!day || $('xDate').value.length < 6;
+        if ($('xDateErr')) $('xDateErr').hidden = !!day || $('xDate').value.length < 6;
         if (tx.kind !== 'memo') {
             $('xAmtIls').value = fx ? '' : ($('xAmt').value || '');
             $('xAmtSrc').value = fx ? ($('xAmt').value || '') : '';
@@ -483,17 +487,40 @@
         const okRate = !fx || parseFloat(($('xRate') || {}).value) > 0;
         $('txSave').disabled = !(a > 0 && day && okWhat && okRate);
     }
-    // شرح أول شهر: كم يوم بيتحسب وكم مبلغه، وإنه فاتورة لحاله.
+    // طريقة الفوترة أول اختيار بنافذة الخدمة، والافتراضي «لمرة وحدة»
+    function billSeg(on) {
+        return `<div class="cl-field"><label>طريقة الفوترة</label><div class="cl-seg" id="xBill">
+            <button type="button" data-b="once"${on === 'once' ? ' class="on"' : ''}>لمرة وحدة</button>
+            <button type="button" data-b="sub"${on === 'sub' ? ' class="on"' : ''}>اشتراك شهري</button></div></div>`;
+    }
+    // شهر البداية: سنة لورا وشهرين لقدّام بصيغة M/YYYY، والمدة شهر كامل أو بلّش بنصه
+    function subFields() {
+        const now = new Date(D.today + 'T00:00:00');
+        const months = [];
+        for (let k = 2; k >= -12; k--) { const d = new Date(now.getFullYear(), now.getMonth() + k, 1); months.push(d); }
+        const cur = now.getFullYear() + '-' + now.getMonth();
+        const mOpts = months.map((d) => `<option value="${d.getFullYear()}-${d.getMonth() + 1}"${(d.getFullYear() + '-' + d.getMonth()) === cur ? ' selected' : ''}>${d.getMonth() + 1}/${d.getFullYear()}</option>`).join('');
+        let dOpts = ''; for (let i = 2; i <= 31; i++) dOpts += `<option value="${i}"${i === now.getDate() ? ' selected' : ''}>${i}</option>`;
+        return `<div class="cs-two"><div class="cl-field"><label for="xMonth">شهر البداية</label><select id="xMonth" class="cs-sel">${mOpts}</select></div>
+            <div class="cl-field"><label for="xMode">المدة</label><select id="xMode" class="cs-sel"><option value="full">شهر كامل</option><option value="mid">بلّش بنصه</option></select></div></div>
+            <div class="cl-field" id="xDayWrap" hidden><label for="xDay">يوم البداية</label><select id="xDay" class="cs-sel">${dOpts}</select></div>
+            <input type="hidden" id="xDate" name="starts_on">`;
+    }
+    function subSync() {
+        const [y, m] = $('xMonth').value.split('-').map(Number);
+        const last = new Date(y, m, 0).getDate();
+        const d = $('xMode').value === 'mid' ? Math.min(+$('xDay').value, last) : 1;
+        $('xDate').value = d + '/' + m + '/' + y;
+    }
+    // شرح أول شهر: الشهر دايماً 30 يوم، وأول شهر بينسجل فوراً على الكشف
     function subNote(day, price) {
-        const base = 'أول يوم بالشهر الجاي بيطلعلك تنبيه بعدد الأيام وفاتورتها، ومعها فاتورة جديدة للشهر الجديد.';
-        if (!day) return 'الشهر الأول بيتحسب من يوم البداية. ' + base;
-        const d = new Date(day + 'T00:00:00');
-        const inMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
-        const days = inMonth - d.getDate() + 1;
-        if (days >= inMonth) return 'بيبلّش من أول الشهر، ففاتورة هالشهر كاملة وبتطلع للتسجيل من اليوم.';
-        if (day.slice(0, 7) < D.today.slice(0, 7)) return `أول شهر جزئي: ${days} يوم من ${inMonth}. الأشهر اللي خلصت بتطلع فواتيرها للتسجيل فوراً، كل شهر فاتورة لحاله.`;
-        const part = price > 0 ? ` ≈ ${num(Math.round(price * days / inMonth * 100) / 100)} ₪` : '';
-        return `أول شهر جزئي: ${days} يوم من ${inMonth}${part}. ` + base;
+        if (!day) return '';
+        const d = Math.min(30, +day.slice(8, 10));
+        const days = 30 - d + 1;
+        const first = 'أول شهر بينسجل على الكشف فوراً بتاريخ أول يوم بالشهر، وبعدها بيذكّرك أول كل شهر لحد ما توقفه.';
+        if (days >= 30) return 'شهر كامل. ' + first;
+        const part = price > 0 ? ` = ${num(Math.round(price * days / 30 * 100) / 100)} ₪` : '';
+        return `أول شهر ${days} يوم من 30${part}. ` + first;
     }
     function closeTx() { $('txSheet').hidden = true; tx = null; }
     $('txCancel').addEventListener('click', closeTx);

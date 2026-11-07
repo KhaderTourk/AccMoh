@@ -131,15 +131,6 @@
             </div>
             <input id="sNewGroup" name="new_group_name" maxlength="100" placeholder="اسم المجموعة الجديدة" hidden>
         </div>
-        <div class="cl-field">
-            <label>طريقة الفوترة</label>
-            <div class="cl-seg st-billing">
-                <button type="button" data-b="once" class="on">لمرة وحدة</button>
-                <button type="button" data-b="monthly">شهرية</button>
-            </div>
-            <input type="hidden" name="billing" id="sBilling" value="once">
-            <p class="st-hint st-bill-hint" id="sBillHint" hidden>بتنضاف للزبون كاشتراك: أول شهر بيتحسب من يوم البداية، وأول كل شهر بتطلع فاتورة الشهر اللي خلص حسب أيامه وفاتورة جديدة للشهر الجديد.</p>
-        </div>
         <label class="st-check" id="sPhasesRow"><input type="checkbox" name="has_phases" value="1" id="sPhases"> فيها تصميم وتنفيذ</label>
         <div class="cl-field">
             <label for="sPrice" id="sPriceL">السعر المعتاد</label>
@@ -188,15 +179,6 @@
         sheet.hidden = false;
         setTimeout(() => (f.querySelector('input[name=name]')).focus(), 30);
     }
-    function setBilling(v) {
-        $('sBilling').value = v;
-        document.querySelectorAll('.st-billing button').forEach((b) => { const on = b.dataset.b === v; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
-        const monthly = v === 'monthly';
-        $('sBillHint').hidden = !monthly;
-        $('sPhasesRow').hidden = monthly;
-        if (monthly) $('sPhases').checked = false;
-        $('sPriceL').textContent = monthly ? 'السعر الشهري المعتاد' : 'السعر المعتاد';
-    }
     const names = @json($serviceNames);
     let editingId = null, oldName = '', titled = 0;
     function setGroup(v) {
@@ -214,7 +196,6 @@
         if (ren) $('sRen').textContent = `الاسم الجديد بيطلع على ${titled} حركة قديمة كمان.`;
     }
     $('sName').addEventListener('input', checkName);
-    document.querySelector('.st-billing').addEventListener('click', (e) => { const b = e.target.closest('[data-b]'); if (b) setBilling(b.dataset.b); });
 
     document.addEventListener('click', (e) => {
         const more = e.target.closest('.cl-more');
@@ -230,7 +211,6 @@
                 editingId = edit ? +op.dataset.id : null; oldName = op.dataset.name || ''; titled = +(op.dataset.titled || 0);
                 setGroup(op.dataset.group || '');
                 $('sPhases').checked = op.dataset.phases === '1';
-                setBilling(op.dataset.billing || 'once');
                 $('sPrice').value = op.dataset.price || '';
                 $('sActive').checked = op.dataset.active !== '0';
                 checkName();

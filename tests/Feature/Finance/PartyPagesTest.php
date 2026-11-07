@@ -85,11 +85,11 @@ class PartyPagesTest extends TestCase
         $this->assertSame('1500.00', $worker->fresh()->outstandingAmount($this->ils->id));
 
         $this->actingAs($this->user)->get(route('cp.workers.show', $worker))
-            ->assertOk()->assertSee('"kind":"سلفة"', false)->assertSee('"kind":"راتب"', false);
+            ->assertOk()->assertSee('"notes":"سلفة"', false)->assertSee('"kind":"راتب"', false);
 
         $this->htmlPdf();
-        $this->actingAs($this->user)->get(route('cp.workers.export-pdf', [$worker, 'type' => 'other']))
-            ->assertOk()->assertSee('كشف حركات أخرى')->assertSee('سلفة')->assertDontSee('راتب شهر 10/2026')->assertSee('خلال 15 يوماً');
+        $this->actingAs($this->user)->get(route('cp.workers.export-pdf', [$worker, 'type' => 'g2']))
+            ->assertOk()->assertSee('سلفة')->assertDontSee('راتب شهر 10/2026')->assertSee('خلال 15 يوماً');
     }
 
     public function test_person_transfer_moves_both_accounts_and_pdf_is_personal(): void
