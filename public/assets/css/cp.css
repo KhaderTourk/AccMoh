@@ -2042,8 +2042,9 @@ html.dark .cl-field input, html.dark .cl-field textarea { background: #0f172a; b
 .cl-dup { display: flex; align-items: center; gap: .35rem; font-size: .85rem; padding: .55rem .75rem; border-radius: .7rem; background: #fff7ed; color: #9a3412; margin: 0 0 .85rem; }
 .cl-dup .material-symbols-outlined { font-size: 1.1rem; }
 /* مؤرشف بالقوائم (لما «إظهار المؤرشف» شغّال) وتنبيه «موجود بالأرشيف» */
-.cl-row.is-arch { opacity: .55; }
-.cl-row.is-arch:hover, .cl-row.is-arch:focus-visible { opacity: .85; }
+/* الباهت على محتوى الصف بس، مش على الصف كله، عشان قائمة ⋯ تضل معتمة وفوق الصفوف اللي تحتها */
+.cl-row.is-arch > :not(.cl-menu) { opacity: .55; }
+.cl-row.is-arch:hover > :not(.cl-menu), .cl-row.is-arch:focus-visible > :not(.cl-menu) { opacity: .85; }
 .cl-who b .cs-arch { margin: 0 .3rem 0 0; vertical-align: middle; }
 html.dark .cs-arch { background: #334155; color: #cbd5e1; }
 .cl-twin { flex-direction: column; align-items: stretch; gap: .55rem; }
