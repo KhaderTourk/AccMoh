@@ -110,7 +110,9 @@
     };
     const EMPTY = { due: 'ما في حدا عليه رصيد.', credit: 'ما في حدا إله رصيد.', salary: 'ما في حدا إله راتب شهري.', settled: 'ما في حدا مسدّد.' };
     let filter = D.filter, editing = null, allowNew = 0;
-    const sorter = cpList.sortMenu($('clSort'), P.kind, () => render());
+    // «مؤرشف» بآخر قائمة الترتيب لما «إظهار المؤرشف» شغّال (قرار 9/11/2026)، والمؤرشفين ما بيظهروا بالتابات.
+    const sorter = cpList.sortMenu($('clSort'), P.kind, () => { paintTabs(); render(); }, D.showArchived ? [['arch', 'مؤرشف']] : []);
+    function paintTabs() { const a = sorter.extra(); document.querySelectorAll('.cl-seg button').forEach((x) => x.classList.toggle('on', !a && x.dataset.f === filter)); }
 
     const due = (c) => c.balances.some((b) => b.amount > 0);
     const credit = (c) => c.balances.some((b) => b.amount < 0);
@@ -121,10 +123,11 @@
     }
     function render() {
         const q = norm($('clQ').value);
-        let list = rows.filter((c) => D.showArchived || !c.archived);
+        const arch = sorter.extra() === 'arch';
+        let list = rows.filter((c) => (arch ? c.archived : !c.archived || (q && D.showArchived)));
         // البحث بيدوّر بالكل، مش بس بالفلتر المختار.
         if (q) list = list.filter((c) => norm([c.name, c.sub, c.phone, c.notes].join(' ')).includes(q));
-        else list = list.filter(FILTERS[filter]);
+        else if (!arch) list = list.filter(FILTERS[filter]);
         list = cpList.sort(list, sorter.get(), (c) => c.name, D.today);
         $('clList').innerHTML = list.length ? list.map((c) => `
             <div class="cl-row${c.id === D.flash ? ' is-new' : ''}${c.archived ? ' is-arch' : ''}" tabindex="0" data-id="${c.id}">
@@ -140,7 +143,7 @@
                     ${c.archived ? '<button type="button" data-act="restore">استرجاع من الأرشيف</button>' : '<button type="button" class="danger" data-act="archive">أرشفة</button>'}
                 </div>
             </div>`).join('')
-            : `<p class="cl-empty">${q ? 'ما في حدا بهالاسم.' : EMPTY[filter]}</p>`;
+            : `<p class="cl-empty">${q ? 'ما في حدا بهالاسم.' : (arch ? 'ما في حدا مؤرشف.' : EMPTY[filter])}</p>`;
         $('clSummary').innerHTML = cpList.summary(list, P.noun, D.symbols);
         if (D.flash) { const el = document.querySelector('.cl-row.is-new'); if (el) el.scrollIntoView({ block: 'center' }); D.flash = 0; }
     }
@@ -169,6 +172,7 @@
     }
     document.querySelectorAll('.cl-seg button').forEach((b) => b.addEventListener('click', () => {
         document.querySelectorAll('.cl-seg button').forEach((x) => x.classList.toggle('on', x === b));
+        sorter.reset();
         filter = b.dataset.f; render();
     }));
     $('clQ').addEventListener('input', render);

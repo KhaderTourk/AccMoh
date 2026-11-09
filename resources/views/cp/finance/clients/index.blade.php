@@ -91,7 +91,9 @@
     const EMPTY = { due: 'ما في زبون عليه رصيد.', credit: 'ما في زبون إله رصيد.', monthly: 'ما في زبون عنده اشتراك شهري شغّال.', settled: 'ما في زبون مسدّد.' };
     let filter = 'due';
     let editing = null, allowNew = 0;
-    const sorter = cpList.sortMenu($('clSort'), 'client', () => render());
+    // «مؤرشف» بآخر قائمة الترتيب لما «إظهار المؤرشف» شغّال (قرار 9/11/2026)، والمؤرشفين ما بيظهروا بالتابات.
+    const sorter = cpList.sortMenu($('clSort'), 'client', () => { paintTabs(); render(); }, D.showArchived ? [['arch', 'مؤرشف']] : []);
+    function paintTabs() { const a = sorter.extra(); document.querySelectorAll('.cl-seg button').forEach((x) => x.classList.toggle('on', !a && x.dataset.f === filter)); }
 
     const due = (c) => c.balances.some((b) => b.amount > 0);
     const credit = (c) => c.balances.some((b) => b.amount < 0);
@@ -106,10 +108,11 @@
 
     function render() {
         const q = norm($('clQ').value);
-        let rows = clients.filter((c) => D.showArchived || !c.archived);
+        const arch = sorter.extra() === 'arch';
+        let rows = clients.filter((c) => (arch ? c.archived : !c.archived || (q && D.showArchived)));
         // البحث بيدوّر بكل الزباين، مش بس بالفلتر المختار.
         if (q) rows = rows.filter((c) => norm([c.org, c.name, c.phone, c.notes].join(' ')).includes(q));
-        else rows = rows.filter(FILTERS[filter]);
+        else if (!arch) rows = rows.filter(FILTERS[filter]);
         rows = cpList.sort(rows, sorter.get(), title, D.today);
 
         $('clList').innerHTML = rows.length ? rows.map((c) => `
@@ -126,7 +129,7 @@
                     ${c.archived ? '<button type="button" data-act="restore">استرجاع من الأرشيف</button>' : '<button type="button" class="danger" data-act="archive">أرشفة</button>'}
                 </div>
             </div>`).join('')
-            : `<p class="cl-empty">${q ? 'ما في زبون بهالاسم.' : EMPTY[filter]}</p>`;
+            : `<p class="cl-empty">${q ? 'ما في زبون بهالاسم.' : (arch ? 'ما في زبائن مؤرشفين.' : EMPTY[filter])}</p>`;
 
         $('clSummary').innerHTML = cpList.summary(rows, 'زبون', D.symbols);
 
@@ -185,6 +188,7 @@
 
     document.querySelectorAll('.cl-seg button').forEach((b) => b.addEventListener('click', () => {
         document.querySelectorAll('.cl-seg button').forEach((x) => x.classList.toggle('on', x === b));
+        sorter.reset();
         filter = b.dataset.f;
         render();
     }));

@@ -76,17 +76,25 @@
     }
 
     /** زر «ترتيب» بقائمة بثيم النظام، وآخر اختيار بينحفظ لكل شاشة */
-    function sortMenu(host, key, onChange) {
+    /**
+     * extras: خيارات إضافية بآخر القائمة (زي «مؤرشف» لما «إظهار المؤرشف» شغّال)،
+     * ما بتنحفظ، والصفحة بترجع للترتيب المحفوظ بـreset().
+     */
+    function sortMenu(host, key, onChange, extras) {
+        extras = extras || [];
+        var all = SORTS.concat(extras);
         // مفتاح جديد عشان الكل يبلّش على الافتراضي الجديد، وبعدها آخر اختيار بينحفظ.
         var store = 'cpSort2:' + key, mode = DEFAULT_SORT;
         try { mode = localStorage.getItem(store) || mode; } catch (e) {}
         if (!SORTS.some(function (s) { return s[0] === mode; })) mode = DEFAULT_SORT;
         host.classList.add('cl-sort');
         host.innerHTML = '<button type="button" class="cl-sort-btn" aria-haspopup="true"><span class="material-symbols-outlined">swap_vert</span><span class="cl-sort-txt"></span></button>'
-            + '<div class="cl-menu cl-sort-menu" hidden>' + SORTS.map(function (s) { return '<button type="button" data-s="' + s[0] + '">' + s[1] + '</button>'; }).join('') + '</div>';
-        var btn = host.querySelector('.cl-sort-btn'), menu = host.querySelector('.cl-sort-menu');
+            + '<div class="cl-menu cl-sort-menu" hidden>' + SORTS.map(function (s) { return '<button type="button" data-s="' + s[0] + '">' + s[1] + '</button>'; }).join('')
+            + (extras.length ? '<hr>' + extras.map(function (s) { return '<button type="button" data-s="' + s[0] + '">' + s[1] + '</button>'; }).join('') : '') + '</div>';
+        var btn = host.querySelector('.cl-sort-btn'), menu = host.querySelector('.cl-sort-menu'), saved = mode;
+        var isExtra = function (m) { return extras.some(function (s) { return s[0] === m; }); };
         function paint() {
-            host.querySelector('.cl-sort-txt').textContent = SORTS.find(function (s) { return s[0] === mode; })[1];
+            host.querySelector('.cl-sort-txt').textContent = all.find(function (s) { return s[0] === mode; })[1];
             menu.querySelectorAll('[data-s]').forEach(function (b) { b.classList.toggle('on', b.dataset.s === mode); });
         }
         btn.addEventListener('click', function (e) {
@@ -98,11 +106,18 @@
         menu.addEventListener('click', function (e) {
             var b = e.target.closest('[data-s]'); if (!b) return;
             mode = b.dataset.s; menu.hidden = true;
-            try { localStorage.setItem(store, mode); } catch (e2) {}
+            if (!isExtra(mode)) {
+                saved = mode;
+                try { localStorage.setItem(store, mode); } catch (e2) {}
+            }
             paint(); onChange(mode);
         });
         paint();
-        return { get: function () { return mode; } };
+        return {
+            get: function () { return isExtra(mode) ? saved : mode; },
+            extra: function () { return isExtra(mode) ? mode : null; },
+            reset: function () { if (isExtra(mode)) { mode = saved; paint(); } },
+        };
     }
 
     function pin(c) {
