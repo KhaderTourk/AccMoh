@@ -5,7 +5,7 @@
     $heading = ['worker' => 'الموظفون', 'supplier' => 'الموردون', 'person' => 'الأشخاص'][$party['kind']];
     $isWorker = $party['kind'] === 'worker';
     // الفلاتر والافتراضي لكل شاشة (قرار 9/11/2026): الموظفين والموردين على «إله رصيد»، والأشخاص على «عليه رصيد».
-    $tabs = ['due' => 'عليه رصيد', 'credit' => 'إله رصيد'] + ($isWorker ? ['salary' => 'راتب شهري'] : []) + ['settled' => 'مسدّد'];
+    $tabs = ['due' => 'عليه رصيد', 'credit' => 'إله رصيد', 'settled' => 'مسدّد'];
     $defaultTab = $party['kind'] === 'person' ? 'due' : 'credit';
 @endphp
 <div class="cl-page" id="clPage">
@@ -102,16 +102,19 @@
     const norm = (s) => String(s || '').replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/\s+/g, ' ').trim().toLowerCase();
     const fmt = (n) => Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const dayLabel = (d) => { if (!d) return ''; const [y, m, dd] = d.split('-').map(Number); return dd + '/' + m + '/' + y; };
+    // الرصيد لحد 10 شيكل بالاتجاهين بينعرض تحت «مسدّد» (قرار 9/11/2026). عرض بس، الرصيد نفسه ما بيتغيّر.
+    const SMALL = 10;
+    const small = (c) => c.balances.every((b) => Math.abs(b.amount) <= SMALL);
     const FILTERS = {
-        due: (c) => due(c),
-        credit: (c) => credit(c),
-        salary: (c) => c.salary,
-        settled: (c) => !c.balances.length,
+        due: (c) => !small(c) && due(c),
+        credit: (c) => !small(c) && credit(c),
+        settled: (c) => small(c),
     };
-    const EMPTY = { due: 'ما في حدا عليه رصيد.', credit: 'ما في حدا إله رصيد.', salary: 'ما في حدا إله راتب شهري.', settled: 'ما في حدا مسدّد.' };
+    const EMPTY = { due: 'ما في حدا عليه رصيد.', credit: 'ما في حدا إله رصيد.', settled: 'ما في حدا مسدّد.' };
     let filter = D.filter, editing = null, allowNew = 0;
-    // «مؤرشف» بآخر قائمة الترتيب لما «إظهار المؤرشف» شغّال (قرار 9/11/2026)، والمؤرشفين ما بيظهروا بالتابات.
-    const sorter = cpList.sortMenu($('clSort'), P.kind, () => { paintTabs(); render(); }, D.showArchived ? [['arch', 'مؤرشف']] : []);
+    // بآخر قائمة الترتيب: «راتب شهري» للموظفين، وفوقه «مؤرشف» لما «إظهار المؤرشف» شغّال (قرار 9/11/2026).
+    const sorter = cpList.sortMenu($('clSort'), P.kind, () => { paintTabs(); render(); },
+        (P.kind === 'worker' ? [['salary', 'راتب شهري']] : []).concat(D.showArchived ? [['arch', 'مؤرشف']] : []));
     function paintTabs() { const a = sorter.extra(); document.querySelectorAll('.cl-seg button').forEach((x) => x.classList.toggle('on', !a && x.dataset.f === filter)); }
 
     const due = (c) => c.balances.some((b) => b.amount > 0);
@@ -123,10 +126,11 @@
     }
     function render() {
         const q = norm($('clQ').value);
-        const arch = sorter.extra() === 'arch';
+        const view = sorter.extra(), arch = view === 'arch';
         let list = rows.filter((c) => (arch ? c.archived : !c.archived || (q && D.showArchived)));
         // البحث بيدوّر بالكل، مش بس بالفلتر المختار.
         if (q) list = list.filter((c) => norm([c.name, c.sub, c.phone, c.notes].join(' ')).includes(q));
+        else if (view === 'salary') list = list.filter((c) => c.salary);
         else if (!arch) list = list.filter(FILTERS[filter]);
         list = cpList.sort(list, sorter.get(), (c) => c.name, D.today);
         $('clList').innerHTML = list.length ? list.map((c) => `
@@ -143,7 +147,7 @@
                     ${c.archived ? '<button type="button" data-act="restore">استرجاع من الأرشيف</button>' : '<button type="button" class="danger" data-act="archive">أرشفة</button>'}
                 </div>
             </div>`).join('')
-            : `<p class="cl-empty">${q ? 'ما في حدا بهالاسم.' : (arch ? 'ما في حدا مؤرشف.' : EMPTY[filter])}</p>`;
+            : `<p class="cl-empty">${q ? 'ما في حدا بهالاسم.' : (arch ? 'ما في حدا مؤرشف.' : (view === 'salary' ? 'ما في حدا إله راتب شهري.' : EMPTY[filter]))}</p>`;
         $('clSummary').innerHTML = cpList.summary(list, P.noun, D.symbols);
         if (D.flash) { const el = document.querySelector('.cl-row.is-new'); if (el) el.scrollIntoView({ block: 'center' }); D.flash = 0; }
     }
