@@ -303,7 +303,7 @@
         closeMenus();
         if (arch.id === 'csRestore') { $('csArchForm').submit(); return; }
         const v = balanceBy('ILS');
-        const msg = `أرشفة «${D.title}»؟` + (Math.abs(v) >= 0.005 ? ` رصيده ${word(v)} ${num(v)} ₪ وبيضل محفوظ مع حركاته.` : '') + ' بتلاقيه بتاب «مؤرشف».';
+        const msg = `أرشفة «${D.title}»؟` + (Math.abs(v) >= 0.005 ? ` رصيده ${word(v)} ${num(v)} ₪ وبيضل محفوظ مع حركاته.` : '') + ' بيختفي من القوائم، وبتقدر تشوفه من الإعدادات ← العرض ← «إظهار المؤرشف».';
         const ask = window.cpConfirm ? window.cpConfirm(msg) : Promise.resolve(window.confirm(msg));
         ask.then((ok) => { if (ok) $('csArchForm').submit(); });
     });

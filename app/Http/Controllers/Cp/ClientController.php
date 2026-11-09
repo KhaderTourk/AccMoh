@@ -21,11 +21,20 @@ class ClientController extends Controller
     {
         $currencies = Currency::query()->active()->get();
 
+        // الزباين اللي عندهم اشتراك شهري شغّال اليوم (فلتر «اشتراك شهري»).
+        $today = now()->toDateString();
+        $monthly = Schema::hasTable('client_subscriptions')
+            ? \App\Models\ClientSubscription::query()
+                ->whereDate('starts_on', '<=', $today)
+                ->where(fn ($q) => $q->whereNull('ends_on')->orWhereDate('ends_on', '>=', $today))
+                ->pluck('client_id')->flip()
+            : collect();
+
         // Every client (archived included) in one list; filtering and search happen in the browser.
         $clients = Client::query()
             ->orderByRaw("COALESCE(NULLIF(company_name, ''), name)")
             ->get()
-            ->map(function (Client $client) use ($currencies) {
+            ->map(function (Client $client) use ($currencies, $monthly) {
                 $balances = [];
                 foreach ($currencies as $currency) {
                     $due = $client->outstandingAmount($currency->id);
@@ -45,6 +54,7 @@ class ClientController extends Controller
                     'phone' => (string) $client->phone,
                     'notes' => (string) $client->notes,
                     'archived' => ! $client->is_active,
+                    'monthly' => $monthly->has($client->id),
                     'balances' => $balances,
                     'pinned' => (bool) $client->is_pinned,
                     'pin' => route('cp.pin.toggle', ['kind' => 'client', 'id' => $client->id]),

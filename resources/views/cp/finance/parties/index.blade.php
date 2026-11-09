@@ -4,6 +4,9 @@
 @php
     $heading = ['worker' => 'الموظفون', 'supplier' => 'الموردون', 'person' => 'الأشخاص'][$party['kind']];
     $isWorker = $party['kind'] === 'worker';
+    // الفلاتر والافتراضي لكل شاشة (قرار 9/11/2026): الموظفين والموردين على «إله رصيد»، والأشخاص على «عليه رصيد».
+    $tabs = ['due' => 'عليه رصيد', 'credit' => 'إله رصيد'] + ($isWorker ? ['salary' => 'راتب شهري'] : []) + ['settled' => 'مسدّد'];
+    $defaultTab = $party['kind'] === 'person' ? 'due' : 'credit';
 @endphp
 <div class="cl-page" id="clPage">
     <div class="cl-top">
@@ -18,10 +21,9 @@
             <input id="clQ" type="search" placeholder="ابحث بالاسم أو الهاتف" autocomplete="off">
         </label>
         <div class="cl-seg" role="tablist" aria-label="عرض">
-            <button type="button" class="on" data-f="all" role="tab">الكل</button>
-            <button type="button" data-f="due" role="tab">عليه رصيد</button>
-            <button type="button" data-f="credit" role="tab">إله رصيد</button>
-            <button type="button" data-f="arch" role="tab">مؤرشف</button>
+            @foreach($tabs as $key => $label)
+                <button type="button" @class(['on' => $key === $defaultTab]) data-f="{{ $key }}" role="tab">{{ $label }}</button>
+            @endforeach
         </div>
         <div id="clSort"></div>
     </div>
@@ -72,6 +74,13 @@
             <textarea id="fNotes" name="notes" rows="2" placeholder="اختياري"></textarea>
         </div>
         <p class="cl-dup" id="clDup" hidden><span class="material-symbols-outlined">info</span> في {{ $party['noun'] }} بنفس الاسم: <b id="clDupName"></b></p>
+        <div class="cl-dup cl-twin" id="clTwin" hidden>
+            <p><span class="material-symbols-outlined">inventory_2</span> «<b id="clTwinName"></b>» موجود بالأرشيف.</p>
+            <div class="cl-twin-act">
+                <button type="button" class="cp-btn cp-btn-primary" id="clTwinRestore">استرجعه</button>
+                <button type="button" class="cp-btn cp-btn-ghost" id="clTwinNew">ضيفه جديد</button>
+            </div>
+        </div>
         <div class="cl-actions">
             <button type="submit" class="cp-btn cp-btn-primary" id="fSave" disabled>حفظ</button>
             <button type="button" class="cp-btn cp-btn-ghost" id="fCancel">إلغاء</button>
@@ -81,7 +90,7 @@
 
 <form method="post" id="clArchForm" hidden>@csrf<input type="hidden" name="_method" id="clArchMethod" value="DELETE"></form>
 
-<script type="application/json" id="clData">{!! json_encode(['rows' => $rows, 'flash' => $flash, 'storeUrl' => $storeUrl, 'party' => $party, 'today' => now()->toDateString(), 'symbols' => \App\Models\Currency::query()->pluck('symbol', 'code')], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) !!}</script>
+<script type="application/json" id="clData">{!! json_encode(['rows' => $rows, 'flash' => $flash, 'filter' => $defaultTab, 'showArchived' => \App\Support\ArchiveVisibility::showing(), 'storeUrl' => $storeUrl, 'party' => $party, 'today' => now()->toDateString(), 'symbols' => \App\Models\Currency::query()->pluck('symbol', 'code')], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) !!}</script>
 <script src="{{ asset('assets/js/cp-list.js') }}?v={{ @filemtime(public_path('assets/js/cp-list.js')) }}"></script>
 <script>
 (function () {
@@ -93,7 +102,14 @@
     const norm = (s) => String(s || '').replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/\s+/g, ' ').trim().toLowerCase();
     const fmt = (n) => Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const dayLabel = (d) => { if (!d) return ''; const [y, m, dd] = d.split('-').map(Number); return dd + '/' + m + '/' + y; };
-    let filter = 'all', editing = null;
+    const FILTERS = {
+        due: (c) => due(c),
+        credit: (c) => credit(c),
+        salary: (c) => c.salary,
+        settled: (c) => !c.balances.length,
+    };
+    const EMPTY = { due: 'ما في حدا عليه رصيد.', credit: 'ما في حدا إله رصيد.', salary: 'ما في حدا إله راتب شهري.', settled: 'ما في حدا مسدّد.' };
+    let filter = D.filter, editing = null, allowNew = 0;
     const sorter = cpList.sortMenu($('clSort'), P.kind, () => render());
 
     const due = (c) => c.balances.some((b) => b.amount > 0);
@@ -105,15 +121,15 @@
     }
     function render() {
         const q = norm($('clQ').value);
-        let list = rows.filter((c) => filter === 'arch' ? c.archived : !c.archived);
-        if (filter === 'due') list = list.filter(due);
-        if (filter === 'credit') list = list.filter(credit);
+        let list = rows.filter((c) => D.showArchived || !c.archived);
+        // البحث بيدوّر بالكل، مش بس بالفلتر المختار.
         if (q) list = list.filter((c) => norm([c.name, c.sub, c.phone, c.notes].join(' ')).includes(q));
+        else list = list.filter(FILTERS[filter]);
         list = cpList.sort(list, sorter.get(), (c) => c.name, D.today);
         $('clList').innerHTML = list.length ? list.map((c) => `
-            <div class="cl-row${c.id === D.flash ? ' is-new' : ''}" tabindex="0" data-id="${c.id}">
+            <div class="cl-row${c.id === D.flash ? ' is-new' : ''}${c.archived ? ' is-arch' : ''}" tabindex="0" data-id="${c.id}">
                 <div class="cl-av">${esc((c.name.trim()[0]) || '؟')}</div>
-                <div class="cl-who"><b>${c.pinned ? '<span class="cl-star">★</span> ' : ''}${esc(c.name)}</b><span>${esc(c.sub)}</span>${cpList.ageLine(c, D.today)}</div>
+                <div class="cl-who"><b>${c.pinned ? '<span class="cl-star">★</span> ' : ''}${esc(c.name)}${c.archived ? ' <em class="cs-arch">مؤرشف</em>' : ''}</b><span>${esc(c.sub)}</span></div>
                 ${amountHtml(c)}
                 <button type="button" class="cl-more" aria-label="خيارات ${esc(c.name)}">⋯</button>
                 <div class="cl-menu" hidden>
@@ -124,7 +140,7 @@
                     ${c.archived ? '<button type="button" data-act="restore">استرجاع من الأرشيف</button>' : '<button type="button" class="danger" data-act="archive">أرشفة</button>'}
                 </div>
             </div>`).join('')
-            : `<p class="cl-empty">${filter === 'arch' ? 'ما في حدا مؤرشف.' : (q ? 'ما في حدا بهالاسم.' : 'ما في حدا هون.')}</p>`;
+            : `<p class="cl-empty">${q ? 'ما في حدا بهالاسم.' : EMPTY[filter]}</p>`;
         $('clSummary').innerHTML = cpList.summary(list, P.noun, D.symbols);
         if (D.flash) { const el = document.querySelector('.cl-row.is-new'); if (el) el.scrollIntoView({ block: 'center' }); D.flash = 0; }
     }
@@ -147,7 +163,7 @@
         if (act === 'restore') return submitArch(c.restore, 'POST');
         if (act === 'pin') return cpList.pin(c).then(render).catch(() => window.alert('ما زبط التثبيت، جرّب كمان مرة.'));
         const bal = c.balances.length ? ' رصيده مش صفر (' + c.balances.map((b) => (b.amount > 0 ? 'عليه ' : 'إله ') + b.label).join('، ') + ')، وبيضل محفوظ مع حركاته.' : '';
-        const msg = 'أرشفة «' + c.name + '»؟' + bal + ' بتلاقيه بتاب «مؤرشف» وبتقدر ترجّعه.';
+        const msg = 'أرشفة «' + c.name + '»؟' + bal + ' بيختفي من القوائم، وبتقدر تشوفه وترجّعه من الإعدادات ← العرض ← «إظهار المؤرشف».';
         const ask = window.cpConfirm ? window.cpConfirm(msg) : Promise.resolve(window.confirm(msg));
         ask.then((ok) => { if (ok) submitArch(c.archive, 'DELETE'); });
     }
@@ -160,6 +176,7 @@
     const fName = $('fName'), fPhone = $('fPhone'), save = $('fSave');
     function openSheet(c) {
         editing = c || null;
+        allowNew = 0;
         $('clSheetTitle').textContent = c ? 'تعديل ' + c.name : P.noun + ' جديد';
         save.textContent = c ? 'حفظ التعديل' : 'حفظ';
         $('clForm').action = c ? c.update : D.storeUrl;
@@ -184,10 +201,20 @@
         $('phoneErr').hidden = okPhone || p.length < 2;
         const n = norm(fName.value);
         const dup = n.length >= 3 ? rows.find((r) => (!editing || r.id !== editing.id) && norm(r.name) === n) : null;
-        $('clDup').hidden = !dup;
+        // جديد بنفس اسم أو رقم واحد مؤرشف: يا بنرجّعه، يا بنضيفه جديد.
+        const twin = editing ? null : cpList.archivedTwin(rows, [n], p, (r) => [norm(r.name)]);
+        const ask = twin && allowNew !== twin.id;
+        $('clTwin').hidden = !ask;
+        if (ask) { $('clTwinName').textContent = twin.name; $('clTwin').dataset.id = twin.id; }
+        $('clDup').hidden = !dup || ask;
         if (dup) $('clDupName').textContent = dup.name + (dup.archived ? ' (مؤرشف)' : '');
-        save.disabled = !fName.value.trim() || !okPhone;
+        save.disabled = !fName.value.trim() || !okPhone || ask;
     }
+    $('clTwinRestore').addEventListener('click', () => {
+        const t = rows.find((x) => x.id === +$('clTwin').dataset.id);
+        if (t) submitArch(t.restore, 'POST');
+    });
+    $('clTwinNew').addEventListener('click', () => { allowNew = +$('clTwin').dataset.id; check(); });
     [fName, fPhone].forEach((el) => el.addEventListener('input', check));
     $('clNew').addEventListener('click', () => openSheet(null));
     $('fCancel').addEventListener('click', closeSheet);
@@ -205,7 +232,7 @@
     /* ——— ضل مكانك بعد الحفظ أو الحذف ——— */
     const kept = window.cpKeep && cpKeep.take();
     if (kept) {
-        filter = kept.filter || filter; $('clQ').value = kept.q || '';
+        if (FILTERS[kept.filter]) filter = kept.filter; $('clQ').value = kept.q || '';
         document.querySelectorAll('.cl-seg button').forEach((x) => x.classList.toggle('on', x.dataset.f === filter));
     }
     if (window.cpKeep) cpKeep.track(() => ({ filter, q: $('clQ').value }));

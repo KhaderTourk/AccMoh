@@ -32,6 +32,8 @@ class VendorController extends Controller
                 'phone' => (string) $v->phone,
                 'notes' => (string) $v->notes,
                 'archived' => ! $v->is_active,
+                // «راتب شهري»: إله راتب ولسا ما وقف
+                'salary' => $type === VendorType::Worker && $v->activeSalary() !== null,
                 // موجب = عليه (لصالحنا)، سالب = إله، زي باقي القوائم
                 'balances' => $this->balances($currencies, fn ($id) => \App\Support\Money::neg($v->outstandingAmount($id))),
                 'pinned' => (bool) $v->is_pinned,

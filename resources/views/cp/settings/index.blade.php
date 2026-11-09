@@ -18,6 +18,7 @@
         <a href="{{ route('cp.settings.index', ['tab' => 'services']) }}" class="{{ $tab === 'services' ? 'on' : '' }}">الخدمات</a>
         <a href="{{ route('cp.settings.index', ['tab' => 'methods']) }}" class="{{ $tab === 'methods' ? 'on' : '' }}">طرق الدفع</a>
         <a href="{{ route('cp.settings.index', ['tab' => 'import']) }}" class="{{ $tab === 'import' ? 'on' : '' }}">الاستيراد</a>
+        <a href="{{ route('cp.settings.index', ['tab' => 'view']) }}" class="{{ $tab === 'view' ? 'on' : '' }}">العرض</a>
     </nav>
 
     @if($errors->any())
@@ -74,6 +75,16 @@
                 @endforeach
             </details>
         @endif
+    @elseif($tab === 'view')
+        <section class="st-card">
+            <div class="st-row">
+                <div class="st-name">
+                    <b>إظهار المؤرشف</b>
+                    <span>لما يكون شغّال، المؤرشفين بيظهروا بقوائم الزبائن والموظفين والموردين والأشخاص وبالحركات، بلون باهت.</span>
+                </div>
+                {!! $switch(['toggle' => route('cp.settings.archived'), 'active' => $showArchived]) !!}
+            </div>
+        </section>
     @elseif($tab === 'methods')
         <div class="st-bar">
             <p class="st-note">المستعملة ما بتنحذف، بتنطفى بس: بتختفي من أزرار الدفع وبتضل بالكشوفات.</p>

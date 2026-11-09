@@ -128,8 +128,10 @@ class ReportsAndArchiveTest extends TestCase
         ]);
         TenantContext::clear();
 
-        $this->actingAs($this->user)->get(route('cp.dashboard'))->assertOk()->assertSee('إظهار/إخفاء المؤرشف');
-        // Archived clients now live in the list's «مؤرشف» tab instead of being dropped from the page.
+        // «إظهار المؤرشف» صار خيار بالإعدادات بدل زر الشريط العلوي.
+        $this->actingAs($this->user)->get(route('cp.dashboard'))->assertOk()->assertDontSee('إظهار/إخفاء المؤرشف');
+        $this->actingAs($this->user)->get(route('cp.settings.index', ['tab' => 'view']))->assertOk()->assertSee('إظهار المؤرشف');
+        // Archived rows are sent to the list page; the browser shows them only when «إظهار المؤرشف» is on.
         $this->actingAs($this->user)->get(route('cp.clients.index'))
             ->assertSee('"name":"زبون مخفي"', false)->assertSee('"archived":true', false);
         $this->actingAs($this->user)->get(route('cp.persons.index'))->assertSee('"name":"شخص مخفي"', false)->assertSee('"archived":true', false);
@@ -154,5 +156,12 @@ class ReportsAndArchiveTest extends TestCase
             ->from(route('cp.dashboard'))
             ->post(route('cp.archive-visibility'))
             ->assertRedirect(route('cp.dashboard'));
+
+        // The settings switch is saved (not only for the session) and turns the lists on.
+        $this->actingAs($this->user)->get(route('cp.clients.index'))->assertSee('"showArchived":true', false);
+        $this->actingAs($this->user)->post(route('cp.settings.archived'))
+            ->assertRedirect(route('cp.settings.index', ['tab' => 'view']));
+        $this->actingAs($this->user)->get(route('cp.clients.index'))->assertSee('"showArchived":false', false);
+        $this->actingAs($this->user)->get(route('cp.payments.incoming'))->assertDontSee('دفعة الزبون المخفي');
     }
 }

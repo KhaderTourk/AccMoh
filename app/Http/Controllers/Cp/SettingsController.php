@@ -35,7 +35,7 @@ class SettingsController extends Controller
 
     public function index(Request $request)
     {
-        $tab = in_array($request->query('tab'), ['services', 'methods', 'import'], true) ? $request->query('tab') : 'services';
+        $tab = in_array($request->query('tab'), ['services', 'methods', 'import', 'view'], true) ? $request->query('tab') : 'services';
 
         $serviceUses = ClientService::query()->whereNotNull('service_type_id')
             ->selectRaw('service_type_id, COUNT(*) as n')->groupBy('service_type_id')->pluck('n', 'service_type_id');
@@ -88,7 +88,17 @@ class SettingsController extends Controller
             'delete' => route('cp.settings.methods.destroy', $m),
         ])->values();
 
-        return view('cp.settings.index', compact('tab', 'groupRows', 'ungrouped', 'stopped', 'serviceNames', 'methods'));
+        $showArchived = \App\Support\ArchiveVisibility::showing();
+
+        return view('cp.settings.index', compact('tab', 'groupRows', 'ungrouped', 'stopped', 'serviceNames', 'methods', 'showArchived'));
+    }
+
+    /** «إظهار المؤرشف»: المؤرشفين بيظهروا بكل القوائم والحركات لما يكون شغّال. */
+    public function toggleArchived()
+    {
+        \App\Support\ArchiveVisibility::toggle();
+
+        return redirect()->route('cp.settings.index', ['tab' => 'view']);
     }
 
     /* ——— المجموعات ——— */

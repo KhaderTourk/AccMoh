@@ -2041,6 +2041,14 @@ html.dark .cl-field input, html.dark .cl-field textarea { background: #0f172a; b
 .cl-err { display: block; margin-top: .3rem; font-size: .78rem; color: #e11d48; }
 .cl-dup { display: flex; align-items: center; gap: .35rem; font-size: .85rem; padding: .55rem .75rem; border-radius: .7rem; background: #fff7ed; color: #9a3412; margin: 0 0 .85rem; }
 .cl-dup .material-symbols-outlined { font-size: 1.1rem; }
+/* مؤرشف بالقوائم (لما «إظهار المؤرشف» شغّال) وتنبيه «موجود بالأرشيف» */
+.cl-row.is-arch { opacity: .55; }
+.cl-row.is-arch:hover, .cl-row.is-arch:focus-visible { opacity: .85; }
+.cl-who b .cs-arch { margin: 0 .3rem 0 0; vertical-align: middle; }
+html.dark .cs-arch { background: #334155; color: #cbd5e1; }
+.cl-twin { flex-direction: column; align-items: stretch; gap: .55rem; }
+.cl-twin p { display: flex; align-items: center; gap: .35rem; margin: 0; }
+.cl-twin-act { display: flex; gap: .5rem; }
 .cl-actions { display: flex; gap: .5rem; }
 .cl-actions .cp-btn[disabled] { background: #cbd5e1; border-color: #cbd5e1; color: #fff; box-shadow: none; cursor: not-allowed; }
 @media (prefers-reduced-motion: reduce) { .cl-row.is-new, .cl-dialog { animation: none; } }

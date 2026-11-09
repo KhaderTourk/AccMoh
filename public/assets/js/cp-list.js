@@ -2,14 +2,16 @@
    الرصيد بالصفوف: موجب = «عليه» (وردي)، سالب = «إله» (أخضر). */
 (function () {
     'use strict';
+    // «المثبّتين أول» أول خيار وهو الافتراضي (قرار 9/11/2026).
     var SORTS = [
+        ['pinned', 'المثبّتين أول'],
         ['collect', 'الأولى بالتحصيل'],
         ['oldest', 'أقدم دفعة'],
         ['highest', 'الأعلى رصيد'],
         ['recent', 'آخر حركة'],
-        ['pinned', 'المثبّتين أول'],
         ['name', 'الاسم'],
     ];
+    var DEFAULT_SORT = 'pinned';
     var fmt = function (n) { return Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
     var DAY = 86400000;
 
@@ -75,9 +77,10 @@
 
     /** زر «ترتيب» بقائمة بثيم النظام، وآخر اختيار بينحفظ لكل شاشة */
     function sortMenu(host, key, onChange) {
-        var store = 'cpSort:' + key, mode = 'collect';
+        // مفتاح جديد عشان الكل يبلّش على الافتراضي الجديد، وبعدها آخر اختيار بينحفظ.
+        var store = 'cpSort2:' + key, mode = DEFAULT_SORT;
         try { mode = localStorage.getItem(store) || mode; } catch (e) {}
-        if (!SORTS.some(function (s) { return s[0] === mode; })) mode = 'collect';
+        if (!SORTS.some(function (s) { return s[0] === mode; })) mode = DEFAULT_SORT;
         host.classList.add('cl-sort');
         host.innerHTML = '<button type="button" class="cl-sort-btn" aria-haspopup="true"><span class="material-symbols-outlined">swap_vert</span><span class="cl-sort-txt"></span></button>'
             + '<div class="cl-menu cl-sort-menu" hidden>' + SORTS.map(function (s) { return '<button type="button" data-s="' + s[0] + '">' + s[1] + '</button>'; }).join('') + '</div>';
@@ -109,5 +112,20 @@
             .then(function (j) { c.pinned = !!j.pinned; return c.pinned; });
     }
 
-    window.cpList = { sort: sort, ageLine: ageLine, summary: summary, sortMenu: sortMenu, pin: pin };
+    /**
+     * تنبيه «موجود بالأرشيف» بنافذة الإضافة: أول مؤرشف بنفس الاسم أو الرقم.
+     * names: الأسماء المكتوبة (بعد norm)، keysOf(r): أسماء الصف (بعد norm).
+     */
+    function archivedTwin(list, names, phone, keysOf) {
+        names = names.filter(function (n) { return n.length >= 3; });
+        phone = String(phone || '').trim();
+        return list.find(function (r) {
+            if (!r.archived) return false;
+            if (/^05\d{8}$/.test(phone) && String(r.phone || '').trim() === phone) return true;
+            var keys = keysOf(r).filter(Boolean);
+            return names.some(function (n) { return keys.indexOf(n) !== -1; });
+        }) || null;
+    }
+
+    window.cpList = { sort: sort, ageLine: ageLine, summary: summary, sortMenu: sortMenu, pin: pin, archivedTwin: archivedTwin };
 })();
