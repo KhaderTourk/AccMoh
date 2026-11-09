@@ -152,16 +152,21 @@ class ReportsAndArchiveTest extends TestCase
         $this->actingAs($this->user)->withSession($shown)->get(route('cp.ledger.index'))->assertSee('دفعة الزبون المخفي');
         $this->actingAs($this->user)->withSession($shown)->get(route('cp.client-services.index'))->assertSee('خدمة الزبون المخفي');
 
+        $this->flushSession();
+        $this->actingAs($this->user)->get(route('cp.clients.index'))->assertSee('"showArchived":false', false);
+
+        // The settings switch is saved (not only for the session) and turns the lists and movements on.
+        $this->actingAs($this->user)->post(route('cp.settings.archived'))
+            ->assertRedirect(route('cp.settings.index', ['tab' => 'view']));
+        $this->assertSame('1', \App\Models\AppSetting::get('show_archived'));
+        $this->actingAs($this->user)->get(route('cp.clients.index'))->assertSee('"showArchived":true', false);
+        $this->actingAs($this->user)->get(route('cp.payments.incoming'))->assertSee('دفعة الزبون المخفي');
+
+        // The old route toggles the same setting.
         $this->actingAs($this->user)
             ->from(route('cp.dashboard'))
             ->post(route('cp.archive-visibility'))
             ->assertRedirect(route('cp.dashboard'));
-
-        // The settings switch is saved (not only for the session) and turns the lists on.
-        $this->actingAs($this->user)->get(route('cp.clients.index'))->assertSee('"showArchived":true', false);
-        $this->actingAs($this->user)->post(route('cp.settings.archived'))
-            ->assertRedirect(route('cp.settings.index', ['tab' => 'view']));
         $this->actingAs($this->user)->get(route('cp.clients.index'))->assertSee('"showArchived":false', false);
-        $this->actingAs($this->user)->get(route('cp.payments.incoming'))->assertDontSee('دفعة الزبون المخفي');
     }
 }
