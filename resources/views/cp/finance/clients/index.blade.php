@@ -18,7 +18,6 @@
         <div class="cl-seg" role="tablist" aria-label="عرض">
             <button type="button" class="on" data-f="due" role="tab">عليه رصيد</button>
             <button type="button" data-f="credit" role="tab">إله رصيد</button>
-            <button type="button" data-f="monthly" role="tab">اشتراك شهري</button>
             <button type="button" data-f="settled" role="tab">مسدّد</button>
         </div>
         <div id="clSort"></div>
@@ -82,17 +81,19 @@
     const norm = (s) => String(s || '').replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/\s+/g, ' ').trim().toLowerCase();
     const fmt = (n) => Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     // ترتيب وافتراضي الفلاتر (قرار 9/11/2026). «المؤرشف» بيظهر من الإعدادات بس.
+    // الرصيد لحد 10 شيكل بالاتجاهين بينعرض تحت «مسدّد» (قرار 9/11/2026). عرض بس، الرصيد نفسه ما بيتغيّر.
+    const SMALL = 10;
+    const small = (c) => c.balances.every((b) => Math.abs(b.amount) <= SMALL);
     const FILTERS = {
-        due: (c) => due(c),
-        credit: (c) => credit(c),
-        monthly: (c) => c.monthly,
-        settled: (c) => !c.balances.length,
+        due: (c) => !small(c) && due(c),
+        credit: (c) => !small(c) && credit(c),
+        settled: (c) => small(c),
     };
-    const EMPTY = { due: 'ما في زبون عليه رصيد.', credit: 'ما في زبون إله رصيد.', monthly: 'ما في زبون عنده اشتراك شهري شغّال.', settled: 'ما في زبون مسدّد.' };
+    const EMPTY = { due: 'ما في زبون عليه رصيد.', credit: 'ما في زبون إله رصيد.', settled: 'ما في زبون مسدّد.' };
     let filter = 'due';
     let editing = null, allowNew = 0;
-    // «مؤرشف» بآخر قائمة الترتيب لما «إظهار المؤرشف» شغّال (قرار 9/11/2026)، والمؤرشفين ما بيظهروا بالتابات.
-    const sorter = cpList.sortMenu($('clSort'), 'client', () => { paintTabs(); render(); }, D.showArchived ? [['arch', 'مؤرشف']] : []);
+    // بآخر قائمة الترتيب: «اشتراك شهري»، وفوقه «مؤرشف» لما «إظهار المؤرشف» شغّال (قرار 9/11/2026).
+    const sorter = cpList.sortMenu($('clSort'), 'client', () => { paintTabs(); render(); }, [['monthly', 'اشتراك شهري']].concat(D.showArchived ? [['arch', 'مؤرشف']] : []));
     function paintTabs() { const a = sorter.extra(); document.querySelectorAll('.cl-seg button').forEach((x) => x.classList.toggle('on', !a && x.dataset.f === filter)); }
 
     const due = (c) => c.balances.some((b) => b.amount > 0);
@@ -108,10 +109,11 @@
 
     function render() {
         const q = norm($('clQ').value);
-        const arch = sorter.extra() === 'arch';
+        const view = sorter.extra(), arch = view === 'arch';
         let rows = clients.filter((c) => (arch ? c.archived : !c.archived || (q && D.showArchived)));
         // البحث بيدوّر بكل الزباين، مش بس بالفلتر المختار.
         if (q) rows = rows.filter((c) => norm([c.org, c.name, c.phone, c.notes].join(' ')).includes(q));
+        else if (view === 'monthly') rows = rows.filter((c) => c.monthly);
         else if (!arch) rows = rows.filter(FILTERS[filter]);
         rows = cpList.sort(rows, sorter.get(), title, D.today);
 
@@ -129,7 +131,7 @@
                     ${c.archived ? '<button type="button" data-act="restore">استرجاع من الأرشيف</button>' : '<button type="button" class="danger" data-act="archive">أرشفة</button>'}
                 </div>
             </div>`).join('')
-            : `<p class="cl-empty">${q ? 'ما في زبون بهالاسم.' : (arch ? 'ما في زبائن مؤرشفين.' : EMPTY[filter])}</p>`;
+            : `<p class="cl-empty">${q ? 'ما في زبون بهالاسم.' : (arch ? 'ما في زبائن مؤرشفين.' : (view === 'monthly' ? 'ما في زبون عنده اشتراك شهري شغّال.' : EMPTY[filter]))}</p>`;
 
         $('clSummary').innerHTML = cpList.summary(rows, 'زبون', D.symbols);
 
