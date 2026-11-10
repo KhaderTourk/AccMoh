@@ -20,8 +20,11 @@
             <button type="button" data-f="credit" role="tab">إله رصيد</button>
             <button type="button" data-f="settled" role="tab">مسدّد</button>
         </div>
+        <div id="clMonthly"></div>
         <div id="clSort"></div>
     </div>
+
+    <div id="clMpHead"></div>
 
     <div class="cl-summary" id="clSummary"></div>
 
@@ -70,8 +73,9 @@
 {{-- نموذج الأرشفة والاسترجاع --}}
 <form method="post" id="clArchForm" hidden>@csrf<input type="hidden" name="_method" id="clArchMethod" value="DELETE"></form>
 
-<script type="application/json" id="clData">{!! json_encode(['clients' => $clients, 'flash' => $flash, 'showArchived' => \App\Support\ArchiveVisibility::showing(), 'storeUrl' => route('cp.clients.store'), 'today' => now()->toDateString()], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) !!}</script>
+<script type="application/json" id="clData">{!! json_encode(['clients' => $clients, 'flash' => $flash, 'showArchived' => \App\Support\ArchiveVisibility::showing(), 'storeUrl' => route('cp.clients.store'), 'today' => now()->toDateString(), 'month' => now()->format('n/Y')], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) !!}</script>
 <script src="{{ asset('assets/js/cp-list.js') }}?v={{ @filemtime(public_path('assets/js/cp-list.js')) }}"></script>
+<script src="{{ asset('assets/js/cp-monthly.js') }}?v={{ @filemtime(public_path('assets/js/cp-monthly.js')) }}"></script>
 <script>
 (function () {
     const D = JSON.parse(document.getElementById('clData').textContent);
@@ -92,9 +96,12 @@
     const EMPTY = { due: 'ما في زبون عليه رصيد.', credit: 'ما في زبون إله رصيد.', settled: 'ما في زبون مسدّد.' };
     let filter = 'due';
     let editing = null, allowNew = 0;
-    // بآخر قائمة الترتيب: «اشتراك شهري»، وفوقه «مؤرشف» لما «إظهار المؤرشف» شغّال (قرار 9/11/2026).
-    const sorter = cpList.sortMenu($('clSort'), 'client', () => { paintTabs(); render(); }, [['monthly', 'اشتراك شهري']].concat(D.showArchived ? [['arch', 'مؤرشف']] : []));
-    function paintTabs() { const a = sorter.extra(); document.querySelectorAll('.cl-seg button').forEach((x) => x.classList.toggle('on', !a && x.dataset.f === filter)); }
+    // بآخر قائمة الترتيب: «مؤرشف» لما «إظهار المؤرشف» شغّال (قرار 9/11/2026).
+    const sorter = cpList.sortMenu($('clSort'), 'client', () => { if (sorter.extra() && mp.on()) { mp.set(false); return; } paintTabs(); render(); }, D.showArchived ? [['arch', 'مؤرشف']] : []);
+    // فلتر «الخدمات الشهرية» جنب التابات، بيجيب الزباين اللي إلهم اشتراك من التابات الثلاثة (قرار 10/11/2026).
+    const mp = cpMonthly.init($('clMonthly'), { label: 'الخدمات الشهرية', noun: 'اشتراك', rows: clients,
+        onChange: (on) => { if (on && sorter.extra()) sorter.reset(); paintTabs(); render(); } });
+    function paintTabs() { const a = sorter.extra() || mp.on(); document.querySelectorAll('.cl-seg button').forEach((x) => x.classList.toggle('on', !a && x.dataset.f === filter)); }
 
     const due = (c) => c.balances.some((b) => b.amount > 0);
     const credit = (c) => c.balances.some((b) => b.amount < 0);
@@ -113,11 +120,13 @@
         let rows = clients.filter((c) => (arch ? c.archived : !c.archived || (q && D.showArchived)));
         // البحث بيدوّر بكل الزباين، مش بس بالفلتر المختار.
         if (q) rows = rows.filter((c) => norm([c.org, c.name, c.phone, c.notes].join(' ')).includes(q));
-        else if (view === 'monthly') rows = rows.filter((c) => c.monthly);
+        else if (mp.on()) rows = mp.rows();
         else if (!arch) rows = rows.filter(FILTERS[filter]);
+        $('clMpHead').innerHTML = mp.on() && !q ? mp.head(D.month) : '';
         rows = cpList.sort(rows, sorter.get(), title, D.today);
 
-        $('clList').innerHTML = rows.length ? rows.map((c) => `
+        const plans = mp.on() && !q;
+        $('clList').innerHTML = rows.length ? rows.map((c) => `${plans ? '<div class="mp-group">' : ''}
             <div class="cl-row${c.id === D.flash ? ' is-new' : ''}${c.archived ? ' is-arch' : ''}" tabindex="0" data-id="${c.id}">
                 <div class="cl-av">${esc((title(c).trim()[0]) || '؟')}</div>
                 <div class="cl-who"><b>${c.pinned ? '<span class="cl-star">★</span> ' : ''}${esc(title(c))}${c.archived ? ' <em class="cs-arch">مؤرشف</em>' : ''}</b><span>${esc(c.org ? c.name : '')}</span>${cpList.ageLine(c, D.today)}</div>
@@ -130,8 +139,8 @@
                     <hr>
                     ${c.archived ? '<button type="button" data-act="restore">استرجاع من الأرشيف</button>' : '<button type="button" class="danger" data-act="archive">أرشفة</button>'}
                 </div>
-            </div>`).join('')
-            : `<p class="cl-empty">${q ? 'ما في زبون بهالاسم.' : (arch ? 'ما في زبائن مؤرشفين.' : (view === 'monthly' ? 'ما في زبون عنده اشتراك شهري شغّال.' : EMPTY[filter]))}</p>`;
+            </div>${plans ? mp.block(c) + '</div>' : ''}`).join('')
+            : `<p class="cl-empty">${q ? 'ما في زبون بهالاسم.' : (arch ? 'ما في زبائن مؤرشفين.' : (mp.on() ? 'ما في زبون عنده اشتراك شهري. فعّله من صفحة الزبون ← إضافة ← اشتراك شهري.' : EMPTY[filter]))}</p>`;
 
         $('clSummary').innerHTML = cpList.summary(rows, 'زبون', D.symbols);
 
@@ -188,11 +197,11 @@
         }
     }
 
+    mp.bind($('clList'), title);
     document.querySelectorAll('.cl-seg button').forEach((b) => b.addEventListener('click', () => {
-        document.querySelectorAll('.cl-seg button').forEach((x) => x.classList.toggle('on', x === b));
-        sorter.reset();
         filter = b.dataset.f;
-        render();
+        sorter.reset();
+        if (mp.on()) mp.set(false); else { paintTabs(); render(); }
     }));
     $('clQ').addEventListener('input', render);
 
@@ -262,8 +271,9 @@
     if (kept) {
         if (FILTERS[kept.filter]) filter = kept.filter; $('clQ').value = kept.q || '';
         document.querySelectorAll('.cl-seg button').forEach((x) => x.classList.toggle('on', x.dataset.f === filter));
+        if (kept.monthly) mp.set(true);
     }
-    if (window.cpKeep) cpKeep.track(() => ({ filter, q: $('clQ').value }));
+    if (window.cpKeep) cpKeep.track(() => ({ filter, q: $('clQ').value, monthly: mp.on() }));
     render();
 })();
 </script>

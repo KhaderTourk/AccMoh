@@ -95,7 +95,28 @@
 </div>
 
 <form method="post" id="csDelForm" hidden>@csrf<input type="hidden" name="_method" value="DELETE"></form>
-<form method="post" id="csStopForm" hidden>@csrf<input type="hidden" name="ends_on" id="csStopDate"></form>
+{{-- «وقّف الاشتراك»: آخر يوم شغل، وبنفس الخطوة بينضاف الشهر الأخير (قرار 10/11/2026) --}}
+<div class="cl-sheet" id="csStopSheet" hidden>
+    <form class="cl-dialog" id="csStopForm" method="post" novalidate role="dialog" aria-modal="true" aria-labelledby="csStopTitle">
+        @csrf
+        <h2 id="csStopTitle">وقّف الاشتراك</h2>
+        <p class="mp-who" id="csStopWho"></p>
+        <div class="cl-field">
+            <label for="csStopDate">آخر يوم شغل</label>
+            <input id="csStopDate" name="ends_on" inputmode="numeric" dir="ltr" placeholder="يوم/شهر/سنة">
+        </div>
+        <div class="mp-calc" id="csStopCalc"></div>
+        <div class="cl-field">
+            <label for="csStopAmt">مبلغ الشهر الأخير</label>
+            <input id="csStopAmt" name="last_amount" inputmode="decimal" dir="ltr">
+            <small class="cs-hint" id="csStopHint"></small>
+        </div>
+        <div class="cl-actions">
+            <button type="submit" class="cp-btn cp-btn-primary" id="csStopSave">وقّف وأضف الشهر الأخير</button>
+            <button type="button" class="cp-btn cp-btn-ghost" id="csStopCancel">إلغاء</button>
+        </div>
+    </form>
+</div>
 <form method="post" id="csArchForm" action="{{ $client->is_active ? route('cp.clients.destroy', $client) : route('cp.clients.restore', $client) }}" hidden>@csrf @if($client->is_active)<input type="hidden" name="_method" value="DELETE">@endif</form>
 
 <script type="application/json" id="csData">{!! json_encode([
@@ -532,6 +553,47 @@
         $('xDate').value = dayLabel(day);
     });
 
+    /* «وقّف الاشتراك»: الشهر الأخير = السعر ÷ أيام الشهر الفعلية × أيام الشغل، بالكسور، وقابل للتعديل. */
+    let stopSub = null;
+    function openStop(x) {
+        stopSub = x;
+        $('csStopWho').textContent = x.title + ' · ' + num(x.amount) + ' شيكل بالشهر';
+        $('csStopDate').value = dayLabel(D.today);
+        $('csStopAmt').dataset.touched = '';
+        stopCalc();
+        $('csStopSheet').hidden = false;
+        setTimeout(() => $('csStopDate').focus(), 30);
+    }
+    function stopCalc() {
+        const day = parseDay($('csStopDate').value);
+        const ok = day && day >= stopSub.from;
+        $('csStopSave').disabled = !ok;
+        if (!ok) { $('csStopCalc').innerHTML = '<div><span>' + (day ? 'التاريخ قبل بداية الاشتراك' : 'اكتب التاريخ هيك: 5/11/2026') + '</span></div>'; return; }
+        const [y, m, d] = day.split('-').map(Number);
+        const inMonth = new Date(y, m, 0).getDate();
+        const period = day.slice(0, 7);
+        const from = stopSub.from.slice(0, 7) === period ? +stopSub.from.slice(8) : 1;
+        const days = Math.max(0, d - from + 1);
+        const amt = days >= inMonth ? stopSub.amount : Math.round(stopSub.amount / inMonth * days * 100) / 100;
+        const recorded = (stopSub.periods || []).includes(period);
+        $('csStopCalc').innerHTML = `<div><span>أيام الشغل بشهر ${m}/${y}</span><b>${days} من ${inMonth}</b></div><div class="t"><span>المبلغ المقترح</span><b>${num(amt)} شيكل</b></div>`;
+        if (!$('csStopAmt').dataset.touched) $('csStopAmt').value = amt.toFixed(2);
+        const future = period > D.today.slice(0, 7);
+        $('csStopHint').textContent = future ? 'الشهر لسا ما إجا، فبيطلع بالفلتر لما يبلّش.'
+            : (recorded ? 'شهر ' + m + '/' + y + ' مسجّل قبل، ومبلغه بيتعدّل للرقم هاد.' : 'بينضاف شهر ' + m + '/' + y + ' بهالمبلغ على الكشف هلق.');
+        $('csStopSave').textContent = future ? 'وقّف الاشتراك' : (recorded ? 'وقّف وعدّل الشهر الأخير' : 'وقّف وأضف الشهر الأخير');
+    }
+    $('csStopDate').addEventListener('input', stopCalc);
+    $('csStopAmt').addEventListener('input', () => { $('csStopAmt').dataset.touched = '1'; });
+    $('csStopCancel').addEventListener('click', () => { $('csStopSheet').hidden = true; });
+    $('csStopSheet').addEventListener('click', (e) => { if (e.target.id === 'csStopSheet') $('csStopSheet').hidden = true; });
+    $('csStopForm').addEventListener('submit', (e) => {
+        const day = parseDay($('csStopDate').value);
+        if (!day || $('csStopSave').disabled || !(parseFloat($('csStopAmt').value) >= 0)) { e.preventDefault(); return; }
+        $('csStopDate').value = dayLabel(day);
+        $('csStopForm').action = stopSub.stop;
+    });
+
     function renderSubs() {
         const S = D.subscriptions || [];
         $('csSubs').hidden = !S.length;
@@ -556,12 +618,7 @@
         const st = e.target.closest('[data-sub-stop]');
         if (st) {
             closeMenus();
-            const x = D.subscriptions.find((y) => y.id === +st.dataset.subStop);
-            const v = window.prompt(`آخر يوم بالاشتراك «${x.title}» (يوم/شهر/سنة). إذا شهره مسجّل، مبلغه بيتعدّل حسب الأيام.`, dayLabel(D.today));
-            const day = v && parseDay(v);
-            if (!day) return;
-            $('csStopDate').value = dayLabel(day);
-            $('csStopForm').action = x.stop; $('csStopForm').submit();
+            openStop(D.subscriptions.find((y) => y.id === +st.dataset.subStop));
             return;
         }
         const dl = e.target.closest('[data-sub-del]');

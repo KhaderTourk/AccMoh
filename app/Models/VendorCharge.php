@@ -24,6 +24,7 @@ class VendorCharge extends Model
         'fx_currency_id',
         'currency_id',
         'charge_date',
+        'period',
         'notes',
     ];
 

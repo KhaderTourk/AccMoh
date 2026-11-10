@@ -46,13 +46,12 @@ class ClientSubscriptionController extends Controller
             'notes' => $data['notes'] ?? null,
         ]);
 
-        // أول شهر بينسجل فوراً على الكشف (قرار 1/11/2026)
+        // أول شهر ما بينسجّل لحاله: بيطلع بفلتر «الخدمات الشهرية» بمبلغ مقترح حسب الأيام (قرار 10/11/2026).
         $first = $sub->starts_on->format('Y-m');
-        DB::transaction(fn () => $this->recordMonth($sub, $first, $sub->suggestedAmount($first), $work));
-        [$days] = $sub->daysIn($first);
+        [$days, $inMonth] = $sub->daysIn($first);
 
         return redirect()->route('cp.clients.show', $client)
-            ->with('success', 'انضاف الاشتراك، وانسجّل أول شهر'.($days < 30 ? " ({$days} يوم من 30)" : '').'. بعدها بيذكّرك أول كل شهر.');
+            ->with('success', 'انضاف الاشتراك. أول شهر'.($days < $inMonth ? " ({$days} يوم من {$inMonth})" : '').' بيطلع بفلتر «الخدمات الشهرية» عشان تضيفه.');
     }
 
     /** بيسجّل خدمة شهر من الاشتراك على كشف الزبون، إذا مش مسجّلة. */
@@ -74,35 +73,45 @@ class ClientSubscriptionController extends Controller
         return true;
     }
 
-    /** Stop a subscription; a month already recorded for the last month gets its amount by days. */
+    /**
+     * «وقّف الاشتراك»: آخر يوم شغل، وبنفس الخطوة بيسجّل الشهر الأخير بالمبلغ اللي اختاره
+     * (أو بيعدّل مبلغه إذا كان مسجّل قبل). المبلغ المقترح حسب الأيام، وقابل للتعديل.
+     */
     public function stop(Request $request, ClientSubscription $subscription, ClientWorkService $work)
     {
-        $data = $request->validate(['ends_on' => DateRange::inputRules()]);
+        $data = $request->validate([
+            'ends_on' => DateRange::inputRules(),
+            'last_amount' => ['nullable', 'numeric', 'gte:0'],
+        ]);
         $endsOn = DateRange::normalize($data['ends_on']);
         if ($endsOn < $subscription->starts_on->toDateString()) {
             throw ValidationException::withMessages(['ends_on' => 'تاريخ الإيقاف قبل بداية الاشتراك.']);
         }
 
-        DB::transaction(function () use ($subscription, $endsOn, $work) {
+        $note = '';
+        DB::transaction(function () use ($subscription, $endsOn, $work, $data, &$note) {
             $subscription->update(['ends_on' => $endsOn]);
             $last = substr($endsOn, 0, 7);
+            $amount = filled($data['last_amount'] ?? null) ? Money::of($data['last_amount']) : $subscription->suggestedAmount($last);
             $month = $subscription->months()->where('period', $last)->first();
             if ($month) {
-                $amount = $subscription->suggestedAmount($last);
                 $work->update($month, [
                     'title' => $subscription->monthTitle($last),
                     'amount' => $amount,
                     'currency_id' => $month->currency_id,
                     'service_date' => $month->service_date->toDateString(),
                 ]);
+                $note = '، وتعدّل مبلغ شهر '.ClientSubscription::periodLabel($last).' لـ'.$amount.' شيكل';
+            } elseif ($last <= now()->format('Y-m') && $this->recordMonth($subscription, $last, $amount, $work)) {
+                $note = '، وانضاف شهر '.ClientSubscription::periodLabel($last).' بـ'.$amount.' شيكل';
             }
         });
 
         if ($request->input('return') === 'confirm') {
-            return redirect()->route('cp.subscriptions.confirm')->with('success', 'انوقف الاشتراك «'.$subscription->title.'».');
+            return redirect()->route('cp.subscriptions.confirm')->with('success', 'انوقف الاشتراك «'.$subscription->title.'»'.$note.'.');
         }
 
-        return redirect()->route('cp.clients.show', $subscription->client_id)->with('success', 'انوقف الاشتراك.');
+        return redirect()->route('cp.clients.show', $subscription->client_id)->with('success', 'انوقف الاشتراك'.$note.'.');
     }
 
     public function destroy(ClientSubscription $subscription)
@@ -154,8 +163,13 @@ class ClientSubscriptionController extends Controller
             }
         });
 
+        $msg = $done ? "انسجّل {$done} شهر." : 'ما انسجّل إشي، يمكن الشهر انضاف قبل.';
+        if ($request->input('return') === 'clients') {
+            return redirect()->route('cp.clients.index')->with($done ? 'success' : 'error', $msg);
+        }
+
         return redirect()->route('cp.subscriptions.confirm', ['month' => $request->input('month')])
-            ->with('success', $done ? "انسجّل {$done} شهر." : 'ما انسجّل إشي.');
+            ->with('success', $msg);
     }
 
     /**
@@ -197,6 +211,56 @@ class ClientSubscriptionController extends Controller
                 }))
             ->sortBy(fn ($r) => $r['period'].$r['client']->directoryLabel())
             ->values();
+    }
+
+    /**
+     * اشتراكات كل زبون لفلتر «الخدمات الشهرية»: الشغّالة هالشهر أو اللي إلها شهر لسا ما انضاف.
+     *
+     * @return \Illuminate\Support\Collection<int, list<array<string, mixed>>>
+     */
+    public static function plansByClient()
+    {
+        $today = CarbonImmutable::today();
+        $current = $today->format('Y-m');
+        $action = route('cp.subscriptions.confirm.store');
+
+        return ClientSubscription::query()
+            ->with('months:id,subscription_id,period')
+            ->where('starts_on', '<=', $today->endOfMonth()->toDateString())
+            ->orderBy('starts_on')
+            ->get()
+            ->map(function (ClientSubscription $s) use ($today, $current, $action) {
+                $pending = collect($s->pendingMonths($current))->filter(fn ($p) => $s->isBillable($p, $today))->values();
+                if ($pending->isEmpty() && ! $s->coversMonth($current)) {
+                    return null;
+                }
+
+                return [
+                    'client_id' => $s->client_id,
+                    'title' => $s->title,
+                    'amount' => (float) $s->amount,
+                    'from' => $s->starts_on->toDateString(),
+                    'to' => $s->ends_on?->toDateString(),
+                    'action' => $action,
+                    'amountField' => null,
+                    'pending' => $pending->map(function ($p) use ($s) {
+                        [$days, $inMonth] = $s->daysIn($p);
+                        $key = $s->id.'|'.$p;
+
+                        return [
+                            'period' => $p,
+                            'label' => ClientSubscription::periodLabel($p),
+                            'amount' => (float) $s->suggestedAmount($p),
+                            'days' => $days,
+                            'inMonth' => $inMonth,
+                            'amountField' => "items[{$key}][amount]",
+                            'fields' => ["items[{$key}][on]" => '1', 'month' => $p, 'return' => 'clients'],
+                        ];
+                    })->all(),
+                ];
+            })
+            ->filter()
+            ->groupBy('client_id');
     }
 
     public static function pendingCount(): int

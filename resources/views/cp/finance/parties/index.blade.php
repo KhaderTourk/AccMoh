@@ -4,6 +4,9 @@
 @php
     $heading = ['worker' => 'الموظفون', 'supplier' => 'الموردون', 'person' => 'الأشخاص'][$party['kind']];
     $isWorker = $party['kind'] === 'worker';
+    // الراتب الشهري للموظف، والاشتراك الشهري للمورد. الأشخاص بدون (قرار 10/11/2026).
+    $hasMonthly = $party['kind'] !== 'person';
+    $mNoun = $isWorker ? 'راتب' : 'اشتراك';
     // الفلاتر والافتراضي لكل شاشة (قرار 9/11/2026): الموظفين والموردين على «إله رصيد»، والأشخاص على «عليه رصيد».
     $tabs = ['due' => 'عليه رصيد', 'credit' => 'إله رصيد', 'settled' => 'مسدّد'];
     $defaultTab = $party['kind'] === 'person' ? 'due' : 'credit';
@@ -25,8 +28,11 @@
                 <button type="button" @class(['on' => $key === $defaultTab]) data-f="{{ $key }}" role="tab">{{ $label }}</button>
             @endforeach
         </div>
+        @if($hasMonthly)<div id="clMonthly"></div>@endif
         <div id="clSort"></div>
     </div>
+
+    <div id="clMpHead"></div>
 
     <div class="cl-summary" id="clSummary"></div>
 
@@ -52,21 +58,29 @@
             <input id="fPhone" name="phone" inputmode="numeric" dir="ltr" placeholder="اختياري · 05xxxxxxxx">
             <small class="cl-err" id="phoneErr" hidden>الرقم لازم يكون 10 خانات ويبدأ بـ 05</small>
         </div>
-        @if($isWorker)
-            <div class="cs-two">
-                <div class="cl-field">
-                    <label for="fSalary">الراتب الشهري</label>
-                    <input id="fSalary" name="salary_amount" inputmode="decimal" dir="ltr" placeholder="اختياري">
+        @if($hasMonthly)
+            <div class="mp-box">
+                <label class="mp-sw-row" for="fMonthlyOn">
+                    <span><b>{{ $isWorker ? 'راتب شهري' : 'اشتراك شهري' }}</b><small>بيطلع بفلتر «{{ $isWorker ? 'الرواتب الشهرية' : 'الخدمات الشهرية' }}» عشان تضيفه كل شهر</small></span>
+                    <input type="checkbox" id="fMonthlyOn" class="mp-switch" role="switch">
+                </label>
+                <div id="fMonthlyFields" hidden>
+                    <div class="cs-two">
+                        <div class="cl-field">
+                            <label for="fSalary">{{ $isWorker ? 'الراتب الشهري' : 'الاتفاق الشهري' }}</label>
+                            <input id="fSalary" name="salary_amount" inputmode="decimal" dir="ltr" placeholder="شيكل">
+                        </div>
+                        <div class="cl-field">
+                            <label for="fSalaryFrom">{{ $isWorker ? 'بلّش شغل من' : 'بلّشنا من' }}</label>
+                            <input id="fSalaryFrom" name="salary_from" inputmode="numeric" dir="ltr" placeholder="يوم/شهر/سنة">
+                        </div>
+                    </div>
+                    <div class="cl-field">
+                        <label for="fSalaryTo">آخر يوم شغل</label>
+                        <input id="fSalaryTo" name="salary_to" inputmode="numeric" dir="ltr" placeholder="اختياري · لما يوقف">
+                        <small class="cs-hint" id="fMonthlyCalc">ولا إشي بينسجّل لحاله. كل شهر بيطلع بالفلتر بمبلغ مقترح حسب أيام الشهر، وبتعدّله قبل ما تضيفه.</small>
+                    </div>
                 </div>
-                <div class="cl-field">
-                    <label for="fSalaryFrom">من تاريخ</label>
-                    <input id="fSalaryFrom" name="salary_from" inputmode="numeric" dir="ltr" placeholder="يوم/شهر/سنة">
-                </div>
-            </div>
-            <div class="cl-field">
-                <label for="fSalaryTo">إيقاف الراتب من</label>
-                <input id="fSalaryTo" name="salary_to" inputmode="numeric" dir="ltr" placeholder="اختياري · يوم/شهر/سنة">
-                <small class="cs-hint">الراتب ما بينسجّل لحاله. بس بيعبّي نافذة «مستحق» بالمبلغ.</small>
             </div>
         @endif
         <div class="cl-field">
@@ -90,8 +104,9 @@
 
 <form method="post" id="clArchForm" hidden>@csrf<input type="hidden" name="_method" id="clArchMethod" value="DELETE"></form>
 
-<script type="application/json" id="clData">{!! json_encode(['rows' => $rows, 'flash' => $flash, 'filter' => $defaultTab, 'showArchived' => \App\Support\ArchiveVisibility::showing(), 'storeUrl' => $storeUrl, 'party' => $party, 'today' => now()->toDateString(), 'symbols' => \App\Models\Currency::query()->pluck('symbol', 'code')], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) !!}</script>
+<script type="application/json" id="clData">{!! json_encode(['rows' => $rows, 'flash' => $flash, 'filter' => $defaultTab, 'showArchived' => \App\Support\ArchiveVisibility::showing(), 'storeUrl' => $storeUrl, 'party' => $party, 'today' => now()->toDateString(), 'month' => now()->format('n/Y'), 'symbols' => \App\Models\Currency::query()->pluck('symbol', 'code')], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) !!}</script>
 <script src="{{ asset('assets/js/cp-list.js') }}?v={{ @filemtime(public_path('assets/js/cp-list.js')) }}"></script>
+<script src="{{ asset('assets/js/cp-monthly.js') }}?v={{ @filemtime(public_path('assets/js/cp-monthly.js')) }}"></script>
 <script>
 (function () {
     const D = JSON.parse(document.getElementById('clData').textContent);
@@ -112,10 +127,15 @@
     };
     const EMPTY = { due: 'ما في حدا عليه رصيد.', credit: 'ما في حدا إله رصيد.', settled: 'ما في حدا مسدّد.' };
     let filter = D.filter, editing = null, allowNew = 0;
-    // بآخر قائمة الترتيب: «راتب شهري» للموظفين، وفوقه «مؤرشف» لما «إظهار المؤرشف» شغّال (قرار 9/11/2026).
-    const sorter = cpList.sortMenu($('clSort'), P.kind, () => { paintTabs(); render(); },
-        (P.kind === 'worker' ? [['salary', 'راتب شهري']] : []).concat(D.showArchived ? [['arch', 'مؤرشف']] : []));
-    function paintTabs() { const a = sorter.extra(); document.querySelectorAll('.cl-seg button').forEach((x) => x.classList.toggle('on', !a && x.dataset.f === filter)); }
+    // بآخر قائمة الترتيب: «مؤرشف» لما «إظهار المؤرشف» شغّال (قرار 9/11/2026).
+    const sorter = cpList.sortMenu($('clSort'), P.kind, () => { if (sorter.extra() && mp.on()) { mp.set(false); return; } paintTabs(); render(); },
+        D.showArchived ? [['arch', 'مؤرشف']] : []);
+    // فلتر «الرواتب الشهرية» للموظفين و«الخدمات الشهرية» للموردين (قرار 10/11/2026).
+    const mp = $('clMonthly')
+        ? cpMonthly.init($('clMonthly'), { label: P.kind === 'worker' ? 'الرواتب الشهرية' : 'الخدمات الشهرية', noun: P.kind === 'worker' ? 'راتب' : 'اشتراك', rows,
+            onChange: (on) => { if (on && sorter.extra()) sorter.reset(); paintTabs(); render(); } })
+        : { on: () => false, set: () => {}, bind: () => {} };
+    function paintTabs() { const a = sorter.extra() || mp.on(); document.querySelectorAll('.cl-seg button').forEach((x) => x.classList.toggle('on', !a && x.dataset.f === filter)); }
 
     const due = (c) => c.balances.some((b) => b.amount > 0);
     const credit = (c) => c.balances.some((b) => b.amount < 0);
@@ -130,10 +150,12 @@
         let list = rows.filter((c) => (arch ? c.archived : !c.archived || (q && D.showArchived)));
         // البحث بيدوّر بالكل، مش بس بالفلتر المختار.
         if (q) list = list.filter((c) => norm([c.name, c.sub, c.phone, c.notes].join(' ')).includes(q));
-        else if (view === 'salary') list = list.filter((c) => c.salary);
+        else if (mp.on()) list = mp.rows();
         else if (!arch) list = list.filter(FILTERS[filter]);
+        $('clMpHead').innerHTML = mp.on() && !q ? mp.head(D.month) : '';
+        const plans = mp.on() && !q;
         list = cpList.sort(list, sorter.get(), (c) => c.name, D.today);
-        $('clList').innerHTML = list.length ? list.map((c) => `
+        $('clList').innerHTML = list.length ? list.map((c) => `${plans ? '<div class="mp-group">' : ''}
             <div class="cl-row${c.id === D.flash ? ' is-new' : ''}${c.archived ? ' is-arch' : ''}" tabindex="0" data-id="${c.id}">
                 <div class="cl-av">${esc((c.name.trim()[0]) || '؟')}</div>
                 <div class="cl-who"><b>${c.pinned ? '<span class="cl-star">★</span> ' : ''}${esc(c.name)}${c.archived ? ' <em class="cs-arch">مؤرشف</em>' : ''}</b><span>${esc(c.sub)}</span></div>
@@ -146,8 +168,8 @@
                     <hr>
                     ${c.archived ? '<button type="button" data-act="restore">استرجاع من الأرشيف</button>' : '<button type="button" class="danger" data-act="archive">أرشفة</button>'}
                 </div>
-            </div>`).join('')
-            : `<p class="cl-empty">${q ? 'ما في حدا بهالاسم.' : (arch ? 'ما في حدا مؤرشف.' : (view === 'salary' ? 'ما في حدا إله راتب شهري.' : EMPTY[filter]))}</p>`;
+            </div>${plans ? mp.block(c) + '</div>' : ''}`).join('')
+            : `<p class="cl-empty">${q ? 'ما في حدا بهالاسم.' : (arch ? 'ما في حدا مؤرشف.' : (mp.on() ? 'ما في حدا مفعّل عنده ' + (P.kind === 'worker' ? 'راتب شهري' : 'اشتراك شهري') + '. فعّله من «تعديل».' : EMPTY[filter]))}</p>`;
         $('clSummary').innerHTML = cpList.summary(list, P.noun, D.symbols);
         if (D.flash) { const el = document.querySelector('.cl-row.is-new'); if (el) el.scrollIntoView({ block: 'center' }); D.flash = 0; }
     }
@@ -174,10 +196,11 @@
         const ask = window.cpConfirm ? window.cpConfirm(msg) : Promise.resolve(window.confirm(msg));
         ask.then((ok) => { if (ok) submitArch(c.archive, 'DELETE'); });
     }
+    mp.bind($('clList'), (c) => c.name);
     document.querySelectorAll('.cl-seg button').forEach((b) => b.addEventListener('click', () => {
-        document.querySelectorAll('.cl-seg button').forEach((x) => x.classList.toggle('on', x === b));
+        filter = b.dataset.f;
         sorter.reset();
-        filter = b.dataset.f; render();
+        if (mp.on()) mp.set(false); else { paintTabs(); render(); }
     }));
     $('clQ').addEventListener('input', render);
 
@@ -197,6 +220,8 @@
             $('fSalary').value = c && c.fields.salary_amount ? c.fields.salary_amount : '';
             $('fSalaryFrom').value = c ? dayLabel(c.fields.salary_from) : '';
             $('fSalaryTo').value = c ? dayLabel(c.fields.salary_to) : '';
+            $('fMonthlyOn').checked = !!(c && c.fields.salary_amount);
+            $('fMonthlyFields').hidden = !$('fMonthlyOn').checked;
         }
         $('clSheet').hidden = false;
         check();
@@ -242,8 +267,18 @@
     if (kept) {
         if (FILTERS[kept.filter]) filter = kept.filter; $('clQ').value = kept.q || '';
         document.querySelectorAll('.cl-seg button').forEach((x) => x.classList.toggle('on', x.dataset.f === filter));
+        if (kept.monthly) mp.set(true);
     }
-    if (window.cpKeep) cpKeep.track(() => ({ filter, q: $('clQ').value }));
+    if (window.cpKeep) cpKeep.track(() => ({ filter, q: $('clQ').value, monthly: mp.on() }));
+    // مفتاح «راتب شهري» / «اشتراك شهري»: لما ينطفى بتنمسح الحقول عشان ما يضل يطلع بالفلتر.
+    if ($('fMonthlyOn')) {
+        $('fMonthlyOn').addEventListener('change', () => {
+            const on = $('fMonthlyOn').checked;
+            $('fMonthlyFields').hidden = !on;
+            if (!on) { $('fSalary').value = ''; $('fSalaryFrom').value = ''; $('fSalaryTo').value = ''; }
+            else if (!$('fSalaryFrom').value) $('fSalaryFrom').value = dayLabel(D.today);
+        });
+    }
     render();
 })();
 </script>

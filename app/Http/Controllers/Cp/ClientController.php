@@ -21,13 +21,9 @@ class ClientController extends Controller
     {
         $currencies = Currency::query()->active()->get();
 
-        // الزباين اللي عندهم اشتراك شهري شغّال اليوم (فلتر «اشتراك شهري»).
-        $today = now()->toDateString();
+        // اشتراكات كل زبون لفلتر «الخدمات الشهرية» (قرار 10/11/2026).
         $monthly = Schema::hasTable('client_subscriptions')
-            ? \App\Models\ClientSubscription::query()
-                ->whereDate('starts_on', '<=', $today)
-                ->where(fn ($q) => $q->whereNull('ends_on')->orWhereDate('ends_on', '>=', $today))
-                ->pluck('client_id')->flip()
+            ? ClientSubscriptionController::plansByClient()
             : collect();
 
         // Every client (archived included) in one list; filtering and search happen in the browser.
@@ -54,7 +50,7 @@ class ClientController extends Controller
                     'phone' => (string) $client->phone,
                     'notes' => (string) $client->notes,
                     'archived' => ! $client->is_active,
-                    'monthly' => $monthly->has($client->id),
+                    'monthly' => $monthly->get($client->id, collect())->values()->all(),
                     'balances' => $balances,
                     'pinned' => (bool) $client->is_pinned,
                     'pin' => route('cp.pin.toggle', ['kind' => 'client', 'id' => $client->id]),
@@ -202,6 +198,7 @@ class ClientController extends Controller
                 'from' => $s->starts_on->toDateString(),
                 'to' => $s->ends_on?->toDateString(),
                 'months' => $s->months_count,
+                'periods' => $s->months->pluck('period')->all(),
                 'stop' => route('cp.subscriptions.stop', $s),
                 'delete' => route('cp.subscriptions.destroy', $s),
             ])->values();

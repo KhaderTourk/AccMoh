@@ -32,8 +32,8 @@ class VendorController extends Controller
                 'phone' => (string) $v->phone,
                 'notes' => (string) $v->notes,
                 'archived' => ! $v->is_active,
-                // «راتب شهري»: إله راتب ولسا ما وقف
-                'salary' => $type === VendorType::Worker && $v->activeSalary() !== null,
+                // فلتر «الرواتب الشهرية» / «الخدمات الشهرية» (قرار 10/11/2026)
+                'monthly' => VendorMonthlyController::plans($v),
                 // موجب = عليه (لصالحنا)، سالب = إله، زي باقي القوائم
                 'balances' => $this->balances($currencies, fn ($id) => \App\Support\Money::neg($v->outstandingAmount($id))),
                 'pinned' => (bool) $v->is_pinned,
@@ -168,11 +168,12 @@ class VendorController extends Controller
             'phone' => Phone::rules(),
             'notes' => ['nullable', 'string'],
         ];
+        // الراتب الشهري للموظف، والاشتراك الشهري للمورد، بنفس الحقول.
+        $rules['salary_amount'] = ['nullable', 'numeric', 'gte:0'];
+        $rules['salary_from'] = DateRange::inputRules(false);
+        $rules['salary_to'] = DateRange::inputRules(false);
         if ($this->type() === VendorType::Worker) {
             $rules['job_title'] = ['nullable', 'string', 'max:255'];
-            $rules['salary_amount'] = ['nullable', 'numeric', 'gte:0'];
-            $rules['salary_from'] = DateRange::inputRules(false);
-            $rules['salary_to'] = DateRange::inputRules(false);
         } else {
             $rules['work_description'] = ['nullable', 'string', 'max:255'];
         }

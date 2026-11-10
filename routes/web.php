@@ -137,6 +137,7 @@ Route::prefix('cp')->name('cp.')->middleware(['cp.auth', 'cp.check'])->group(fun
         Route::post('/ads/limit', [\App\Http\Controllers\Cp\AdsController::class, 'limit'])->name('ads.limit');
 
         Route::resource('vendor-charges', VendorChargeController::class)->except(['index', 'show']);
+        Route::post('/vendor-monthly/{vendor}', [\App\Http\Controllers\Cp\VendorMonthlyController::class, 'store'])->name('vendor-monthly.store');
 
         foreach (['workers', 'suppliers'] as $prefix) {
             Route::get("/{$prefix}", [VendorController::class, 'index'])->name("{$prefix}.index");

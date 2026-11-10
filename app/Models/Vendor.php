@@ -63,6 +63,51 @@ class Vendor extends Model
         return $this->cashPayments()->exists() || $this->charges()->exists() || $this->expenses()->exists() || $this->goodsTakes()->exists() || $this->balanceMemos()->exists();
     }
 
+    /** First month counted by «أضف هالشهر» for salaries and supplier subscriptions. */
+    public const MONTHLY_TRACKED_FROM = '2026-11-01';
+
+    /** «راتب» للموظف، و«اشتراك» للمورد. */
+    public function monthlyNoun(): string
+    {
+        return $this->type === VendorType::Worker ? 'راتب' : 'اشتراك';
+    }
+
+    /** Whether a monthly salary / subscription amount is set at all. */
+    public function hasMonthly(): bool
+    {
+        return $this->salary_amount && Money::isPositive($this->salary_amount) && $this->salary_from;
+    }
+
+    /**
+     * Months (up to this month) of the monthly salary / subscription that are not added yet.
+     * الشهر بيطلع من أول يوم فيه، والشهر الجزئي حسب أيام الشهر الفعلية (قرار 10/11/2026).
+     *
+     * @return list<string>
+     */
+    public function pendingMonths(?string $until = null): array
+    {
+        if (! $this->hasMonthly()) {
+            return [];
+        }
+        $recorded = $this->charges()->whereNotNull('period')->pluck('period')->all();
+        // الشهور قبل تشرين الثاني 2026 انسجّلت بالإيد قبل هالميزة، فما بنعدّها «فاتتك».
+        $from = $this->salary_from->toDateString() < self::MONTHLY_TRACKED_FROM
+            ? \Carbon\CarbonImmutable::parse(self::MONTHLY_TRACKED_FROM) : $this->salary_from;
+
+        return \App\Support\MonthlyPlan::pending($from, $this->salary_to, $recorded, $until ?? now()->format('Y-m'));
+    }
+
+    public function monthlySuggested(string $period): string
+    {
+        return \App\Support\MonthlyPlan::suggested($this->salary_amount, $this->salary_from, $this->salary_to, $period);
+    }
+
+    public function monthlyTitle(string $period): string
+    {
+        return $this->monthlyNoun().' شهر '.\App\Support\MonthlyPlan::label($period)
+            .\App\Support\MonthlyPlan::daysNote($this->salary_from, $this->salary_to, $period);
+    }
+
     /** Salary amount when one is set and running today, else null. */
     public function activeSalary(): ?string
     {

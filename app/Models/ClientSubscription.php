@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
-use App\Support\Money;
+use App\Support\MonthlyPlan;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -59,51 +59,26 @@ class ClientSubscription extends Model
     /** Whether any day of the month («Y-m») falls inside the subscription. */
     public function coversMonth(string $period): bool
     {
-        $start = CarbonImmutable::createFromFormat('Y-m-d', $period.'-01')->startOfDay();
-        $end = $start->endOfMonth()->startOfDay();
-
-        return $this->starts_on->toDateString() <= $end->toDateString()
-            && (! $this->ends_on || $this->ends_on->toDateString() >= $start->toDateString());
+        return MonthlyPlan::covers($this->starts_on, $this->ends_on, $period);
     }
 
     /**
-     * أيام الشهر («Y-m») داخل الاشتراك، والشهر دايماً 30 يوم (قرار 1/11/2026):
-     * بلّش بنصه = 30 − يوم البداية + 1، ووقف بنصه = يوم الإيقاف، ويوم 31 بينحسب 30، وشباط 30.
+     * أيام الشغل بالشهر («Y-m») وأيام الشهر الفعلية (قرار 10/11/2026، بدل 30 ثابت).
      *
      * @return array{0: int, 1: int}
      */
     public function daysIn(string $period): array
     {
-        if (! $this->coversMonth($period)) {
-            return [0, 30];
-        }
-        $from = $this->starts_on->format('Y-m') === $period ? min(30, (int) $this->starts_on->format('j')) : 1;
-        $to = $this->ends_on && $this->ends_on->format('Y-m') === $period ? min(30, (int) $this->ends_on->format('j')) : 30;
-        // شباط: إذا وقف آخر يوم بالشهر بينحسب شهر كامل
-        if ($this->ends_on && $this->ends_on->format('Y-m') === $period && $this->ends_on->isLastOfMonth()) {
-            $to = 30;
-        }
-
-        return [max(0, $to - $from + 1), 30];
+        return MonthlyPlan::daysIn($this->starts_on, $this->ends_on, $period);
     }
 
-    /** المبلغ المقترح للشهر = السعر × الأيام ÷ 30، وقابل للتعديل. */
+    /** المبلغ المقترح للشهر = السعر ÷ أيام الشهر × أيام الشغل، بالكسور، وقابل للتعديل. */
     public function suggestedAmount(string $period): string
     {
-        [$days, $inMonth] = $this->daysIn($period);
-        if ($days <= 0) {
-            return '0.00';
-        }
-        if ($days >= $inMonth) {
-            return Money::of($this->amount);
-        }
-
-        return Money::of(round((float) $this->amount * $days / $inMonth, 2));
+        return MonthlyPlan::suggested($this->amount, $this->starts_on, $this->ends_on, $period);
     }
 
-    /**
-     * فاتورة الشهر بتطلع من أوله، والشهر الجزئي كمان (أول شهر بينسجل فوراً عند الإضافة).
-     */
+    /** الشهر بيطلع للتسجيل من أول يوم فيه، وبيضل ظاهر طول الشهر (قرار 10/11/2026). */
     public function isBillable(string $period, ?CarbonImmutable $today = null): bool
     {
         $today = ($today ?? CarbonImmutable::today())->startOfDay();
@@ -111,15 +86,13 @@ class ClientSubscription extends Model
         return $this->coversMonth($period) && $period <= $today->format('Y-m');
     }
 
-    /** عنوان فاتورة الشهر، ومعه «21 يوم من 30» للشهر الجزئي. */
+    /** عنوان فاتورة الشهر، ومعه «20 يوم من 30» للشهر الجزئي. */
     public function monthTitle(string $period): string
     {
-        [$days, $inMonth] = $this->daysIn($period);
-
-        return $this->title.' · شهر '.self::periodLabel($period).($days < $inMonth ? " ({$days} يوم من {$inMonth})" : '');
+        return $this->title.' · شهر '.self::periodLabel($period).MonthlyPlan::daysNote($this->starts_on, $this->ends_on, $period);
     }
 
-    /** ما في شهر «بيتراكم» بعد قرار 1/11: الشهر الجزئي بينسجل من أوله. */
+    /** ما في شهر «بيتراكم»: الشهر بيطلع للتسجيل من أوله. */
     public function accruing(?CarbonImmutable $today = null): ?array
     {
         return null;
@@ -141,27 +114,12 @@ class ClientSubscription extends Model
         $recorded = $this->relationLoaded('months')
             ? $this->months->pluck('period')->all()
             : $this->months()->pluck('period')->all();
-        $out = [];
-        $cursor = CarbonImmutable::parse($this->starts_on)->startOfMonth();
-        $last = CarbonImmutable::createFromFormat('Y-m-d', $until.'-01');
-        if ($this->ends_on && $this->ends_on->lessThan($last)) {
-            $last = CarbonImmutable::parse($this->ends_on)->startOfMonth();
-        }
-        while ($cursor->lessThanOrEqualTo($last)) {
-            $p = $cursor->format('Y-m');
-            if (! in_array($p, $recorded, true)) {
-                $out[] = $p;
-            }
-            $cursor = $cursor->addMonth();
-        }
 
-        return $out;
+        return MonthlyPlan::pending($this->starts_on, $this->ends_on, $recorded, $until);
     }
 
     public static function periodLabel(string $period): string
     {
-        [$y, $m] = explode('-', $period);
-
-        return ((int) $m).'/'.$y;
+        return MonthlyPlan::label($period);
     }
 }
