@@ -76,9 +76,6 @@
                 <img src="{{ asset('assets/icons/brand-logo.png') }}" alt="براند" width="34" height="34">
                 <span>براند<small>نظام الإدارة المالية</small></span>
             </a>
-            @if(cpCan('finance'))
-            <button type="button" data-quick-open class="bs-quick"><span>＋ تسجيل سريع</span><kbd>N</kbd></button>
-            @endif
             <a href="{{ route('cp.dashboard') }}" class="bs-link {{ $bsOn('cp.dashboard') }}">@include('cp.partials.bs-icon', ['name' => 'home'])الرئيسية</a>
             @if(cpCan('finance'))
             <a href="{{ route('cp.balances.index') }}" class="bs-link {{ $bsOn('cp.balances.*') }}">@include('cp.partials.bs-icon', ['name' => 'drawers'])الأدراج والأرصدة</a>

@@ -250,3 +250,18 @@ body.bs .cl-actions .cp-btn[disabled] { background: var(--bs-chip); color: var(-
     .bs-more > div, body.bs .cl-menu:not([hidden]) { animation: none; }
     .bs-btn, .bs-link { transition: none; }
 }
+
+/* ——— 4. لوحة ملاصقة للقائمة (11/11/2026) ———
+   الخلفية بلون القائمة، والشاشة جنبها لوحة فاتحة ملاصقة إلها بزاوية مدورة فوق، على كامل الشاشة. */
+@media (min-width: 1024px) {
+    html.cp-admin body.bs { background: var(--bs-sidebar) !important; margin: 0; }
+    body.bs .bs-side { border-radius: 0; }
+    body.bs .cp-main {
+        min-height: 100vh; box-sizing: border-box;
+        background: var(--bs-bg);
+        border-top-right-radius: 18px;
+        box-shadow: 1px 0 0 rgba(255, 255, 255, .06) inset;
+    }
+}
+body.bs .bs-link.on { background: var(--bs-pink); color: #fff; box-shadow: 0 6px 16px -6px rgba(251, 0, 91, .6); }
+body.bs .bs-link:not(.on):hover { background: rgba(255, 255, 255, .06); }
