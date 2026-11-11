@@ -27,8 +27,7 @@ class AuthController extends Controller
             'password' => ['required'],
         ]);
 
-        // «تذكرني» انشال من الشاشة: الدخول بيضل محفوظ دايماً (قرار 7/11/2026).
-        $remember = true;
+        $remember = $request->boolean('remember');
 
         if (Auth::attempt($credentials, $remember)) {
             $user = Auth::user();

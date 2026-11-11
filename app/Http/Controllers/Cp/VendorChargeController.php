@@ -105,7 +105,8 @@ class VendorChargeController extends Controller
 
         $data = $request->validate([
             'vendor_id' => ['required', 'exists:vendors,id'],
-            'title' => ['required', 'string', 'max:255'],
+            'charge_type_id' => ['nullable', 'exists:vendor_charge_types,id'],
+            'title' => ['nullable', 'required_without:charge_type_id', 'string', 'max:255'],
             'amount' => [$isFx ? 'nullable' : 'required', 'numeric', 'gt:0'],
             'source_amount' => [$isFx ? 'required' : 'nullable', 'numeric', 'gt:0'],
             'exchange_rate' => [$isFx ? 'required' : 'nullable', 'numeric', 'gt:0'],
@@ -116,6 +117,11 @@ class VendorChargeController extends Controller
 
         if ($charge) {
             $data['vendor_id'] = $charge->vendor_id;
+            $data['charge_type_id'] = $data['charge_type_id'] ?? $charge->charge_type_id;
+        }
+        // النوع من الإعدادات بيعطي البيان، إلا إذا انكتب بيان (قرار 11/11/2026).
+        if (! filled($data['title'] ?? null)) {
+            $data['title'] = \App\Models\VendorChargeType::query()->find($data['charge_type_id'])?->name ?? 'مستحق';
         }
 
         $data['description'] = null;

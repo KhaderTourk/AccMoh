@@ -15,7 +15,9 @@
     </div>
 
     <nav class="cl-seg st-tabs" aria-label="أقسام الإعدادات">
-        <a href="{{ route('cp.settings.index', ['tab' => 'services']) }}" class="{{ $tab === 'services' ? 'on' : '' }}">الخدمات</a>
+        <a href="{{ route('cp.settings.index', ['tab' => 'services']) }}" class="{{ $tab === 'services' ? 'on' : '' }}">خدمات الزبائن</a>
+        <a href="{{ route('cp.settings.index', ['tab' => 'worker-dues']) }}" class="{{ $tab === 'worker-dues' ? 'on' : '' }}">مستحقات الموظفين</a>
+        <a href="{{ route('cp.settings.index', ['tab' => 'supplier-dues']) }}" class="{{ $tab === 'supplier-dues' ? 'on' : '' }}">خدمات الموردين</a>
         <a href="{{ route('cp.settings.index', ['tab' => 'methods']) }}" class="{{ $tab === 'methods' ? 'on' : '' }}">طرق الدفع</a>
         <a href="{{ route('cp.settings.index', ['tab' => 'import']) }}" class="{{ $tab === 'import' ? 'on' : '' }}">الاستيراد</a>
         <a href="{{ route('cp.settings.index', ['tab' => 'view']) }}" class="{{ $tab === 'view' ? 'on' : '' }}">العرض</a>
@@ -75,6 +77,34 @@
                 @endforeach
             </details>
         @endif
+    @elseif($tab === 'worker-dues' || $tab === 'supplier-dues')
+        @php $dueKind = $tab === 'worker-dues' ? 'worker' : 'supplier'; @endphp
+        <div class="st-bar">
+            <p class="st-note">النوع المستعمل ما بينحذف، بينطفى بس، وبيختفي من قائمة «مستحق». تغيير الاسم بيمشي على الحركات القديمة، زي خدمات الزبائن.</p>
+            <button type="button" class="cp-btn cp-btn-primary" data-open="due">+ نوع</button>
+        </div>
+        <section class="st-card">
+            <header class="st-card-h"><h2>{{ $dueKind === 'worker' ? 'مستحقات الموظفين' : 'خدمات الموردين' }}</h2><span class="st-count">{{ count($dues) }} نوع</span></header>
+            @forelse($dues as $d)
+                <div class="st-row{{ $d['active'] ? '' : ' is-off' }}">
+                    <div class="st-name"><b>{{ $d['name'] }}</b><span>{{ $d['active'] ? $uses($d['uses']) : 'موقوف، ما بيطلع بقائمة «مستحق»' }}</span></div>
+                    {!! $switch($d) !!}
+                    <div class="st-act">
+                        <button type="button" class="cl-more" aria-label="خيارات {{ $d['name'] }}">⋯</button>
+                        <div class="cl-menu" hidden>
+                            <button type="button" data-open="due" data-name="{{ $d['name'] }}" data-url="{{ $d['update'] }}">تعديل الاسم</button>
+                            @if($d['uses'] === 0)
+                                <button type="button" class="danger" data-del="{{ $d['delete'] }}" data-what="النوع «{{ $d['name'] }}»">حذف</button>
+                            @else
+                                <span class="st-off">مستعمل، بتقدر تطفيه بس</span>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            @empty
+                <p class="st-empty">ما في أنواع لسا. ضيف أول نوع من «+ نوع».</p>
+            @endforelse
+        </section>
     @elseif($tab === 'view')
         <section class="st-card">
             <div class="st-row">
@@ -162,6 +192,7 @@
         @csrf
         <input type="hidden" name="_method" value="POST">
         <h2 id="stNameT"></h2>
+        @if(in_array($tab, ['worker-dues', 'supplier-dues'], true))<input type="hidden" name="vendor_type" value="{{ $tab === 'worker-dues' ? 'worker' : 'supplier' }}">@endif
         <div class="cl-field">
             <label for="nName">الاسم</label>
             <input id="nName" name="name" maxlength="255" required>
@@ -181,6 +212,7 @@
         group: @json(route('cp.settings.groups.store')),
         method: @json(route('cp.settings.methods.store')),
         service: @json(route('cp.settings.services.store')),
+        due: @json(route('cp.settings.dues.store')),
     };
     function closeMenus() { document.querySelectorAll('.cl-menu').forEach((m) => { m.hidden = true; }); }
     function show(sheet, action, put) {
@@ -228,7 +260,9 @@
                 show($('stService'), op.dataset.url || urls.service, edit);
             } else {
                 const edit = !!op.dataset.url;
-                $('stNameT').textContent = kind === 'group' ? (edit ? 'اسم المجموعة' : 'مجموعة جديدة') : (edit ? 'تعديل طريقة الدفع' : 'طريقة دفع جديدة');
+                $('stNameT').textContent = kind === 'group' ? (edit ? 'اسم المجموعة' : 'مجموعة جديدة')
+                    : (kind === 'due' ? (edit ? 'اسم النوع' : @json($tab === 'worker-dues' ? 'نوع مستحق جديد' : 'خدمة مورد جديدة'))
+                    : (edit ? 'تعديل طريقة الدفع' : 'طريقة دفع جديدة'));
                 $('nName').value = op.dataset.name || '';
                 show($('stName'), op.dataset.url || urls[kind], edit);
             }

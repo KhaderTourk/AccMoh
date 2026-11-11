@@ -11,12 +11,6 @@
     </p>
     <div class="grid md:grid-cols-2 gap-3">
         <div>
-            <label class="text-sm">الدرج *</label>
-            <select name="fund_id" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-                @foreach($funds as $f)<option value="{{ $f->id }}">{{ $f->name }}</option>@endforeach
-            </select>
-        </div>
-        <div>
             <label class="text-sm">التاريخ *</label>
             @include('cp.partials.date-field', ['name' => 'transfer_date', 'value' => old('transfer_date', date('Y-m-d')), 'required' => true])
         </div>

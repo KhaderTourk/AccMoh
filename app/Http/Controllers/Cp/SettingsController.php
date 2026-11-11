@@ -35,7 +35,7 @@ class SettingsController extends Controller
 
     public function index(Request $request)
     {
-        $tab = in_array($request->query('tab'), ['services', 'methods', 'import', 'view'], true) ? $request->query('tab') : 'services';
+        $tab = in_array($request->query('tab'), ['services', 'worker-dues', 'supplier-dues', 'methods', 'import', 'view'], true) ? $request->query('tab') : 'services';
 
         $serviceUses = ClientService::query()->whereNotNull('service_type_id')
             ->selectRaw('service_type_id, COUNT(*) as n')->groupBy('service_type_id')->pluck('n', 'service_type_id');
@@ -89,8 +89,85 @@ class SettingsController extends Controller
         ])->values();
 
         $showArchived = \App\Support\ArchiveVisibility::showing();
+        $dues = $this->dueRows($tab);
 
-        return view('cp.settings.index', compact('tab', 'groupRows', 'ungrouped', 'stopped', 'serviceNames', 'methods', 'showArchived'));
+        return view('cp.settings.index', compact('tab', 'groupRows', 'ungrouped', 'stopped', 'serviceNames', 'methods', 'showArchived', 'dues'));
+    }
+
+    /** «مستحقات الموظفين» و«خدمات الموردين» (قرار 11/11/2026). */
+    protected function dueRows(string $tab): array
+    {
+        if (! in_array($tab, ['worker-dues', 'supplier-dues'], true)) {
+            return [];
+        }
+        $kind = $tab === 'worker-dues' ? 'worker' : 'supplier';
+        if ($kind === 'worker') {
+            \App\Models\VendorChargeType::seedDefaults();
+        }
+
+        return \App\Models\VendorChargeType::query()->for($kind)->withCount(['charges', 'subscriptions'])->get()
+            ->map(fn ($t) => [
+                'id' => $t->id,
+                'name' => $t->name,
+                'active' => (bool) $t->is_active,
+                'uses' => (int) $t->charges_count + (int) $t->subscriptions_count,
+                'update' => route('cp.settings.dues.update', $t),
+                'toggle' => route('cp.settings.dues.toggle', $t),
+                'delete' => route('cp.settings.dues.destroy', $t),
+            ])->values()->all();
+    }
+
+    public function storeDue(Request $request)
+    {
+        $data = $request->validate([
+            'vendor_type' => ['required', 'in:worker,supplier'],
+            'name' => ['required', 'string', 'max:255'],
+        ]);
+        $name = trim($data['name']);
+        $tab = $data['vendor_type'].'-dues';
+        if (\App\Models\VendorChargeType::query()->where('vendor_type', $data['vendor_type'])->where('name', $name)->exists()) {
+            return $this->back($tab, 'في نوع بنفس الاسم.', 'error');
+        }
+        \App\Models\VendorChargeType::query()->create([
+            'vendor_type' => $data['vendor_type'],
+            'name' => $name,
+            'sort_order' => (int) \App\Models\VendorChargeType::query()->where('vendor_type', $data['vendor_type'])->max('sort_order') + 1,
+        ]);
+
+        return $this->back($tab, 'انضاف «'.$name.'».');
+    }
+
+    public function updateDue(Request $request, \App\Models\VendorChargeType $chargeType)
+    {
+        $data = $request->validate(['name' => ['required', 'string', 'max:255']]);
+        $old = $chargeType->name;
+        $name = trim($data['name']);
+        DB::transaction(function () use ($chargeType, $old, $name) {
+            $chargeType->update(['name' => $name]);
+            // تغيير الاسم بيمشي على الحركات القديمة، زي خدمات الزبائن.
+            \App\Models\VendorSubscription::query()->where('charge_type_id', $chargeType->id)->where('title', $old)->update(['title' => $name]);
+            \App\Models\VendorCharge::query()->where('charge_type_id', $chargeType->id)->where('title', $old)->update(['title' => $name]);
+        });
+
+        return $this->back($chargeType->vendor_type.'-dues', 'انحفظ الاسم.');
+    }
+
+    public function toggleDue(\App\Models\VendorChargeType $chargeType)
+    {
+        $chargeType->update(['is_active' => ! $chargeType->is_active]);
+
+        return $this->back($chargeType->vendor_type.'-dues', $chargeType->is_active ? 'رجع «'.$chargeType->name.'».' : 'انطفى «'.$chargeType->name.'».');
+    }
+
+    public function destroyDue(\App\Models\VendorChargeType $chargeType)
+    {
+        $tab = $chargeType->vendor_type.'-dues';
+        if ($chargeType->charges()->exists() || $chargeType->subscriptions()->exists()) {
+            return $this->back($tab, 'النوع مستعمل، بتقدر تطفيه بس.', 'error');
+        }
+        $chargeType->delete();
+
+        return $this->back($tab, 'انحذف.');
     }
 
     /** «إظهار المؤرشف»: المؤرشفين بيظهروا بكل القوائم والحركات لما يكون شغّال. */

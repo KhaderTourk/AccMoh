@@ -31,6 +31,17 @@ class BalanceService
         );
     }
 
+    /** رصيد الدرج بعملة معيّنة، مجموع كل الصناديق (عمل/شخصي صاروا رصيد واحد، قرار 11/11/2026). */
+    public function drawerCash(int $paymentMethodId, int $currencyId): string
+    {
+        return Money::of(
+            LedgerEntry::query()
+                ->where('payment_method_id', $paymentMethodId)
+                ->where('currency_id', $currencyId)
+                ->sum('amount')
+        );
+    }
+
     public function fundCash(int $fundId, int $currencyId): string
     {
         return Money::of(
@@ -51,7 +62,8 @@ class BalanceService
     public function assertSufficient(int $fundId, int $paymentMethodId, int $currencyId, mixed $amount, string $message = null): void
     {
         $needed = Money::of($amount);
-        $available = $this->cash($fundId, $paymentMethodId, $currencyId);
+        // الرصيد المتاح = كل اللي بالدرج بهالعملة، بغض النظر عن الصندوق.
+        $available = $this->drawerCash($paymentMethodId, $currencyId);
 
         if (Money::cmp($available, $needed) < 0) {
             $currency = Currency::query()->find($currencyId);

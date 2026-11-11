@@ -24,7 +24,7 @@ class VendorController extends Controller
         $prefix = $type->routePrefix();
 
         $pages = app(PartyPageService::class);
-        $rows = Vendor::query()->ofType($type)->orderBy('name')->get()
+        $rows = Vendor::query()->ofType($type)->with('subscriptions.months:id,subscription_id,period')->orderBy('name')->get()
             ->map(fn (Vendor $v) => [
                 'id' => $v->id,
                 'name' => $v->name,
@@ -32,8 +32,8 @@ class VendorController extends Controller
                 'phone' => (string) $v->phone,
                 'notes' => (string) $v->notes,
                 'archived' => ! $v->is_active,
-                // «راتب شهري»: إله راتب ولسا ما وقف
-                'salary' => $type === VendorType::Worker && $v->activeSalary() !== null,
+                // فلتر «الرواتب الشهرية» / «الخدمات الشهرية» (قرار 10/11/2026)
+                'monthly' => VendorSubscriptionController::plans($v),
                 // موجب = عليه (لصالحنا)، سالب = إله، زي باقي القوائم
                 'balances' => $this->balances($currencies, fn ($id) => \App\Support\Money::neg($v->outstandingAmount($id))),
                 'pinned' => (bool) $v->is_pinned,
@@ -41,9 +41,6 @@ class VendorController extends Controller
                 ...\App\Support\PartyActivity::fromMovements($pages->movements($v), true),
                 'fields' => [
                     'detail' => (string) ($type === VendorType::Worker ? $v->job_title : $v->work_description),
-                    'salary_amount' => $v->salary_amount ? (float) $v->salary_amount : null,
-                    'salary_from' => $v->salary_from?->toDateString(),
-                    'salary_to' => $v->salary_to?->toDateString(),
                 ],
                 'show' => route("cp.{$prefix}.show", $v),
                 'pdf' => route("cp.{$prefix}.export-pdf", $v),
@@ -96,10 +93,12 @@ class VendorController extends Controller
         $pages = app(PartyPageService::class);
         $this->assertType($vendor);
 
+        $data = PartyStatement::data($request, $this->profile(), $vendor->name, $this->subtitle($vendor), $pages->movements($vendor));
+
         return $pdf->download(
             'cp.finance.parties.print',
-            PartyStatement::data($request, $this->profile(), $vendor->name, $this->subtitle($vendor), $pages->movements($vendor)),
-            $this->type()->routePrefix().'-'.$vendor->id.'.pdf'
+            $data,
+            \App\Support\StatementFilename::make($vendor->name, $data['from'], $data['to'], array_column($data['rows'], 'date'))
         );
     }
 
@@ -168,11 +167,9 @@ class VendorController extends Controller
             'phone' => Phone::rules(),
             'notes' => ['nullable', 'string'],
         ];
+        // الراتب/الاشتراك الشهري صار من «مستحق» ← «شهري» بصفحة الحساب (قرار 11/11/2026)، مش من هون.
         if ($this->type() === VendorType::Worker) {
             $rules['job_title'] = ['nullable', 'string', 'max:255'];
-            $rules['salary_amount'] = ['nullable', 'numeric', 'gte:0'];
-            $rules['salary_from'] = DateRange::inputRules(false);
-            $rules['salary_to'] = DateRange::inputRules(false);
         } else {
             $rules['work_description'] = ['nullable', 'string', 'max:255'];
         }
@@ -180,14 +177,6 @@ class VendorController extends Controller
         $data = $request->validate($rules, ['phone.regex' => Phone::message()]);
         if ($request->has('detail')) {
             $data[$this->type() === VendorType::Worker ? 'job_title' : 'work_description'] = $request->input('detail');
-        }
-        foreach (['salary_from', 'salary_to'] as $f) {
-            if (array_key_exists($f, $data)) {
-                $data[$f] = DateRange::normalize($data[$f]);
-            }
-        }
-        if (array_key_exists('salary_amount', $data) && ! filled($data['salary_amount'])) {
-            $data['salary_amount'] = null;
         }
         // The list window has no archive switch; only the old form sends it.
         if ($request->has('is_active')) {
@@ -243,6 +232,9 @@ class VendorController extends Controller
     {
         $prefix = $this->type()->routePrefix();
         $methods = \App\Models\PaymentMethod::query()->where('is_active', true)->orderBy('sort_order')->get(['id', 'name']);
+        if ($this->type() === VendorType::Worker) {
+            \App\Models\VendorChargeType::seedDefaults();
+        }
 
         return [
             'party' => $this->profile(),
@@ -254,12 +246,16 @@ class VendorController extends Controller
                 'currencies' => Currency::query()->active()->get(['id', 'code', 'symbol', 'name']),
                 'methods' => $methods,
                 'fundId' => Fund::business()->id,
-                'salary' => $this->type() === VendorType::Worker && $vendor->activeSalary() ? (float) $vendor->activeSalary() : null,
+                'dueTypes' => \App\Models\VendorChargeType::query()->for($this->type())->where('is_active', true)->get(['id', 'name'])
+                    ->map(fn ($t) => ['id' => $t->id, 'name' => $t->name])->values(),
+                'manageTypes' => route('cp.settings.index', ['tab' => $this->type() === VendorType::Worker ? 'worker-dues' : 'supplier-dues']),
                 'partyKey' => 'vendor:'.$vendor->id,
                 'targets' => [],
             ],
+            'subscriptions' => VendorSubscriptionController::forPage($vendor),
             'urls' => [
                 'charge' => route('cp.vendor-charges.store'),
+                'sub' => route('cp.vendor-subscriptions.store'),
                 'payment' => route('cp.payments.store', ['outgoing']),
                 'goods' => route('cp.client-goods-takes.store'),
                 'memo' => route('cp.balance-memos.store'),

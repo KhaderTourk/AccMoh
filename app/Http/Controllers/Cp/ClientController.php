@@ -21,13 +21,9 @@ class ClientController extends Controller
     {
         $currencies = Currency::query()->active()->get();
 
-        // الزباين اللي عندهم اشتراك شهري شغّال اليوم (فلتر «اشتراك شهري»).
-        $today = now()->toDateString();
+        // اشتراكات كل زبون لفلتر «الخدمات الشهرية» (قرار 10/11/2026).
         $monthly = Schema::hasTable('client_subscriptions')
-            ? \App\Models\ClientSubscription::query()
-                ->whereDate('starts_on', '<=', $today)
-                ->where(fn ($q) => $q->whereNull('ends_on')->orWhereDate('ends_on', '>=', $today))
-                ->pluck('client_id')->flip()
+            ? ClientSubscriptionController::plansByClient()
             : collect();
 
         // Every client (archived included) in one list; filtering and search happen in the browser.
@@ -54,7 +50,7 @@ class ClientController extends Controller
                     'phone' => (string) $client->phone,
                     'notes' => (string) $client->notes,
                     'archived' => ! $client->is_active,
-                    'monthly' => $monthly->has($client->id),
+                    'monthly' => $monthly->get($client->id, collect())->values()->all(),
                     'balances' => $balances,
                     'pinned' => (bool) $client->is_pinned,
                     'pin' => route('cp.pin.toggle', ['kind' => 'client', 'id' => $client->id]),
@@ -192,7 +188,7 @@ class ClientController extends Controller
         ];
 
         $subToday = \Carbon\CarbonImmutable::today();
-        $subscriptions = $client->subscriptions()->with('months:id,subscription_id,period')->withCount('months')->orderByRaw('ends_on IS NOT NULL')->orderByDesc('starts_on')->get()
+        $subscriptions = $client->subscriptions()->with('months:id,subscription_id,period,amount')->withCount('months')->orderByRaw('ends_on IS NOT NULL')->orderByDesc('starts_on')->get()
             ->map(fn (\App\Models\ClientSubscription $s) => [
                 'id' => $s->id,
                 'accruing' => $s->accruing($subToday),
@@ -202,6 +198,8 @@ class ClientController extends Controller
                 'from' => $s->starts_on->toDateString(),
                 'to' => $s->ends_on?->toDateString(),
                 'months' => $s->months_count,
+                'periods' => $s->months->pluck('period')->all(),
+                'added' => $s->months->filter(fn ($m) => $m->period)->mapWithKeys(fn ($m) => [$m->period => (float) $m->amount])->all(),
                 'stop' => route('cp.subscriptions.stop', $s),
                 'delete' => route('cp.subscriptions.destroy', $s),
             ])->values();
@@ -270,14 +268,10 @@ class ClientController extends Controller
             .'<td width="60%">للاستفسار: م. محمد عمار الشيخ · 0597667671</td>'
             .'<td width="40%" style="text-align:left;">صفحة {PAGENO} من {nbpg}</td></tr></table>';
 
-        $suffix = ($data['from'] || $data['to'])
-            ? '-'.($data['from'] ?: 'start').'-'.($data['to'] ?: 'now')
-            : '';
-
         return $pdf->download(
             'cp.finance.clients.print',
             $data,
-            'client-'.$client->id.$suffix.'.pdf'
+            \App\Support\StatementFilename::make($client->directoryLabel(), $data['from'] ?? null, $data['to'] ?? null, $data['timeline']->pluck('date'))
         );
     }
 

@@ -32,15 +32,6 @@
             </select>
         </div>
         <div>
-            <label class="text-xs block mb-0.5 text-slate-500">الدرج</label>
-            <select name="fund_id" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-                <option value="">الكل</option>
-                @foreach($funds as $f)
-                    <option value="{{ $f->id }}" @selected(request('fund_id')==$f->id)>{{ $f->name }}</option>
-                @endforeach
-            </select>
-        </div>
-        <div>
             <label class="text-xs block mb-0.5 text-slate-500">طريقة الدفع</label>
             <select name="payment_method_id" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
                 <option value="">الكل</option>
@@ -134,9 +125,6 @@
             <table class="w-full text-sm text-right">
                 <thead class="bg-slate-50 dark:bg-slate-700/50"><tr><th class="px-3 py-2">الدرج</th>@foreach($snapshot['currencies'] as $c)<th class="px-3 py-2">{{ $c->name }}</th>@endforeach</tr></thead>
                 <tbody>
-                @foreach($snapshot['funds'] as $fund)
-                    <tr class="border-t"><td class="px-3 py-2 font-medium">{{ $fund->name }}</td>@foreach($snapshot['currencies'] as $c)<td class="px-3 py-2">{{ $c->format($snapshot['fundTotals'][$fund->id][$c->id] ?? 0) }}</td>@endforeach</tr>
-                @endforeach
                 <tr class="border-t font-bold bg-primary/5"><td class="px-3 py-2">الإجمالي</td>@foreach($snapshot['currencies'] as $c)<td class="px-3 py-2">{{ $c->format($snapshot['grand'][$c->id] ?? 0) }}</td>@endforeach</tr>
                 </tbody>
             </table>
@@ -313,9 +301,6 @@
                                 — {{ format_date($p->occurred_on) }}
                                 @if($p->paymentMethod)
                                     · {{ $p->paymentMethod->name }}
-                                @endif
-                                @if($p->fund)
-                                    · {{ $p->fund->name }}
                                 @endif
                             </span>
                             @include('cp.partials.note-line', ['notes' => $p->notes])

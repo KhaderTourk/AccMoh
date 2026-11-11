@@ -86,14 +86,13 @@
         <div class="px-4 py-3 border-b font-bold">الدفعات</div>
         <table class="w-full text-sm text-right">
             <thead class="bg-slate-50 dark:bg-slate-700/40"><tr>
-                <th class="px-3 py-2">التاريخ</th><th class="px-3 py-2">النوع</th><th class="px-3 py-2">الدرج</th><th class="px-3 py-2">الطريقة</th><th class="px-3 py-2">المبلغ</th><th class="px-3 py-2"></th>
+                <th class="px-3 py-2">التاريخ</th><th class="px-3 py-2">النوع</th><th class="px-3 py-2">الطريقة</th><th class="px-3 py-2">المبلغ</th><th class="px-3 py-2"></th>
             </tr></thead>
             <tbody class="divide-y dark:divide-slate-700">
             @forelse($member->cashPayments as $p)
                 <tr class="{{ $p->is_reversed ? 'opacity-40' : $p->direction->rowClass() }}">
                     <td class="px-3 py-2 whitespace-nowrap">{{ format_date($p->occurred_on) }}</td>
                     <td class="px-3 py-2 {{ $p->direction->colorClass() }}">{{ $p->direction->label() }}</td>
-                    <td class="px-3 py-2">{{ $p->fund->name }}</td>
                     <td class="px-3 py-2">{{ $p->paymentMethod->name }}</td>
                     <td class="px-3 py-2 font-bold {{ $p->direction->colorClass() }}">
                         {{ $p->currency->format($p->amount) }}

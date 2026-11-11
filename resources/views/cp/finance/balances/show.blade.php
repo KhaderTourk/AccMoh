@@ -3,12 +3,12 @@
 @section('content')
 @php
     $tabs = $funds->mapWithKeys(fn ($f) => [$f->slug => $f->slug === 'family' ? 'شخصي' : ($f->slug === 'business' ? 'عمل' : $f->name)])->all() + ['all' => 'الكل'];
-    $q = fn (array $over) => route('cp.balances.show', array_filter(array_merge(['method' => $method->id, 'tab' => $tab, 'cur' => $cur?->code, 'from' => $from, 'to' => $to], $over), fn ($v) => $v !== null && $v !== ''));
+    $q = fn (array $over) => route('cp.balances.show', array_filter(array_merge(['method' => $method->id, 'cur' => $cur?->code, 'from' => $from, 'to' => $to], $over), fn ($v) => $v !== null && $v !== ''));
     $fmt = fn ($c, $v) => ((float) $v < 0 ? '−' : '').$c->format(abs((float) $v));
 @endphp
 <div class="cl-page bl-page">
     <div class="cl-top">
-        <a href="{{ route('cp.balances.index', ['tab' => $tab]) }}" class="cl-ghost" aria-label="رجوع"><span class="material-symbols-outlined">arrow_forward</span></a>
+        <a href="{{ route('cp.balances.index') }}" class="cl-ghost" aria-label="رجوع"><span class="material-symbols-outlined">arrow_forward</span></a>
         <h1 class="cl-h">{{ $method->name }}</h1>
     </div>
 
@@ -21,9 +21,6 @@
     </div>
 
     <div class="cl-tools">
-        <div class="cl-seg">
-            @foreach($tabs as $key => $label)<a href="{{ $q(['tab' => $key]) }}" class="{{ $tab === $key ? 'on' : '' }}">{{ $label }}</a>@endforeach
-        </div>
         <div class="cl-seg">
             <a href="{{ $q(['cur' => null]) }}" class="{{ $cur ? '' : 'on' }}">كل العملات</a>
             @foreach($currencies as $c)<a href="{{ $q(['cur' => $c->code]) }}" class="{{ $cur?->id === $c->id ? 'on' : '' }}">{{ $c->code }}</a>@endforeach
@@ -41,7 +38,7 @@
             @php($e = $r['entry'])
             <div class="bl-row">
                 <span class="bl-date">{{ format_date($e->occurred_on) }}</span>
-                <span class="bl-desc">{{ $e->description }}@if($tab === 'all') <small>{{ $tabs[$e->fund->slug] ?? '' }}</small>@endif @if($e->notes)<small>{{ $e->notes }}</small>@endif</span>
+                <span class="bl-desc">{{ $e->description }}@if($e->notes)<small>{{ $e->notes }}</small>@endif</span>
                 <span class="{{ (float) $e->amount < 0 ? 'due' : 'credit' }}">{{ $fmt($e->currency, $e->amount) }}</span>
                 <span class="{{ (float) $r['after'] < 0 ? 'due' : '' }}">{{ $fmt($e->currency, $r['after']) }}</span>
             </div>

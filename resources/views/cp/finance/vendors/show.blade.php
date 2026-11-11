@@ -152,7 +152,7 @@
         <div class="rounded-2xl border bg-white dark:bg-slate-800 overflow-hidden">
             <table class="w-full text-sm text-right">
                 <thead class="bg-slate-50 dark:bg-slate-700/40"><tr>
-                    <th class="px-3 py-2">الاسم</th><th class="px-3 py-2">المبلغ</th><th class="px-3 py-2">الدرج</th>
+                    <th class="px-3 py-2">الاسم</th><th class="px-3 py-2">المبلغ</th>
                     <th class="px-3 py-2">الطريقة</th><th class="px-3 py-2">التاريخ</th><th class="px-3 py-2"></th>
                 </tr></thead>
                 <tbody class="divide-y dark:divide-slate-700">
@@ -168,7 +168,6 @@
                                 <div class="text-xs font-normal text-slate-500">{{ $p->fxCurrency?->format($p->source_amount) }} × {{ $p->formattedExchangeRate() }}</div>
                             @endif
                         </td>
-                        <td class="px-3 py-2">{{ $p->fund->name }}</td>
                         <td class="px-3 py-2">{{ $p->paymentMethod->name }}</td>
                         <td class="px-3 py-2">{{ format_date($p->occurred_on) }}</td>
                         <td class="px-3 py-2">

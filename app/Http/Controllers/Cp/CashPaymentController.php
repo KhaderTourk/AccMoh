@@ -181,7 +181,7 @@ class CashPaymentController extends Controller
             'party_type' => ['required', Rule::in(['client', 'person', 'vendor'])],
             'party_id' => ['required', 'integer'],
             'name' => ['nullable', 'string', 'max:255'],
-            'fund_id' => ['required', 'exists:funds,id'],
+            'fund_id' => ['nullable', 'exists:funds,id'],
             'payment_method_id' => ['required', 'exists:payment_methods,id'],
             'currency_id' => ['required', 'exists:currencies,id'],
             'amount' => [$isFx ? 'nullable' : 'required', 'numeric', 'gt:0'],
@@ -208,6 +208,13 @@ class CashPaymentController extends Controller
         $data['name'] = $party instanceof Client ? $party->directoryLabel() : $party->name;
         unset($data['party_key']);
 
+        // الصندوق بينختار لحاله حسب الطرف (ما في خانة عمل/شخصي بالشاشة، قرار 11/11/2026).
+        // بالتعديل بيضل على صندوقه القديم. الـAPI لسا بيقدر يبعته صريح.
+        if (empty($data['fund_id'])) {
+            $data['fund_id'] = $payment?->exists && $payment->fund_id && $data['party_type'] !== 'person'
+                ? (int) $payment->fund_id
+                : defaultFundId($data['party_type']);
+        }
         if ($data['party_type'] === 'person') {
             $fund = Fund::query()->find($data['fund_id']);
             if (! $fund || $fund->slug !== FundSlug::Family->value) {

@@ -106,11 +106,13 @@ class PersonController extends Controller
     public function exportPdf(Request $request, Person $person, PdfExporter $pdf)
     {
         $pages = app(PartyPageService::class);
+        $data = PartyStatement::data($request, self::profile(), $person->name,
+            trim(implode(' · ', array_filter([$person->relationship, $person->phone]))), $pages->movements($person));
+
         return $pdf->download(
             'cp.finance.parties.print',
-            PartyStatement::data($request, self::profile(), $person->name,
-                trim(implode(' · ', array_filter([$person->relationship, $person->phone]))), $pages->movements($person)),
-            'person-'.$person->id.'.pdf'
+            $data,
+            \App\Support\StatementFilename::make($person->name, $data['from'], $data['to'], array_column($data['rows'], 'date'))
         );
     }
 
@@ -153,7 +155,8 @@ class PersonController extends Controller
             'noun' => 'شخص',
             'plural' => 'الأشخاص',
             'pos' => 'عليه', 'neg' => 'إله',
-            'g1' => 'أعطيته', 'g2' => 'أخدت منه',
+            // مدين = عليه، دائن = إله (قرار 11/11/2026، زي الكشوفات)
+            'g1' => 'مدين · عليه', 'g2' => 'دائن · إله',
             'detail' => 'الصلة',
             'legal' => false,
         ];

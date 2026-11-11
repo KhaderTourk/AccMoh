@@ -17,16 +17,17 @@
         <div class="cs-adds">
             @if($isPerson)
                 <div class="cs-add">
-                    <button type="button" class="cs-btn svc" data-menu="mG1"><span class="material-symbols-outlined">north_east</span> أعطيته</button>
+                    <button type="button" class="cs-btn svc" data-menu="mG1"><span class="material-symbols-outlined">north_east</span> مدين <small class="cs-dir">عليه</small></button>
                     <div class="cl-menu cs-menu" id="mG1" hidden></div>
                 </div>
                 <div class="cs-add">
-                    <button type="button" class="cs-btn pay" data-menu="mG2"><span class="material-symbols-outlined">south_west</span> أخدت منه</button>
+                    <button type="button" class="cs-btn pay" data-menu="mG2"><span class="material-symbols-outlined">south_west</span> دائن <small class="cs-dir">إله</small></button>
                     <div class="cl-menu cs-menu" id="mG2" hidden></div>
                 </div>
             @else
                 <div class="cs-add">
-                    <button type="button" class="cs-btn svc" id="bCharge"><span class="material-symbols-outlined">add</span> {{ $kind === 'worker' ? 'مستحق' : 'خدمة / مورد' }}</button>
+                    <button type="button" class="cs-btn svc" id="bCharge" data-menu="mDue"><span class="material-symbols-outlined">add</span> مستحق</button>
+                    <div class="cl-menu cs-menu" id="mDue" hidden></div>
                 </div>
                 <div class="cs-add">
                     <button type="button" class="cs-btn pay" data-menu="mG2"><span class="material-symbols-outlined">add</span> دفعة</button>
@@ -68,6 +69,14 @@
 
     <div class="cs-balance" id="csBalance"></div>
 
+    @unless($isPerson)
+        <section class="st-card cs-subs" id="csSubs" hidden>
+            <header class="st-card-h"><h2>{{ $kind === 'worker' ? 'الرواتب الشهرية' : 'الاشتراكات الشهرية' }}</h2><span class="st-count" id="csSubsN"></span>
+                <a href="{{ $urls['index'] }}" class="cs-subs-link">{{ $kind === 'worker' ? 'الرواتب الشهرية' : 'الخدمات الشهرية' }}</a></header>
+            <div id="csSubsList"></div>
+        </section>
+    @endunless
+
     <div class="cs-tabs" role="tablist">
         <button type="button" class="on" data-view="list" role="tab">الحركات</button>
         <button type="button" data-view="stmt" role="tab">كشف حساب</button>
@@ -107,8 +116,10 @@
 <form method="post" id="csDelForm" hidden>@csrf<input type="hidden" name="_method" value="DELETE"></form>
 <form method="post" id="csArchForm" action="{{ $urls['archive'] }}" hidden>@csrf @if($model->is_active)<input type="hidden" name="_method" value="DELETE">@endif</form>
 
+@unless($isPerson)@include('cp.partials.monthly-stop')@endunless
 <script type="application/json" id="csData">{!! json_encode([
     'party' => $party,
+    'subscriptions' => $subscriptions ?? [],
     'id' => $model->id,
     'title' => $title,
     'movements' => $movements,
@@ -286,7 +297,20 @@
     }
     $('mG2').innerHTML = methodButtons;
     $('mG2').addEventListener('click', (e) => { const b = e.target.closest('[data-m]'); if (b) { closeMenus(); openTx(PERSON ? 'take' : 'pay', { methodId: +b.dataset.m }); } });
-    if ($('bCharge')) $('bCharge').addEventListener('click', () => openTx('charge', {}));
+    if ($('mDue')) {
+        const types = L.dueTypes || [];
+        $('mDue').innerHTML = (types.length ? `<b class="cs-mh">${WORKER ? 'مستحقات الموظفين' : 'خدمات الموردين'}</b>` : '')
+            + types.map((t) => `<button type="button" data-due="${t.id}">${esc(t.name)}</button>`).join('')
+            + '<button type="button" data-due="free">أخرى</button><hr>'
+            + `<a href="${esc(L.manageTypes)}" class="cs-manage">إدارة الأنواع ←</a>`;
+        $('mDue').addEventListener('click', (e) => {
+            const b = e.target.closest('[data-due]'); if (!b) return;
+            closeMenus();
+            const typeId = b.dataset.due === 'free' ? null : +b.dataset.due;
+            const t = types.find((x) => x.id === typeId);
+            openTx(WORKER && t && t.name === 'راتب' ? 'sub' : 'charge', { typeId });
+        });
+    }
     $('mOther').addEventListener('click', (e) => { const b = e.target.closest('[data-o]'); if (b) { closeMenus(); openTx(b.dataset.o, {}); } });
 
     $('csTable').addEventListener('click', (e) => {
@@ -311,10 +335,11 @@
     /* ——— نافذة الحركة ——— */
     // sign = what the movement does to this page's balance (positive = «إله» / «بدي منه»).
     const KIND = {
-        charge: { title: WORKER ? 'مستحق' : 'خدمة / مورد', url: D.urls.charge, sign: 1, date: 'charge_date', amtLabel: 'المبلغ', group: 'g1' },
+        charge: { title: 'مستحق', url: D.urls.charge, sign: 1, date: 'charge_date', amtLabel: 'المبلغ', group: 'g1' },
+        sub: { title: 'مستحق', url: D.urls.sub, sign: 0, date: 'starts_on', amtLabel: WORKER ? 'الراتب الشهري' : 'الاتفاق الشهري', group: 'g1' },
         pay: { title: 'دفعة', url: D.urls.payment, sign: -1, date: 'occurred_on', amtLabel: 'المبلغ', group: 'g2' },
-        give: { title: 'أعطيته', url: D.urls.give, sign: 1, date: 'occurred_on', amtLabel: 'المبلغ', group: 'g1' },
-        take: { title: 'أخدت منه', url: D.urls.take, sign: -1, date: 'occurred_on', amtLabel: 'المبلغ', group: 'g2' },
+        give: { title: 'مدين · عليه', url: D.urls.give, sign: 1, date: 'occurred_on', amtLabel: 'المبلغ', group: 'g1' },
+        take: { title: 'دائن · إله', url: D.urls.take, sign: -1, date: 'occurred_on', amtLabel: 'المبلغ', group: 'g2' },
         advance: { title: 'سلفة', url: D.urls.payment, sign: -1, date: 'occurred_on', amtLabel: 'المبلغ', group: 'other' },
         discount: { title: 'خصم', url: D.urls.goods, sign: -1, date: 'taken_on', amtLabel: 'قيمة الخصم', group: 'other' },
         goods: { title: 'بضاعة أخدها منا', url: D.urls.goods, sign: -1, date: 'taken_on', amtLabel: 'قيمة البضاعة', group: 'other' },
@@ -349,10 +374,15 @@
         tx = { kind, opt, plain: kind === 'memo' || kind === 'transfer' };
         let title = K.title, fields = '', hid = '';
         const pk = L.partyKey;
-        if (kind === 'charge') {
-            hid = hidden('vendor_id', D.id);
-            fields = `<div class="cl-field"><label for="xWhat">البيان</label><input id="xWhat" name="title" maxlength="255" value="${WORKER && L.salary ? 'راتب شهر ' + monthLabel() : ''}" placeholder="${WORKER ? 'مثلاً: راتب شهر ' + monthLabel() : 'شو استلمنا منه'}"></div>`
-                + moneyFields(K.amtLabel) + dateField(K.date);
+        if (kind === 'charge' || kind === 'sub') {
+            // «مستحق»: النوع من الإعدادات، وبعدها «بالقطعة/لمرة وحدة» أو «شهري» (قرار 11/11/2026)
+            const t = opt.typeId ? (L.dueTypes || []).find((x) => x.id === opt.typeId) : null;
+            title = 'مستحق · ' + (t ? t.name : 'أخرى');
+            hid = hidden('vendor_id', D.id) + (t ? hidden('charge_type_id', t.id) : '');
+            const what = t ? '' : `<div class="cl-field"><label for="xWhat">البيان</label><input id="xWhat" name="title" maxlength="255" placeholder="${WORKER ? 'مثلاً: بدل مواصلات' : 'شو استلمنا منه'}"></div>`;
+            fields = billSeg(kind) + what + (kind === 'sub'
+                ? cpMonthlySheet.fields({ amtLabel: K.amtLabel })
+                : moneyFields(K.amtLabel) + dateField(K.date));
         } else if (kind === 'pay' || kind === 'give' || kind === 'take') {
             const p = L.methods.find((x) => x.id === opt.methodId);
             title = K.title + ' · ' + p.name;
@@ -393,15 +423,39 @@
         $('txForm').action = K.url;
         $('txSave').disabled = true;
         $('txSheet').hidden = false;
+        if (kind === 'sub') {
+            const okWhat = () => !$('xWhat') || $('xWhat').value.trim().length > 0;
+            let m = null;
+            m = cpMonthlySheet.wire({ today: D.today, amtLabel: K.amtLabel, fromLabel: WORKER ? 'بلّش شغل يوم' : 'بلّشنا يوم', listName: WORKER ? 'الرواتب الشهرية' : 'الخدمات الشهرية',
+                onChange: () => { $('txSave').disabled = !(m && m.valid() && okWhat()); } });
+            $('txFields').addEventListener('input', () => { $('txSave').disabled = !(m.valid() && okWhat()); });
+            $('txSave').disabled = !(m.valid() && okWhat());
+            $('txAfter').innerHTML = '';
+            $('txDup').hidden = true;
+            wireBill();
+            setTimeout(() => ($('xWhat') || $('mAmt')).focus(), 30);
+            return;
+        }
         wireTx();
-        setTimeout(() => (kind === 'charge' && $('xWhat').value ? $('xAmt') : ($('xWhat') || $('xAmt'))).focus(), 30);
+        wireBill();
+        setTimeout(() => ($('xWhat') || $('xAmt')).focus(), 30);
+    }
+    // طريقة الحساب أول اختيار: الموظف «بالقطعة / راتب شهري»، والمورد «لمرة وحدة / اشتراك شهري»
+    function billSeg(on) {
+        const a = WORKER ? 'بالقطعة' : 'لمرة وحدة', b = WORKER ? 'راتب شهري' : 'اشتراك شهري';
+        return `<div class="cl-field"><label>طريقة الحساب</label><div class="cl-seg" id="xBill">
+            <button type="button" data-b="charge"${on === 'charge' ? ' class="on"' : ''}>${a}</button>
+            <button type="button" data-b="sub"${on === 'sub' ? ' class="on"' : ''}>${b}</button></div></div>`;
+    }
+    function wireBill() {
+        const bill = $('xBill');
+        if (bill) bill.addEventListener('click', (e) => { const b = e.target.closest('[data-b]'); if (b && !b.classList.contains('on')) openTx(b.dataset.b, { typeId: tx.opt.typeId }); });
     }
     function wireTx() {
         const desc = $('xDesc');
         if (desc) desc.addEventListener('click', (e) => { const b = e.target.closest('[data-w]'); if (!b) return; $('xNotes').value = b.dataset.w; desc.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); });
         const cur = $('xCur');
         const curCode = () => cur.selectedOptions[0].dataset.code;
-        if (tx.kind === 'charge' && WORKER && L.salary) { $('xAmt').value = L.salary; $('xHint').textContent = 'الراتب الشهري ' + num(L.salary) + ' ₪'; }
         if ((tx.kind === 'pay' || tx.kind === 'take') && $('xHint')) {
             const v = balanceBy('ILS');
             const owe = tx.kind === 'pay' ? v : v;
@@ -435,6 +489,7 @@
         return a * (parseFloat(($('xRate') || {}).value) || 0);
     }
     function check() {
+        if (!tx || !$('xCur')) return;
         const code = $('xCur').selectedOptions[0].dataset.code;
         const fx = code !== 'ILS' && !tx.plain;
         const a = parseFloat($('xAmt').value);
@@ -485,7 +540,40 @@
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('txSheet').hidden) closeTx(); });
     $('txForm').addEventListener('submit', (e) => {
         if ($('txSave').disabled) { e.preventDefault(); return; }
-        $('xDate').value = dayLabel(parseDay($('xDate').value));
+        if ($('xDate')) $('xDate').value = dayLabel(parseDay($('xDate').value));
+    });
+
+    /* ——— الرواتب والاشتراكات الشهرية ——— */
+    function renderSubs() {
+        const S = D.subscriptions || [];
+        if (!$('csSubs')) return;
+        $('csSubs').hidden = !S.length;
+        if (!S.length) return;
+        const active = S.filter((x) => !x.to).length;
+        $('csSubsN').textContent = active ? active + ' فعّال' : 'ما في فعّال';
+        $('csSubsList').innerHTML = S.map((x) => {
+            const acts = (x.to ? '' : `<button type="button" data-sub-stop="${x.id}">وقّف</button>`)
+                + (x.months ? '' : `<button type="button" class="danger" data-sub-del="${x.id}">حذف</button>`);
+            return `<div class="st-row${x.to ? ' is-off' : ''}">
+            <div class="st-name"><b>${esc(x.title)} · ${num(x.amount)} ₪ بالشهر</b>
+            <span>من ${dayLabel(x.from)}${x.to ? ' · انوقف بآخر يوم شغل ' + dayLabel(x.to) : ''} · ${x.months} شهر منضاف</span>
+            ${x.due ? `<a class="cs-sub-due" href="${esc(D.urls.index)}">${x.due === 1 ? 'في شهر' : 'في ' + x.due + ' شهور'} لسا ما انضاف ←</a>` : ''}</div>
+            ${acts ? `<div class="st-act"><button type="button" class="cl-more" aria-label="خيارات">⋯</button>
+            <div class="cl-menu" hidden>${acts}</div></div>` : ''}</div>`;
+        }).join('');
+    }
+    if ($('csSubsList')) $('csSubsList').addEventListener('click', (e) => {
+        const more = e.target.closest('.cl-more');
+        if (more) { e.stopPropagation(); const m = more.nextElementSibling; const open = m.hidden; closeMenus(); m.hidden = !open; return; }
+        const st = e.target.closest('[data-sub-stop]');
+        if (st) { closeMenus(); cpMonthlySheet.openStop(D.subscriptions.find((y) => y.id === +st.dataset.subStop), { today: D.today, noun: WORKER ? 'الراتب' : 'الاشتراك' }); return; }
+        const dl = e.target.closest('[data-sub-del]');
+        if (dl) {
+            closeMenus();
+            const x = D.subscriptions.find((y) => y.id === +dl.dataset.subDel);
+            const ask = window.cpConfirm ? window.cpConfirm(`حذف «${x.title}»؟`) : Promise.resolve(window.confirm('حذف؟'));
+            ask.then((ok) => { if (ok) { const f = $('csDelForm'); f.action = x.delete; f.submit(); } });
+        }
     });
 
 
@@ -500,6 +588,7 @@
     }
     if (window.cpKeep) cpKeep.track(() => ({ view, cType, sub: [...sub], preset, range }));
     renderBalance();
+    renderSubs();
     render();
     /* ——— التسجيل السريع: فتح نفس نافذة الحركة (§11) ——— */
     {
@@ -511,7 +600,7 @@
             else if (qk === 'transfer') openTx('transfer', {});
         } else {
             if (qk === 'out') click('[data-menu=mG2]');
-            else if (qk === 'take') click('#bCharge');
+            else if (qk === 'take') click('[data-menu=mDue]');
             else if (qk === 'give' && KIND.goods && !WORKER) openTx('goods', {});
         }
         if (qk) history.replaceState(null, '', location.pathname);

@@ -50,6 +50,7 @@ class TransferController extends Controller
 
     public function store(Request $request, FundTransferService $service)
     {
+        $request->mergeIfMissing(['fund_id' => defaultFundId()]);
         $data = $request->validate([
             'fund_id' => ['required', 'exists:funds,id'],
             'from_payment_method_id' => ['required', 'exists:payment_methods,id'],

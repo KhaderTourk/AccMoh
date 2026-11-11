@@ -66,13 +66,12 @@
 
 <h2>الدفعات</h2>
 <table class="data">
-    <thead><tr><th>التاريخ</th><th>النوع</th><th>الدرج</th><th>الطريقة</th><th>المبلغ</th></tr></thead>
+    <thead><tr><th>التاريخ</th><th>النوع</th><th>الطريقة</th><th>المبلغ</th></tr></thead>
     <tbody>
     @forelse($member->cashPayments as $p)
         <tr>
             <td>{{ format_date($p->occurred_on) }}</td>
             <td>{{ $p->direction->label() }}{{ $p->is_reversed ? ' (ملغاة)' : '' }}</td>
-            <td>{{ $p->fund->name }}</td>
             <td>{{ $p->paymentMethod->name }}</td>
             <td class="amount">
                 {{ $p->currency->format($p->amount) }}

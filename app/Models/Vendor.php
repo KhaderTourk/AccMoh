@@ -48,6 +48,11 @@ class Vendor extends Model
         return $this->hasMany(VendorCharge::class);
     }
 
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(VendorSubscription::class);
+    }
+
     public function cashPayments(): MorphMany
     {
         return $this->morphMany(CashPayment::class, 'party');
@@ -63,21 +68,28 @@ class Vendor extends Model
         return $this->cashPayments()->exists() || $this->charges()->exists() || $this->expenses()->exists() || $this->goodsTakes()->exists() || $this->balanceMemos()->exists();
     }
 
-    /** Salary amount when one is set and running today, else null. */
+    /** First month counted by «أضف هالشهر» for salaries and supplier subscriptions. */
+    public const MONTHLY_TRACKED_FROM = '2026-11-01';
+
+    /** «راتب» للموظف، و«اشتراك» للمورد. */
+    public function monthlyNoun(): string
+    {
+        return $this->type === VendorType::Worker ? 'راتب' : 'اشتراك';
+    }
+
+    /** مجموع الرواتب/الاشتراكات الشهرية الشغّالة اليوم، أو null (لقائمة «راتب شهري»). */
     public function activeSalary(): ?string
     {
-        if (! $this->salary_amount || ! Money::isPositive($this->salary_amount)) {
-            return null;
-        }
         $today = now()->toDateString();
-        if ($this->salary_from && $this->salary_from->toDateString() > $today) {
-            return null;
-        }
-        if ($this->salary_to && $this->salary_to->toDateString() < $today) {
-            return null;
+        $subs = $this->relationLoaded('subscriptions') ? $this->subscriptions : $this->subscriptions()->get();
+        $sum = '0';
+        foreach ($subs as $s) {
+            if ($s->starts_on->toDateString() <= $today && (! $s->ends_on || $s->ends_on->toDateString() >= $today)) {
+                $sum = Money::add($sum, $s->amount);
+            }
         }
 
-        return Money::of($this->salary_amount);
+        return Money::isPositive($sum) ? Money::of($sum) : null;
     }
 
     public function scopeActive(Builder $query): Builder

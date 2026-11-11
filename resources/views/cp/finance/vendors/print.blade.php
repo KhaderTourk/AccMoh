@@ -93,7 +93,7 @@
 
 <h2>الدفعات</h2>
 <table class="data">
-    <thead><tr><th>الاسم</th><th>المبلغ</th><th>الدرج</th><th>الطريقة</th><th>التاريخ</th></tr></thead>
+    <thead><tr><th>الاسم</th><th>المبلغ</th><th>الطريقة</th><th>التاريخ</th></tr></thead>
     <tbody>
     @forelse($vendor->cashPayments as $p)
         <tr>
@@ -102,7 +102,6 @@
                 @if(filled($p->notes))<div class="sub" style="white-space: pre-line;">{{ $p->notes }}</div>@endif
             </td>
             <td class="amount">{{ $p->currency->format($p->amount) }}</td>
-            <td>{{ $p->fund->name }}</td>
             <td>{{ $p->paymentMethod->name }}</td>
             <td>{{ format_date($p->occurred_on) }}</td>
         </tr>

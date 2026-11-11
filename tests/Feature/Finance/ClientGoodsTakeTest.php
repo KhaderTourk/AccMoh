@@ -236,9 +236,8 @@ class ClientGoodsTakeTest extends TestCase
             ->get(route('cp.client-goods-takes.create', ['vendor_id' => $worker->id]))
             ->assertOk()
             ->assertSee('value="other" selected', false)
-            ->assertSee('الموظفون')
-            ->assertSee('الموردون')
-            ->assertSee('الأشخاص');
+            ->assertSee('<optgroup label="الموظفون">', false)
+            ->assertSee('<optgroup label="الأشخاص">', false);
 
         $this->actingAs($this->user)
             ->post(route('cp.client-goods-takes.store'), [

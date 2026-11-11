@@ -59,7 +59,16 @@ class PdfExporter
 
         return response($mpdf->Output($name, Destination::STRING_RETURN), 200, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'attachment; filename="'.$name.'"',
+            // الاسم العربي بـfilename*، ومعه اسم إنجليزي احتياطي للمتصفحات القديمة.
+            'Content-Disposition' => 'attachment; filename="'.self::asciiFallback($name).'"; filename*=UTF-8\'\''.rawurlencode($name),
         ]);
+    }
+
+    protected static function asciiFallback(string $name): string
+    {
+        $ascii = preg_replace('/[^A-Za-z0-9._-]+/', '-', $name) ?? '';
+        $ascii = trim(preg_replace('/-+/', '-', $ascii) ?? '', '-.');
+
+        return ($ascii === '' || $ascii === 'pdf' ? 'statement' : preg_replace('/\.pdf$/i', '', $ascii)).'.pdf';
     }
 }

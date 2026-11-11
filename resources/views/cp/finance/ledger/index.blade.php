@@ -18,13 +18,6 @@
             </select>
         </div>
         <div>
-            <label class="text-xs block mb-0.5 text-slate-500">الدرج</label>
-            <select name="fund_id" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-                <option value="">الكل</option>
-                @foreach($funds as $f)<option value="{{ $f->id }}" @selected(request('fund_id')==$f->id)>{{ $f->name }}</option>@endforeach
-            </select>
-        </div>
-        <div>
             <label class="text-xs block mb-0.5 text-slate-500">طريقة الدفع</label>
             <select name="payment_method_id" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
                 <option value="">الكل</option>
@@ -66,7 +59,6 @@
                 <th class="px-3 py-3" data-sort-key="type">نوع الحركة</th>
                 <th class="px-3 py-3" data-sort-key="description">البيان</th>
                 <th class="px-3 py-3" data-sort-key="party">الطرف</th>
-                <th class="px-3 py-3" data-sort-key="fund">الدرج</th>
                 <th class="px-3 py-3" data-sort-key="method">الطريقة</th>
                 <th class="px-3 py-3" data-sort-key="amount">المبلغ</th>
                 <th class="px-3 py-3" data-sort-key="user">بواسطة</th>
@@ -88,7 +80,6 @@
                         {{ $e->counterpartyLabel() ?: '—' }}
                         @includeWhen(($e->related instanceof \App\Models\CashPayment) && $e->related->party && $e->related->party->is_active === false, 'cp.partials.archived-badge')
                     </td>
-                    <td class="px-3 py-3">{{ $e->fund->name }}</td>
                     <td class="px-3 py-3">{{ $e->paymentMethod->name }}</td>
                     <td class="px-3 py-3 font-bold {{ \App\Support\Money::isNegative($e->amount) ? 'text-rose-600' : 'text-emerald-600' }}">{{ $e->currency->format($e->amount) }}</td>
                     <td class="px-3 py-3 text-xs text-slate-500">{{ $e->creator?->name ?: '—' }}</td>

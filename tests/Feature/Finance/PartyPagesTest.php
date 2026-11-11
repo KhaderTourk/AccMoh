@@ -55,15 +55,20 @@ class PartyPagesTest extends TestCase
     public function test_worker_salary_charge_payment_and_advance(): void
     {
         $this->actingAs($this->user)->post(route('cp.workers.store'), [
-            'name' => 'موظف الراتب', 'detail' => 'مصمم', 'salary_amount' => 2000, 'salary_from' => '1/1/2026', 'return' => 'list',
+            'name' => 'موظف الراتب', 'detail' => 'مصمم', 'return' => 'list',
         ])->assertRedirect();
         $worker = Vendor::query()->where('name', 'موظف الراتب')->firstOrFail();
-        $this->assertSame('2000.00', $worker->activeSalary());
         $this->assertSame('مصمم', $worker->job_title);
         $this->assertTrue($worker->is_active);
 
+        // «مستحق» بيفتح أنواع الإعدادات: راتب ومكافأة وعمولة افتراضياً (قرار 11/11/2026).
         $this->actingAs($this->user)->get(route('cp.workers.show', $worker))
-            ->assertOk()->assertSee('"salary":2000', false)->assertSee('سلفة');
+            ->assertOk()->assertSee('"name":"راتب"', false)->assertSee('"name":"عمولة"', false)->assertSee('سلفة');
+        $type = \App\Models\VendorChargeType::query()->where('name', 'راتب')->firstOrFail();
+        $this->actingAs($this->user)->post(route('cp.vendor-subscriptions.store'), [
+            'vendor_id' => $worker->id, 'charge_type_id' => $type->id, 'amount' => 2000, 'starts_on' => '1/1/2026',
+        ])->assertRedirect(route('cp.workers.show', $worker));
+        $this->assertSame('2000.00', $worker->fresh()->activeSalary());
 
         $method = PaymentMethod::query()->where('slug', 'cash')->firstOrFail();
         $fund = Fund::business();
@@ -98,7 +103,7 @@ class PartyPagesTest extends TestCase
         $supplier = Vendor::query()->create(['name' => 'مورد التحويل', 'type' => VendorType::Supplier, 'is_active' => true]);
 
         $this->actingAs($this->user)->get(route('cp.persons.show', $person))
-            ->assertOk()->assertSee('أعطيته')->assertSee('"key":"vendor:'.$supplier->id.'"', false);
+            ->assertOk()->assertSee('مدين')->assertSee('"key":"vendor:'.$supplier->id.'"', false);
 
         // «من حسابه لحساب تاني»: 300 he owed me now sits on the supplier.
         $this->actingAs($this->user)->post(route('cp.balance-memos.transfer.store'), [
