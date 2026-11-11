@@ -74,7 +74,7 @@
         <aside id="cp-sidebar" class="bs-side" aria-label="القائمة الجانبية">
             <a href="{{ route('cp.dashboard') }}" class="bs-logo">
                 <img src="{{ asset('assets/icons/brand-logo.png') }}" alt="براند" width="34" height="34">
-                <span>حسابات براند<small>إدارة مالية داخلية</small></span>
+                <span>براند<small>نظام الإدارة المالية</small></span>
             </a>
             @if(cpCan('finance'))
             <button type="button" data-quick-open class="bs-quick"><span>＋ تسجيل سريع</span><kbd>N</kbd></button>

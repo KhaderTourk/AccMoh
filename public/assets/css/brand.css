@@ -163,7 +163,7 @@ body.bs .cp-main main { padding: 26px 28px; }
 .bs-btn:focus-visible { outline: 2px solid var(--bs-pink); outline-offset: 2px; }
 
 /* قائمة الزبائن */
-body.bs .cl-page { max-width: 980px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+body.bs .cl-page { max-width: none; margin: 0; display: flex; flex-direction: column; gap: 18px; }
 body.bs .cl-page > :empty { display: none; }
 body.bs .cl-top { gap: 12px; flex-wrap: wrap; margin: 0; }
 body.bs .cl-h { margin: 0; font-size: 1.75rem; font-weight: 700; letter-spacing: -.01em; line-height: 1.6; color: var(--bs-fg); }
