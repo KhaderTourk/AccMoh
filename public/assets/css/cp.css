@@ -2532,4 +2532,4 @@ html.dark .mp-calc { background: rgba(255, 255, 255, .05); }
 .mp-switch:focus-visible { outline: 2px solid #FB005B; outline-offset: 2px; }
 @media (max-width: 560px) { .mp-plans { padding-inline-start: 1rem; } .mp-plan { flex-wrap: wrap; } }
 /* الأشخاص: «مدين عليه» و«دائن إله» (قرار 11/11/2026) */
-.cs-btn .cs-dir { font-size: .75em; font-weight: 600; opacity: .8; }
+.cs-btn .cs-dir { font-size: .8em; font-weight: 700; color: inherit; }
