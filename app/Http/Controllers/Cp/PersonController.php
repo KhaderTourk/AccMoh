@@ -106,11 +106,13 @@ class PersonController extends Controller
     public function exportPdf(Request $request, Person $person, PdfExporter $pdf)
     {
         $pages = app(PartyPageService::class);
+        $data = PartyStatement::data($request, self::profile(), $person->name,
+            trim(implode(' · ', array_filter([$person->relationship, $person->phone]))), $pages->movements($person));
+
         return $pdf->download(
             'cp.finance.parties.print',
-            PartyStatement::data($request, self::profile(), $person->name,
-                trim(implode(' · ', array_filter([$person->relationship, $person->phone]))), $pages->movements($person)),
-            'person-'.$person->id.'.pdf'
+            $data,
+            \App\Support\StatementFilename::make($person->name, $data['from'], $data['to'], array_column($data['rows'], 'date'))
         );
     }
 

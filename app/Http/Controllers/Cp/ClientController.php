@@ -267,14 +267,10 @@ class ClientController extends Controller
             .'<td width="60%">للاستفسار: م. محمد عمار الشيخ · 0597667671</td>'
             .'<td width="40%" style="text-align:left;">صفحة {PAGENO} من {nbpg}</td></tr></table>';
 
-        $suffix = ($data['from'] || $data['to'])
-            ? '-'.($data['from'] ?: 'start').'-'.($data['to'] ?: 'now')
-            : '';
-
         return $pdf->download(
             'cp.finance.clients.print',
             $data,
-            'client-'.$client->id.$suffix.'.pdf'
+            \App\Support\StatementFilename::make($client->directoryLabel(), $data['from'] ?? null, $data['to'] ?? null, $data['timeline']->pluck('date'))
         );
     }
 

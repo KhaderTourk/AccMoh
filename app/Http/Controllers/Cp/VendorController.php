@@ -96,10 +96,12 @@ class VendorController extends Controller
         $pages = app(PartyPageService::class);
         $this->assertType($vendor);
 
+        $data = PartyStatement::data($request, $this->profile(), $vendor->name, $this->subtitle($vendor), $pages->movements($vendor));
+
         return $pdf->download(
             'cp.finance.parties.print',
-            PartyStatement::data($request, $this->profile(), $vendor->name, $this->subtitle($vendor), $pages->movements($vendor)),
-            $this->type()->routePrefix().'-'.$vendor->id.'.pdf'
+            $data,
+            \App\Support\StatementFilename::make($vendor->name, $data['from'], $data['to'], array_column($data['rows'], 'date'))
         );
     }
 
