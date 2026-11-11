@@ -33,14 +33,8 @@ class BalanceController extends Controller
     /** @return array{0: string, 1: \Illuminate\Support\Collection} */
     protected function tabFunds(Request $request, array $snapshot): array
     {
-        $tabs = $snapshot['funds']->pluck('slug')->all();
-        $tab = $request->query('tab');
-        if (! in_array($tab, array_merge($tabs, ['all']), true)) {
-            $tab = in_array('business', $tabs, true) ? 'business' : ($tabs[0] ?? 'all');
-        }
-        $funds = $tab === 'all' ? $snapshot['funds'] : $snapshot['funds']->where('slug', $tab)->values();
-
-        return [$tab, $funds];
+        // «عمل» و«شخصي» رصيد واحد (قرار 11/11/2026): الدرج بيبيّن مجموع كل الصناديق.
+        return ['all', $snapshot['funds']];
     }
 
     public function index(BalanceService $balances)
@@ -143,6 +137,7 @@ class BalanceController extends Controller
     /** «تسوية رصيد»: بتسجّل حركة بالفرق بين الموجود فعلياً واللي بالنظام، مع ملاحظة إجبارية. */
     public function settle(Request $request, BalanceService $balances, FinancialLedgerService $ledger)
     {
+        $request->mergeIfMissing(['fund_id' => defaultFundId()]);
         $data = $request->validate([
             'fund_id' => ['required', 'exists:funds,id'],
             'payment_method_id' => ['required', 'exists:payment_methods,id'],
@@ -151,7 +146,7 @@ class BalanceController extends Controller
             'notes' => ['required', 'string', 'max:500'],
         ], ['notes.required' => 'اكتب سبب التسوية.']);
 
-        $current = $balances->cash((int) $data['fund_id'], (int) $data['payment_method_id'], (int) $data['currency_id']);
+        $current = $balances->drawerCash((int) $data['payment_method_id'], (int) $data['currency_id']);
         $diff = Money::sub(Money::of($data['actual']), $current);
         if (Money::isZero($diff)) {
             throw ValidationException::withMessages(['actual' => 'الموجود نفس اللي بالنظام، ما في فرق.']);
@@ -192,6 +187,7 @@ class BalanceController extends Controller
 
     public function storeOpening(Request $request, AdjustmentService $adjustments)
     {
+        $request->mergeIfMissing(['fund_id' => defaultFundId()]);
         $data = $request->validate([
             'fund_id' => ['required', 'exists:funds,id'],
             'payment_method_id' => ['required', 'exists:payment_methods,id'],

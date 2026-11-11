@@ -5,7 +5,6 @@
     <h2 class="text-xl font-bold {{ $payment->direction->colorClass() }}">{{ $payment->direction->label() }}</h2>
     <p>الاسم: {{ $payment->name }}</p>
     <p>التاريخ: {{ format_date($payment->occurred_on) }}</p>
-    <p>الدرج: {{ $payment->fund->name }}</p>
     <p>طريقة الدفع: {{ $payment->paymentMethod->name }}</p>
     <p>المبلغ: <strong class="{{ $payment->direction->colorClass() }}">{{ $payment->currency->format($payment->amount) }}</strong></p>
     @if($payment->isFx())

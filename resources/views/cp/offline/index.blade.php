@@ -40,12 +40,6 @@
             <p class="text-xs text-amber-300 mt-2" x-show="snapshot?._optimistic">يتضمن عمليات لم تُزامَن بعد</p>
             <p class="text-sm text-slate-400" x-show="!snapshot">لا يوجد كاش بعد. اتصل وحدّث الكاش مرة واحدة.</p>
         </div>
-        <template x-for="fund in (snapshot?.balances?.funds || [])" :key="fund.id">
-            <div class="rounded-2xl border bg-white dark:bg-slate-800 p-5">
-                <p class="font-bold mb-2" x-text="fund.name"></p>
-                <template x-for="(amount, code) in (fund.totals || {})" :key="code">
-                    <p class="text-sm" x-text="code + ': ' + amount"></p>
-                </template>
             </div>
         </template>
     </section>
@@ -72,14 +66,6 @@
             <div>
                 <label class="text-xs">الاسم *</label>
                 <input type="text" x-model="form.name" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-            </div>
-            <div>
-                <label class="text-xs">الدرج *</label>
-                <select x-model="form.fund_id" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-                    <template x-for="f in (snapshot?.catalog?.funds || [])" :key="f.id">
-                        <option :value="f.id" x-text="f.name"></option>
-                    </template>
-                </select>
             </div>
             <div>
                 <label class="text-xs">طريقة الدفع *</label>
@@ -201,7 +187,7 @@ function offlineWorkspace() {
             const method = methods.find(m => m.slug === 'bank') || methods[0];
             const family = (this.snapshot?.catalog?.funds || []).find(f => f.slug === 'family');
             const business = (this.snapshot?.catalog?.funds || []).find(f => f.slug === 'business');
-            const fund = this.tab === 'outgoing' ? (family || business) : (business || family);
+            const fund = business || family;
             if (cur) this.form.currency_id = String(cur.id);
             if (method) this.form.payment_method_id = String(method.id);
             if (fund) this.form.fund_id = String(fund.id);

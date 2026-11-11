@@ -12,17 +12,16 @@
     <div class="rounded-2xl border bg-white dark:bg-slate-800 overflow-hidden">
         <table class="w-full text-sm text-right">
             <thead class="bg-slate-50 dark:bg-slate-700/50"><tr>
-                <th class="px-3 py-2" data-sort-key="fund">الدرج</th><th class="px-3 py-2" data-sort-key="from">من</th><th class="px-3 py-2" data-sort-key="to">إلى</th>
+                <th class="px-3 py-2" data-sort-key="from">من</th><th class="px-3 py-2" data-sort-key="to">إلى</th>
                 <th class="px-3 py-2" data-sort-key="amount">المبلغ</th><th class="px-3 py-2" data-sort-key="rate">السعر</th><th class="px-3 py-2" data-sort-key="date">التاريخ</th><th class="px-3 py-2" data-sort="off"></th>
             </tr></thead>
             <tbody class="divide-y dark:divide-slate-700">
             @forelse($transfers as $t)
                 <tr class="{{ $t->is_reversed ? 'opacity-40' : '' }}">
                     <td class="px-3 py-2">
-                        {{ $t->fund->name }}
+                        {{ $t->fromMethod->name }} / {{ $t->currency->code }}
                         @include('cp.partials.note-line', ['notes' => $t->notes])
                     </td>
-                    <td class="px-3 py-2">{{ $t->fromMethod->name }} / {{ $t->currency->code }}</td>
                     <td class="px-3 py-2">{{ $t->toMethod->name }} / {{ ($t->toCurrency ?? $t->currency)->code }}</td>
                     <td class="px-3 py-2">
                         {{ $t->currency->format($t->amount) }}

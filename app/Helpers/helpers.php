@@ -238,3 +238,18 @@ if (!function_exists('localized_route')) {
         return \Mcamara\LaravelLocalization\Facades\LaravelLocalization::localizeUrl(route($name, $parameters));
     }
 }
+
+if (!function_exists('defaultFundId')) {
+    /**
+     * «عمل» و«شخصي» انشالوا من الشاشات (قرار 11/11/2026): الحركة بتنحفظ على صندوق حسب الطرف.
+     * الأشخاص على الشخصي، والباقي على العمل (أو الشخصي إذا العمل مش مفعّل).
+     */
+    function defaultFundId(?string $partyType = null): int
+    {
+        if ($partyType === 'person' || ! tenantBusinessEnabled()) {
+            return \App\Models\Fund::family()->id;
+        }
+
+        return \App\Models\Fund::business()->id;
+    }
+}

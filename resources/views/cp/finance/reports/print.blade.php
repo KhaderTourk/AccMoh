@@ -34,14 +34,6 @@
         </tr>
     </thead>
     <tbody>
-        @foreach($snapshot['funds'] as $fund)
-        <tr>
-            <td>{{ $fund->name }}</td>
-            @foreach($snapshot['currencies'] as $c)
-                <td>{{ $c->format($snapshot['fundTotals'][$fund->id][$c->id] ?? 0) }}</td>
-            @endforeach
-        </tr>
-        @endforeach
         <tr class="total">
             <td>الإجمالي</td>
             @foreach($snapshot['currencies'] as $c)

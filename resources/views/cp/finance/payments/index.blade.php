@@ -25,7 +25,7 @@
     <div class="rounded-2xl bg-white dark:bg-slate-800 border overflow-hidden">
         <table class="w-full text-sm text-right">
             <thead class="bg-slate-50 dark:bg-slate-700/50"><tr>
-                <th class="px-3 py-3" data-sort-key="occurred_on">التاريخ</th><th class="px-3 py-3" data-sort-key="name">الاسم</th><th class="px-3 py-3" data-sort-key="fund">الدرج</th><th class="px-3 py-3" data-sort-key="method">الطريقة</th><th class="px-3 py-3" data-sort-key="amount">المبلغ</th><th class="px-3 py-3" data-sort="off"></th>
+                <th class="px-3 py-3" data-sort-key="occurred_on">التاريخ</th><th class="px-3 py-3" data-sort-key="name">الاسم</th><th class="px-3 py-3" data-sort-key="method">الطريقة</th><th class="px-3 py-3" data-sort-key="amount">المبلغ</th><th class="px-3 py-3" data-sort="off"></th>
             </tr></thead>
             <tbody class="divide-y dark:divide-slate-700">
             @forelse($payments as $p)
@@ -36,7 +36,6 @@
                         @includeWhen($p->party && $p->party->is_active === false, 'cp.partials.archived-badge')
                         @include('cp.partials.note-line', ['notes' => $p->notes])
                     </td>
-                    <td class="px-3 py-3">{{ $p->fund->name }}</td>
                     <td class="px-3 py-3">{{ $p->paymentMethod->name }}</td>
                     <td class="px-3 py-3 font-bold {{ $p->direction->colorClass() }}">
                         {{ $p->currency->format($p->amount) }}

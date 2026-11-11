@@ -34,18 +34,10 @@
         <small>السعر للمجاميع بس. كل حركة محفوظة بسعرها وقت التسجيل.</small>
     </form>
 
-    <div class="cl-tools">
-        <div class="cl-seg" role="tablist">
-            @foreach($tabs as $key => $label)
-                <a href="{{ route('cp.balances.index', ['tab' => $key]) }}" class="{{ $tab === $key ? 'on' : '' }}" role="tab">{{ $label }}</a>
-            @endforeach
-        </div>
-    </div>
-
     <div class="bl-grid">
         @foreach($cards as $card)
             <div class="bl-card">
-                <a class="bl-main" href="{{ route('cp.balances.show', ['method' => $card['method']->id, 'tab' => $tab]) }}">
+                <a class="bl-main" href="{{ route('cp.balances.show', ['method' => $card['method']->id]) }}">
                     <span class="bl-name">{{ $card['method']->name }}</span>
                     @if(!count($card['currencies']))
                         <b class="bl-empty">فاضي</b>
@@ -60,13 +52,6 @@
                 <div class="cl-menu" hidden>
                     <button type="button" data-settle="{{ $card['method']->id }}" data-name="{{ $card['method']->name }}">تسوية رصيد</button>
                 </div>
-                @if($tab === 'all' && count($card['currencies']))
-                    <div class="bl-split">
-                        @foreach($tabFunds as $f)
-                            <span>{{ $tabs[$f->slug] ?? $f->name }} {{ $n($card['byFund'][$f->id] ?? 0) }}</span>@if(!$loop->last) · @endif
-                        @endforeach
-                    </div>
-                @endif
             </div>
         @endforeach
     </div>
@@ -78,8 +63,6 @@
         <h2 id="blSheetT">تسوية رصيد</h2>
         <input type="hidden" name="payment_method_id" id="blMethod">
         <div class="cs-two">
-            <div class="cl-field"><label for="blFund">الدرج</label>
-                <select id="blFund" name="fund_id" class="cs-sel">@foreach($tabFunds as $f)<option value="{{ $f->id }}">{{ $tabs[$f->slug] ?? $f->name }}</option>@endforeach</select></div>
             <div class="cl-field"><label for="blCur">العملة</label>
                 <select id="blCur" name="currency_id" class="cs-sel">@foreach($currencies as $c)<option value="{{ $c->id }}">{{ $c->code }} {{ $c->symbol }}</option>@endforeach</select></div>
         </div>
