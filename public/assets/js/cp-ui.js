@@ -334,7 +334,9 @@
     window.cpOpenPalette = openPalette;
     window.cpConfirm = askConfirm;
 
+    // «بحث سريع» موقوف حالياً (قرار 11/11/2026): الزر انشال، واختصار Ctrl+K ما بيفتحه إلا إذا رجع الزر.
     document.addEventListener('keydown', function (e) {
+        if (!document.querySelector('[data-cp-palette]')) return;
         if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K' || e.code === 'KeyK')) {
             e.preventDefault();
             if (palette && palette.classList.contains('is-open')) closePalette();

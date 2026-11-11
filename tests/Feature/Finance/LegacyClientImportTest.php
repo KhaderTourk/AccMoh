@@ -29,12 +29,12 @@ class LegacyClientImportTest extends TestCase
         Fund::withoutGlobalScopes()->whereNull('tenant_id')->update(['tenant_id' => $this->user->tenant_id]);
     }
 
-    public function test_clients_index_has_import_button(): void
+    // الاستيراد من الإعدادات ← الاستيراد بس، مش من قائمة الزبائن (أسلوب براند 11/11/2026).
+    public function test_import_lives_in_settings(): void
     {
         $this->actingAs($this->user)
-            ->get(route('cp.clients.index'))
+            ->get(route('cp.settings.index', ['tab' => 'import']))
             ->assertOk()
-            ->assertSee('استيراد من إكسيل')
             ->assertSee(route('cp.clients.import'), false);
     }
 

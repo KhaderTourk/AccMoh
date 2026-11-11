@@ -88,7 +88,7 @@
         try { mode = localStorage.getItem(store) || mode; } catch (e) {}
         if (!SORTS.some(function (s) { return s[0] === mode; })) mode = DEFAULT_SORT;
         host.classList.add('cl-sort');
-        host.innerHTML = '<button type="button" class="cl-sort-btn" aria-haspopup="true"><span class="material-symbols-outlined">swap_vert</span><span class="cl-sort-txt"></span></button>'
+        host.innerHTML = '<button type="button" class="cl-sort-btn" aria-haspopup="true"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4"/></svg><span>ترتيب:</span> <b class="cl-sort-txt"></b></button>'
             + '<div class="cl-menu cl-sort-menu" hidden>' + SORTS.map(function (s) { return '<button type="button" data-s="' + s[0] + '">' + s[1] + '</button>'; }).join('')
             + (extras.length ? '<hr>' + extras.map(function (s) { return '<button type="button" data-s="' + s[0] + '">' + s[1] + '</button>'; }).join('') : '') + '</div>';
         var btn = host.querySelector('.cl-sort-btn'), menu = host.querySelector('.cl-sort-menu'), saved = mode;

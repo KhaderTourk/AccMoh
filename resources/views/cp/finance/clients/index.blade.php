@@ -1,18 +1,21 @@
 @extends('cp.layout')
 @section('title', 'الزبائن')
+@section('body_class', 'bs')
 @section('content')
 <div class="cl-page" id="clPage">
     @include('cp.partials.subs-banner')
     <div class="cl-top">
         <h1 class="cl-h">الزبائن</h1>
         <div class="cl-sp"></div>
-        <a href="{{ route('cp.clients.import') }}" class="cl-ghost" title="استيراد من إكسيل"><span class="material-symbols-outlined">upload_file</span></a>
-        <button type="button" class="cp-btn cp-btn-primary" id="clNew"><span class="material-symbols-outlined">add</span> زبون جديد</button>
+        {{-- الاستيراد من إكسيل صار من الإعدادات ← الاستيراد بس --}}
+        <button type="button" class="bs-btn" id="clNew">＋ زبون جديد</button>
     </div>
+
+    <div class="cl-summary" id="clSummary"></div>
 
     <div class="cl-tools">
         <label class="cl-search" for="clQ">
-            <span class="material-symbols-outlined">search</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
             <input id="clQ" type="search" placeholder="ابحث بالجهة أو الاسم أو الهاتف" autocomplete="off">
         </label>
         <div class="cl-seg" role="tablist" aria-label="عرض">
@@ -25,8 +28,6 @@
     </div>
 
     <div id="clMpHead"></div>
-
-    <div class="cl-summary" id="clSummary"></div>
 
     <div class="cl-list" id="clList"></div>
 </div>
