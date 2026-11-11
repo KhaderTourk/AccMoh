@@ -48,6 +48,11 @@ class Vendor extends Model
         return $this->hasMany(VendorCharge::class);
     }
 
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(VendorSubscription::class);
+    }
+
     public function cashPayments(): MorphMany
     {
         return $this->morphMany(CashPayment::class, 'party');
@@ -72,57 +77,19 @@ class Vendor extends Model
         return $this->type === VendorType::Worker ? 'راتب' : 'اشتراك';
     }
 
-    /** Whether a monthly salary / subscription amount is set at all. */
-    public function hasMonthly(): bool
-    {
-        return $this->salary_amount && Money::isPositive($this->salary_amount) && $this->salary_from;
-    }
-
-    /**
-     * Months (up to this month) of the monthly salary / subscription that are not added yet.
-     * الشهر بيطلع من أول يوم فيه، والشهر الجزئي حسب أيام الشهر الفعلية (قرار 10/11/2026).
-     *
-     * @return list<string>
-     */
-    public function pendingMonths(?string $until = null): array
-    {
-        if (! $this->hasMonthly()) {
-            return [];
-        }
-        $recorded = $this->charges()->whereNotNull('period')->pluck('period')->all();
-        // الشهور قبل تشرين الثاني 2026 انسجّلت بالإيد قبل هالميزة، فما بنعدّها «فاتتك».
-        $from = $this->salary_from->toDateString() < self::MONTHLY_TRACKED_FROM
-            ? \Carbon\CarbonImmutable::parse(self::MONTHLY_TRACKED_FROM) : $this->salary_from;
-
-        return \App\Support\MonthlyPlan::pending($from, $this->salary_to, $recorded, $until ?? now()->format('Y-m'));
-    }
-
-    public function monthlySuggested(string $period): string
-    {
-        return \App\Support\MonthlyPlan::suggested($this->salary_amount, $this->salary_from, $this->salary_to, $period);
-    }
-
-    public function monthlyTitle(string $period): string
-    {
-        return $this->monthlyNoun().' شهر '.\App\Support\MonthlyPlan::label($period)
-            .\App\Support\MonthlyPlan::daysNote($this->salary_from, $this->salary_to, $period);
-    }
-
-    /** Salary amount when one is set and running today, else null. */
+    /** مجموع الرواتب/الاشتراكات الشهرية الشغّالة اليوم، أو null (لقائمة «راتب شهري»). */
     public function activeSalary(): ?string
     {
-        if (! $this->salary_amount || ! Money::isPositive($this->salary_amount)) {
-            return null;
-        }
         $today = now()->toDateString();
-        if ($this->salary_from && $this->salary_from->toDateString() > $today) {
-            return null;
-        }
-        if ($this->salary_to && $this->salary_to->toDateString() < $today) {
-            return null;
+        $subs = $this->relationLoaded('subscriptions') ? $this->subscriptions : $this->subscriptions()->get();
+        $sum = '0';
+        foreach ($subs as $s) {
+            if ($s->starts_on->toDateString() <= $today && (! $s->ends_on || $s->ends_on->toDateString() >= $today)) {
+                $sum = Money::add($sum, $s->amount);
+            }
         }
 
-        return Money::of($this->salary_amount);
+        return Money::isPositive($sum) ? Money::of($sum) : null;
     }
 
     public function scopeActive(Builder $query): Builder

@@ -58,31 +58,6 @@
             <input id="fPhone" name="phone" inputmode="numeric" dir="ltr" placeholder="اختياري · 05xxxxxxxx">
             <small class="cl-err" id="phoneErr" hidden>الرقم لازم يكون 10 خانات ويبدأ بـ 05</small>
         </div>
-        @if($hasMonthly)
-            <div class="mp-box">
-                <label class="mp-sw-row" for="fMonthlyOn">
-                    <span><b>{{ $isWorker ? 'راتب شهري' : 'اشتراك شهري' }}</b><small>بيطلع بفلتر «{{ $isWorker ? 'الرواتب الشهرية' : 'الخدمات الشهرية' }}» عشان تضيفه كل شهر</small></span>
-                    <input type="checkbox" id="fMonthlyOn" class="mp-switch" role="switch">
-                </label>
-                <div id="fMonthlyFields" hidden>
-                    <div class="cs-two">
-                        <div class="cl-field">
-                            <label for="fSalary">{{ $isWorker ? 'الراتب الشهري' : 'الاتفاق الشهري' }}</label>
-                            <input id="fSalary" name="salary_amount" inputmode="decimal" dir="ltr" placeholder="شيكل">
-                        </div>
-                        <div class="cl-field">
-                            <label for="fSalaryFrom">{{ $isWorker ? 'بلّش شغل من' : 'بلّشنا من' }}</label>
-                            <input id="fSalaryFrom" name="salary_from" inputmode="numeric" dir="ltr" placeholder="يوم/شهر/سنة">
-                        </div>
-                    </div>
-                    <div class="cl-field">
-                        <label for="fSalaryTo">آخر يوم شغل</label>
-                        <input id="fSalaryTo" name="salary_to" inputmode="numeric" dir="ltr" placeholder="اختياري · لما يوقف">
-                        <small class="cs-hint" id="fMonthlyCalc">ولا إشي بينسجّل لحاله. كل شهر بيطلع بالفلتر بمبلغ مقترح حسب أيام الشهر، وبتعدّله قبل ما تضيفه.</small>
-                    </div>
-                </div>
-            </div>
-        @endif
         <div class="cl-field">
             <label for="fNotes">ملاحظات</label>
             <textarea id="fNotes" name="notes" rows="2" placeholder="اختياري"></textarea>
@@ -216,13 +191,6 @@
         $('fDetail').value = c ? c.fields.detail : '';
         fPhone.value = c ? c.phone : '';
         $('fNotes').value = c ? c.notes : '';
-        if ($('fSalary')) {
-            $('fSalary').value = c && c.fields.salary_amount ? c.fields.salary_amount : '';
-            $('fSalaryFrom').value = c ? dayLabel(c.fields.salary_from) : '';
-            $('fSalaryTo').value = c ? dayLabel(c.fields.salary_to) : '';
-            $('fMonthlyOn').checked = !!(c && c.fields.salary_amount);
-            $('fMonthlyFields').hidden = !$('fMonthlyOn').checked;
-        }
         $('clSheet').hidden = false;
         check();
         setTimeout(() => fName.focus(), 30);
@@ -270,15 +238,6 @@
         if (kept.monthly) mp.set(true);
     }
     if (window.cpKeep) cpKeep.track(() => ({ filter, q: $('clQ').value, monthly: mp.on() }));
-    // مفتاح «راتب شهري» / «اشتراك شهري»: لما ينطفى بتنمسح الحقول عشان ما يضل يطلع بالفلتر.
-    if ($('fMonthlyOn')) {
-        $('fMonthlyOn').addEventListener('change', () => {
-            const on = $('fMonthlyOn').checked;
-            $('fMonthlyFields').hidden = !on;
-            if (!on) { $('fSalary').value = ''; $('fSalaryFrom').value = ''; $('fSalaryTo').value = ''; }
-            else if (!$('fSalaryFrom').value) $('fSalaryFrom').value = dayLabel(D.today);
-        });
-    }
     render();
 })();
 </script>

@@ -95,28 +95,7 @@
 </div>
 
 <form method="post" id="csDelForm" hidden>@csrf<input type="hidden" name="_method" value="DELETE"></form>
-{{-- «وقّف الاشتراك»: آخر يوم شغل، وبنفس الخطوة بينضاف الشهر الأخير (قرار 10/11/2026) --}}
-<div class="cl-sheet" id="csStopSheet" hidden>
-    <form class="cl-dialog" id="csStopForm" method="post" novalidate role="dialog" aria-modal="true" aria-labelledby="csStopTitle">
-        @csrf
-        <h2 id="csStopTitle">وقّف الاشتراك</h2>
-        <p class="mp-who" id="csStopWho"></p>
-        <div class="cl-field">
-            <label for="csStopDate">آخر يوم شغل</label>
-            <input id="csStopDate" name="ends_on" inputmode="numeric" dir="ltr" placeholder="يوم/شهر/سنة">
-        </div>
-        <div class="mp-calc" id="csStopCalc"></div>
-        <div class="cl-field">
-            <label for="csStopAmt">مبلغ الشهر الأخير</label>
-            <input id="csStopAmt" name="last_amount" inputmode="decimal" dir="ltr">
-            <small class="cs-hint" id="csStopHint"></small>
-        </div>
-        <div class="cl-actions">
-            <button type="submit" class="cp-btn cp-btn-primary" id="csStopSave">وقّف وأضف الشهر الأخير</button>
-            <button type="button" class="cp-btn cp-btn-ghost" id="csStopCancel">إلغاء</button>
-        </div>
-    </form>
-</div>
+@include('cp.partials.monthly-stop')
 <form method="post" id="csArchForm" action="{{ $client->is_active ? route('cp.clients.destroy', $client) : route('cp.clients.restore', $client) }}" hidden>@csrf @if($client->is_active)<input type="hidden" name="_method" value="DELETE">@endif</form>
 
 <script type="application/json" id="csData">{!! json_encode([
@@ -397,8 +376,7 @@
             const t = L.serviceTypes.find((x) => x.id === opt.typeId);
             title = 'اشتراك شهري · ' + t.name;
             hid = hidden('client_id', D.client.id) + hidden('service_type_id', t.id);
-            fields = billSeg('sub') + moneyFields(K.amtLabel, true) + subFields()
-                + '<p class="st-note cs-sub-note" id="xSubNote"></p>';
+            fields = billSeg('sub') + cpMonthlySheet.fields({ amtLabel: 'الاتفاق الشهري' });
         } else if (kind === 'refund') {
             const opts = L.methods.map((p) => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
             hid = hidden('party_key', partyKey) + hidden('fund_id', L.fundId) + hidden('name', D.client.title) + hidden('kind', 'refund');
@@ -429,6 +407,20 @@
         $('txForm').action = K.url;
         $('txSave').disabled = true;
         $('txSheet').hidden = false;
+        if (kind === 'sub') {
+            // الشهري (صورة نسخة 5، 11/11/2026): أول شهر من قائمة + يوم البداية + مبلغ أول شهر قابل للتعديل
+            const t = L.serviceTypes.find((x) => x.id === opt.typeId);
+            let m = null;
+            m = cpMonthlySheet.wire({ today: D.today, amount: t && (t.price || t.last) ? String(t.price || t.last) : '', amtLabel: 'الاتفاق الشهري', fromLabel: 'بلّشنا يوم', listName: 'الخدمات الشهرية',
+                onChange: () => { $('txSave').disabled = !(m && m.valid()); } });
+            $('txFields').addEventListener('input', () => { $('txSave').disabled = !m.valid(); });
+            $('txSave').disabled = !m.valid();
+            $('txAfter').innerHTML = ''; $('txDup').hidden = true;
+            const bill = $('xBill');
+            if (bill) bill.addEventListener('click', (e) => { const b = e.target.closest('[data-b]'); if (b && !b.classList.contains('on')) openTx('service', { typeId: tx.opt.typeId }); });
+            setTimeout(() => $('mAmt').focus(), 30);
+            return;
+        }
         wireTx();
         setTimeout(() => ($('xWhat') || $('xAmt')).focus(), 30);
     }
@@ -477,11 +469,11 @@
         return a * (parseFloat(($('xRate') || {}).value) || 0);
     }
     function check() {
+        if (!tx || !$('xCur')) return;
         const code = $('xCur').selectedOptions[0].dataset.code;
         const fx = code !== 'ILS' && tx.kind !== 'memo';
         const a = parseFloat($('xAmt').value);
         const ils = ilsAmount();
-        if (tx.kind === 'sub') subSync();
         const day = parseDay($('xDate').value);
         if ($('xDateErr')) $('xDateErr').hidden = !!day || $('xDate').value.length < 6;
         if (tx.kind !== 'memo') {
@@ -494,7 +486,6 @@
         const cur = tx.kind === 'memo' ? code : 'ILS';
         const after = balanceBy(cur) + sign * ils;
         $('txAfter').innerHTML = ils && tx.kind !== 'sub' ? 'الرصيد بعدها: ' + balCell(after, cur) : '';
-        if (tx.kind === 'sub' && $('xSubNote')) $('xSubNote').textContent = subNote(day, a);
         // تنبيه التكرار: نفس النوع ونفس المبلغ خلال ±3 أيام
         let dup = null;
         if (ils && day && tx.kind !== 'sub') {
@@ -515,84 +506,15 @@
             <button type="button" data-b="once"${on === 'once' ? ' class="on"' : ''}>لمرة وحدة</button>
             <button type="button" data-b="sub"${on === 'sub' ? ' class="on"' : ''}>اشتراك شهري</button></div></div>`;
     }
-    // شهر البداية: سنة لورا وشهرين لقدّام بصيغة M/YYYY، والمدة شهر كامل أو بلّش بنصه
-    function subFields() {
-        const now = new Date(D.today + 'T00:00:00');
-        const months = [];
-        for (let k = 2; k >= -12; k--) { const d = new Date(now.getFullYear(), now.getMonth() + k, 1); months.push(d); }
-        const cur = now.getFullYear() + '-' + now.getMonth();
-        const mOpts = months.map((d) => `<option value="${d.getFullYear()}-${d.getMonth() + 1}"${(d.getFullYear() + '-' + d.getMonth()) === cur ? ' selected' : ''}>${d.getMonth() + 1}/${d.getFullYear()}</option>`).join('');
-        let dOpts = ''; for (let i = 2; i <= 31; i++) dOpts += `<option value="${i}"${i === now.getDate() ? ' selected' : ''}>${i}</option>`;
-        return `<div class="cs-two"><div class="cl-field"><label for="xMonth">شهر البداية</label><select id="xMonth" class="cs-sel">${mOpts}</select></div>
-            <div class="cl-field"><label for="xMode">المدة</label><select id="xMode" class="cs-sel"><option value="full">شهر كامل</option><option value="mid">بلّش بنصه</option></select></div></div>
-            <div class="cl-field" id="xDayWrap" hidden><label for="xDay">يوم البداية</label><select id="xDay" class="cs-sel">${dOpts}</select></div>
-            <input type="hidden" id="xDate" name="starts_on">`;
-    }
-    function subSync() {
-        const [y, m] = $('xMonth').value.split('-').map(Number);
-        const last = new Date(y, m, 0).getDate();
-        const d = $('xMode').value === 'mid' ? Math.min(+$('xDay').value, last) : 1;
-        $('xDate').value = d + '/' + m + '/' + y;
-    }
-    // شرح أول شهر: الشهر دايماً 30 يوم، وأول شهر بينسجل فوراً على الكشف
-    function subNote(day, price) {
-        if (!day) return '';
-        const d = Math.min(30, +day.slice(8, 10));
-        const days = 30 - d + 1;
-        const first = 'أول شهر بينسجل على الكشف فوراً بتاريخ أول يوم بالشهر، وبعدها بيذكّرك أول كل شهر لحد ما توقفه.';
-        if (days >= 30) return 'شهر كامل. ' + first;
-        const part = price > 0 ? ` = ${num(Math.round(price * days / 30 * 100) / 100)} ₪` : '';
-        return `أول شهر ${days} يوم من 30${part}. ` + first;
-    }
     function closeTx() { $('txSheet').hidden = true; tx = null; }
     $('txCancel').addEventListener('click', closeTx);
     $('txSheet').addEventListener('click', (e) => { if (e.target.id === 'txSheet') closeTx(); });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('txSheet').hidden) closeTx(); });
     $('txForm').addEventListener('submit', (e) => {
         if ($('txSave').disabled) { e.preventDefault(); return; }
+        if (tx && tx.kind === 'sub') return;
         const day = parseDay($('xDate').value);
         $('xDate').value = dayLabel(day);
-    });
-
-    /* «وقّف الاشتراك»: الشهر الأخير = السعر ÷ أيام الشهر الفعلية × أيام الشغل، بالكسور، وقابل للتعديل. */
-    let stopSub = null;
-    function openStop(x) {
-        stopSub = x;
-        $('csStopWho').textContent = x.title + ' · ' + num(x.amount) + ' شيكل بالشهر';
-        $('csStopDate').value = dayLabel(D.today);
-        $('csStopAmt').dataset.touched = '';
-        stopCalc();
-        $('csStopSheet').hidden = false;
-        setTimeout(() => $('csStopDate').focus(), 30);
-    }
-    function stopCalc() {
-        const day = parseDay($('csStopDate').value);
-        const ok = day && day >= stopSub.from;
-        $('csStopSave').disabled = !ok;
-        if (!ok) { $('csStopCalc').innerHTML = '<div><span>' + (day ? 'التاريخ قبل بداية الاشتراك' : 'اكتب التاريخ هيك: 5/11/2026') + '</span></div>'; return; }
-        const [y, m, d] = day.split('-').map(Number);
-        const inMonth = new Date(y, m, 0).getDate();
-        const period = day.slice(0, 7);
-        const from = stopSub.from.slice(0, 7) === period ? +stopSub.from.slice(8) : 1;
-        const days = Math.max(0, d - from + 1);
-        const amt = days >= inMonth ? stopSub.amount : Math.round(stopSub.amount / inMonth * days * 100) / 100;
-        const recorded = (stopSub.periods || []).includes(period);
-        $('csStopCalc').innerHTML = `<div><span>أيام الشغل بشهر ${m}/${y}</span><b>${days} من ${inMonth}</b></div><div class="t"><span>المبلغ المقترح</span><b>${num(amt)} شيكل</b></div>`;
-        if (!$('csStopAmt').dataset.touched) $('csStopAmt').value = amt.toFixed(2);
-        const future = period > D.today.slice(0, 7);
-        $('csStopHint').textContent = future ? 'الشهر لسا ما إجا، فبيطلع بالفلتر لما يبلّش.'
-            : (recorded ? 'شهر ' + m + '/' + y + ' مسجّل قبل، ومبلغه بيتعدّل للرقم هاد.' : 'بينضاف شهر ' + m + '/' + y + ' بهالمبلغ على الكشف هلق.');
-        $('csStopSave').textContent = future ? 'وقّف الاشتراك' : (recorded ? 'وقّف وعدّل الشهر الأخير' : 'وقّف وأضف الشهر الأخير');
-    }
-    $('csStopDate').addEventListener('input', stopCalc);
-    $('csStopAmt').addEventListener('input', () => { $('csStopAmt').dataset.touched = '1'; });
-    $('csStopCancel').addEventListener('click', () => { $('csStopSheet').hidden = true; });
-    $('csStopSheet').addEventListener('click', (e) => { if (e.target.id === 'csStopSheet') $('csStopSheet').hidden = true; });
-    $('csStopForm').addEventListener('submit', (e) => {
-        const day = parseDay($('csStopDate').value);
-        if (!day || $('csStopSave').disabled || !(parseFloat($('csStopAmt').value) >= 0)) { e.preventDefault(); return; }
-        $('csStopDate').value = dayLabel(day);
-        $('csStopForm').action = stopSub.stop;
     });
 
     function renderSubs() {
@@ -604,7 +526,7 @@
         const active = S.filter((x) => !x.to).length;
         $('csSubsN').textContent = active ? active + ' فعّال' : 'ما في اشتراك فعّال';
         $('csSubsList').innerHTML = S.map((x) => {
-            const acts = (x.to ? '' : `<button type="button" data-sub-stop="${x.id}">إيقاف</button>`)
+            const acts = (x.to ? '' : `<button type="button" data-sub-stop="${x.id}">وقّف</button>`)
                 + (x.months ? '' : `<button type="button" class="danger" data-sub-del="${x.id}">حذف</button>`);
             return `<div class="st-row${x.to ? ' is-off' : ''}">
             <div class="st-name"><b>${esc(x.title)} · ${num(x.amount)} ₪ شهرياً</b>
@@ -620,7 +542,7 @@
         const st = e.target.closest('[data-sub-stop]');
         if (st) {
             closeMenus();
-            openStop(D.subscriptions.find((y) => y.id === +st.dataset.subStop));
+            cpMonthlySheet.openStop(D.subscriptions.find((y) => y.id === +st.dataset.subStop), { today: D.today, noun: 'الاشتراك' });
             return;
         }
         const dl = e.target.closest('[data-sub-del]');

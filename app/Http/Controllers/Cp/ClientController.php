@@ -188,7 +188,7 @@ class ClientController extends Controller
         ];
 
         $subToday = \Carbon\CarbonImmutable::today();
-        $subscriptions = $client->subscriptions()->with('months:id,subscription_id,period')->withCount('months')->orderByRaw('ends_on IS NOT NULL')->orderByDesc('starts_on')->get()
+        $subscriptions = $client->subscriptions()->with('months:id,subscription_id,period,amount')->withCount('months')->orderByRaw('ends_on IS NOT NULL')->orderByDesc('starts_on')->get()
             ->map(fn (\App\Models\ClientSubscription $s) => [
                 'id' => $s->id,
                 'accruing' => $s->accruing($subToday),
@@ -199,6 +199,7 @@ class ClientController extends Controller
                 'to' => $s->ends_on?->toDateString(),
                 'months' => $s->months_count,
                 'periods' => $s->months->pluck('period')->all(),
+                'added' => $s->months->filter(fn ($m) => $m->period)->mapWithKeys(fn ($m) => [$m->period => (float) $m->amount])->all(),
                 'stop' => route('cp.subscriptions.stop', $s),
                 'delete' => route('cp.subscriptions.destroy', $s),
             ])->values();

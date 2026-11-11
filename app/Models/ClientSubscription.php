@@ -18,13 +18,14 @@ class ClientSubscription extends Model
     use BelongsToTenant;
 
     protected $fillable = [
-        'client_id', 'service_type_id', 'title', 'amount', 'currency_id', 'starts_on', 'ends_on', 'notes',
+        'client_id', 'service_type_id', 'title', 'amount', 'first_amount', 'currency_id', 'starts_on', 'ends_on', 'notes',
     ];
 
     protected function casts(): array
     {
         return [
             'amount' => 'decimal:2',
+            'first_amount' => 'decimal:2',
             'starts_on' => 'date',
             'ends_on' => 'date',
         ];
@@ -75,7 +76,8 @@ class ClientSubscription extends Model
     /** المبلغ المقترح للشهر = السعر ÷ أيام الشهر × أيام الشغل، بالكسور، وقابل للتعديل. */
     public function suggestedAmount(string $period): string
     {
-        return MonthlyPlan::suggested($this->amount, $this->starts_on, $this->ends_on, $period);
+        return VendorSubscription::firstOr($this, $period)
+            ?? MonthlyPlan::suggested($this->amount, $this->starts_on, $this->ends_on, $period);
     }
 
     /** الشهر بيطلع للتسجيل من أول يوم فيه، وبيضل ظاهر طول الشهر (قرار 10/11/2026). */

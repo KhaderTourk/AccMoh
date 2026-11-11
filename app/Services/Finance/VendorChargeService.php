@@ -18,6 +18,9 @@ class VendorChargeService
         return DB::transaction(function () use ($data, $resolved) {
             $charge = VendorCharge::query()->create([
                 'vendor_id' => $data['vendor_id'],
+                'charge_type_id' => $data['charge_type_id'] ?? null,
+                'subscription_id' => $data['subscription_id'] ?? null,
+                'period' => $data['period'] ?? null,
                 'title' => $data['title'],
                 'description' => $data['description'] ?? null,
                 'amount' => $resolved['amount'],

@@ -29,6 +29,7 @@ class ClientSubscriptionController extends Controller
             'service_type_id' => ['nullable', 'required_without:title', 'exists:service_types,id'],
             'title' => ['nullable', 'string', 'max:255'],
             'amount' => ['required', 'numeric', 'gt:0'],
+            'first_amount' => ['nullable', 'numeric', 'gte:0'],
             'starts_on' => DateRange::inputRules(),
             'notes' => ['nullable', 'string'],
         ]);
@@ -45,6 +46,8 @@ class ClientSubscriptionController extends Controller
             'starts_on' => DateRange::normalize($data['starts_on']),
             'notes' => $data['notes'] ?? null,
         ]);
+
+        VendorSubscriptionController::keepFirstAmount($sub, $data['first_amount'] ?? null);
 
         // أول شهر ما بينسجّل لحاله: بيطلع بفلتر «الخدمات الشهرية» بمبلغ مقترح حسب الأيام (قرار 10/11/2026).
         $first = $sub->starts_on->format('Y-m');
@@ -82,6 +85,7 @@ class ClientSubscriptionController extends Controller
         $data = $request->validate([
             'ends_on' => DateRange::inputRules(),
             'last_amount' => ['nullable', 'numeric', 'gte:0'],
+            'notes' => ['nullable', 'string'],
         ]);
         $endsOn = DateRange::normalize($data['ends_on']);
         if ($endsOn < $subscription->starts_on->toDateString()) {
@@ -90,8 +94,15 @@ class ClientSubscriptionController extends Controller
 
         $note = '';
         DB::transaction(function () use ($subscription, $endsOn, $work, $data, &$note) {
-            $subscription->update(['ends_on' => $endsOn]);
+            $subscription->update([
+                'ends_on' => $endsOn,
+                'notes' => filled($data['notes'] ?? null) ? trim(($subscription->notes ? $subscription->notes."\n" : '').$data['notes']) : $subscription->notes,
+            ]);
             $last = substr($endsOn, 0, 7);
+            // الشهور المنضافة بعد شهر التوقيف بتنشال (صورة نسخة 5، 11/11/2026).
+            foreach ($subscription->months()->where('period', '>', $last)->get() as $later) {
+                $work->delete($later);
+            }
             $amount = filled($data['last_amount'] ?? null) ? Money::of($data['last_amount']) : $subscription->suggestedAmount($last);
             $month = $subscription->months()->where('period', $last)->first();
             if ($month) {

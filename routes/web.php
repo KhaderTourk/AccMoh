@@ -117,6 +117,10 @@ Route::prefix('cp')->name('cp.')->middleware(['cp.auth', 'cp.check'])->group(fun
         Route::put('/settings/services/{serviceType}', [SettingsController::class, 'updateService'])->name('settings.services.update');
         Route::post('/settings/services/{serviceType}/toggle', [SettingsController::class, 'toggleService'])->name('settings.services.toggle');
         Route::delete('/settings/services/{serviceType}', [SettingsController::class, 'destroyService'])->name('settings.services.destroy');
+        Route::post('/settings/dues', [SettingsController::class, 'storeDue'])->name('settings.dues.store');
+        Route::put('/settings/dues/{chargeType}', [SettingsController::class, 'updateDue'])->name('settings.dues.update');
+        Route::post('/settings/dues/{chargeType}/toggle', [SettingsController::class, 'toggleDue'])->name('settings.dues.toggle');
+        Route::delete('/settings/dues/{chargeType}', [SettingsController::class, 'destroyDue'])->name('settings.dues.destroy');
         Route::post('/settings/methods', [SettingsController::class, 'storeMethod'])->name('settings.methods.store');
         Route::put('/settings/methods/{paymentMethod}', [SettingsController::class, 'updateMethod'])->name('settings.methods.update');
         Route::post('/settings/methods/{paymentMethod}/toggle', [SettingsController::class, 'toggleMethod'])->name('settings.methods.toggle');
@@ -137,7 +141,11 @@ Route::prefix('cp')->name('cp.')->middleware(['cp.auth', 'cp.check'])->group(fun
         Route::post('/ads/limit', [\App\Http\Controllers\Cp\AdsController::class, 'limit'])->name('ads.limit');
 
         Route::resource('vendor-charges', VendorChargeController::class)->except(['index', 'show']);
-        Route::post('/vendor-monthly/{vendor}', [\App\Http\Controllers\Cp\VendorMonthlyController::class, 'store'])->name('vendor-monthly.store');
+        // الرواتب والاشتراكات الشهرية للموظفين والموردين، وأنواع المستحقات (قرار 11/11/2026)
+        Route::post('/vendor-subscriptions', [\App\Http\Controllers\Cp\VendorSubscriptionController::class, 'store'])->name('vendor-subscriptions.store');
+        Route::post('/vendor-subscriptions/{subscription}/add', [\App\Http\Controllers\Cp\VendorSubscriptionController::class, 'addMonth'])->name('vendor-subscriptions.add');
+        Route::post('/vendor-subscriptions/{subscription}/stop', [\App\Http\Controllers\Cp\VendorSubscriptionController::class, 'stop'])->name('vendor-subscriptions.stop');
+        Route::delete('/vendor-subscriptions/{subscription}', [\App\Http\Controllers\Cp\VendorSubscriptionController::class, 'destroy'])->name('vendor-subscriptions.destroy');
 
         foreach (['workers', 'suppliers'] as $prefix) {
             Route::get("/{$prefix}", [VendorController::class, 'index'])->name("{$prefix}.index");

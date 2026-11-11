@@ -16,6 +16,8 @@ class VendorCharge extends Model
 
     protected $fillable = [
         'vendor_id',
+        'charge_type_id',
+        'subscription_id',
         'title',
         'description',
         'amount',
@@ -41,6 +43,16 @@ class VendorCharge extends Model
     public function vendor(): BelongsTo
     {
         return $this->belongsTo(Vendor::class);
+    }
+
+    public function chargeType(): BelongsTo
+    {
+        return $this->belongsTo(VendorChargeType::class, 'charge_type_id');
+    }
+
+    public function subscription(): BelongsTo
+    {
+        return $this->belongsTo(VendorSubscription::class, 'subscription_id');
     }
 
     public function currency(): BelongsTo

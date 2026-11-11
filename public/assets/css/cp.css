@@ -2533,3 +2533,14 @@ html.dark .mp-calc { background: rgba(255, 255, 255, .05); }
 @media (max-width: 560px) { .mp-plans { padding-inline-start: 1rem; } .mp-plan { flex-wrap: wrap; } }
 /* الأشخاص: «مدين عليه» و«دائن إله» (قرار 11/11/2026) */
 .cs-btn .cs-dir { font-size: .8em; font-weight: 700; color: inherit; }
+
+/* الشهري: شبكة أيام، رابط «رجّع المقترح» (صورة نسخة 5، 11/11/2026) */
+.mp-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.mp-days button { font: inherit; font-size: .82rem; height: 32px; padding: 0; border-radius: .5rem; border: 1px solid #dce1e7; background: #f6f7f9; color: inherit; cursor: pointer; font-variant-numeric: tabular-nums; }
+html.dark .mp-days button { background: #081925; border-color: #2a4660; }
+.mp-days button.in { background: rgba(251, 0, 91, .09); border-color: transparent; }
+.mp-days button.on { background: #FB005B; border-color: #FB005B; color: #fff; }
+.mp-days button:disabled { opacity: .35; cursor: default; }
+.mp-link { border: 0; background: none; padding: 0; margin-inline-start: .4rem; font: inherit; font-size: .78rem; font-weight: 600; color: #FB005B; cursor: pointer; }
+.mp-hint { margin: 0 0 .85rem; }
+.mp-dd-menu { max-height: 240px; overflow: auto; }

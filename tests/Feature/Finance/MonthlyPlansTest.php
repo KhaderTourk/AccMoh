@@ -11,6 +11,7 @@ use App\Models\ServiceType;
 use App\Models\User;
 use App\Models\Vendor;
 use App\Models\VendorCharge;
+use App\Models\VendorSubscription;
 use App\Support\MonthlyPlan;
 use App\Support\TenantContext;
 use Carbon\Carbon;
@@ -102,25 +103,59 @@ class MonthlyPlansTest extends TestCase
     public function test_worker_salary_month_is_added_once_with_the_partial_amount(): void
     {
         $this->travelTo(CarbonImmutable::parse('2026-11-20'));
-        $worker = Vendor::query()->create(['name' => 'ليان', 'type' => 'worker', 'is_active' => true, 'salary_amount' => 2200, 'salary_from' => '2026-11-09']);
-        $plan = \App\Http\Controllers\Cp\VendorMonthlyController::plans($worker)[0];
+        $worker = Vendor::query()->create(['name' => 'ليان', 'type' => 'worker', 'is_active' => true]);
+        $this->actingAs($this->user)->post(route('cp.vendor-subscriptions.store'), [
+            'vendor_id' => $worker->id, 'title' => 'راتب', 'amount' => 2200, 'starts_on' => '9/11/2026',
+        ])->assertRedirect(route('cp.workers.show', $worker));
+        $sub = VendorSubscription::query()->firstOrFail();
+        $this->assertSame(0, VendorCharge::query()->count());
+        $plan = \App\Http\Controllers\Cp\VendorSubscriptionController::plans($worker)[0];
         $this->assertSame(1613.33, $plan['pending'][0]['amount']);
 
-        $send = fn () => $this->actingAs($this->user)->post(route('cp.vendor-monthly.store', $worker), ['period' => '2026-11', 'amount' => '1613.33']);
+        $send = fn () => $this->actingAs($this->user)->post(route('cp.vendor-subscriptions.add', $sub), ['period' => '2026-11', 'amount' => '1613.33']);
         $send()->assertRedirect(route('cp.workers.index'))->assertSessionHas('success');
         $send()->assertSessionHas('error');
-        $this->assertSame(1, VendorCharge::query()->where('vendor_id', $worker->id)->where('period', '2026-11')->count());
-        $this->assertSame([], \App\Http\Controllers\Cp\VendorMonthlyController::plans($worker->fresh())[0]['pending']);
+        $this->assertSame(1, VendorCharge::query()->where('subscription_id', $sub->id)->where('period', '2026-11')->count());
+        $this->assertSame([], \App\Http\Controllers\Cp\VendorSubscriptionController::plans($worker->fresh())[0]['pending']);
     }
 
-    public function test_supplier_monthly_service_is_saved_from_the_list_window(): void
+    public function test_two_supplier_subscriptions_and_edited_first_month(): void
     {
         $this->travelTo(CarbonImmutable::parse('2026-11-20'));
-        $this->actingAs($this->user)->post(route('cp.suppliers.store'), [
-            'name' => 'مزوّد الإنترنت', 'detail' => 'إنترنت المكتب', 'salary_amount' => 150, 'salary_from' => '1/11/2026', 'return' => 'list',
-        ])->assertRedirect();
-        $supplier = Vendor::query()->where('name', 'مزوّد الإنترنت')->firstOrFail();
-        $this->assertSame(['2026-11'], $supplier->pendingMonths());
+        $supplier = Vendor::query()->create(['name' => 'مزوّد الإنترنت', 'type' => 'supplier', 'is_active' => true]);
+        foreach ([['إنترنت', 150, '120'], ['استضافة', 60, null]] as [$title, $amount, $first]) {
+            $this->actingAs($this->user)->post(route('cp.vendor-subscriptions.store'), [
+                'vendor_id' => $supplier->id, 'title' => $title, 'amount' => $amount, 'first_amount' => $first, 'starts_on' => '1/11/2026',
+            ])->assertRedirect();
+        }
+        $plans = \App\Http\Controllers\Cp\VendorSubscriptionController::plans($supplier);
+        $this->assertCount(2, $plans);
+        $this->assertSame(120.0, $plans[0]['pending'][0]['amount']);
+        $this->assertSame(60.0, $plans[1]['pending'][0]['amount']);
         $this->actingAs($this->user)->get(route('cp.suppliers.index'))->assertOk()->assertSee('الخدمات الشهرية');
+    }
+
+    public function test_stopping_edits_the_added_month_and_removes_later_ones(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-12-20'));
+        $worker = Vendor::query()->create(['name' => 'سامي', 'type' => 'worker', 'is_active' => true]);
+        $sub = VendorSubscription::query()->create([
+            'vendor_id' => $worker->id, 'title' => 'راتب', 'amount' => 3000, 'currency_id' => $this->ils->id, 'starts_on' => '2026-11-01',
+        ]);
+        foreach (['2026-11', '2026-12'] as $p) {
+            $this->actingAs($this->user)->post(route('cp.vendor-subscriptions.add', $sub), ['period' => $p, 'amount' => 3000]);
+        }
+        $this->actingAs($this->user)->post(route('cp.vendor-subscriptions.stop', $sub), ['ends_on' => '15/11/2026', 'last_amount' => '1500', 'notes' => 'ترك الشغل'])
+            ->assertRedirect(route('cp.workers.show', $worker));
+        $this->assertSame('2026-11-15', $sub->fresh()->ends_on->toDateString());
+        $this->assertSame(['2026-11'], VendorCharge::query()->where('subscription_id', $sub->id)->pluck('period')->all());
+        $this->assertSame('1500.00', VendorCharge::query()->where('subscription_id', $sub->id)->value('amount'));
+    }
+
+    public function test_dues_types_in_settings(): void
+    {
+        $this->actingAs($this->user)->get(route('cp.settings.index', ['tab' => 'worker-dues']))->assertOk()->assertSee('مكافأة');
+        $this->actingAs($this->user)->post(route('cp.settings.dues.store'), ['vendor_type' => 'supplier', 'name' => 'طباعة'])->assertRedirect();
+        $this->actingAs($this->user)->get(route('cp.settings.index', ['tab' => 'supplier-dues']))->assertOk()->assertSee('طباعة');
     }
 }
