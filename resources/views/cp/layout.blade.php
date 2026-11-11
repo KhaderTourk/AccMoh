@@ -51,7 +51,7 @@
     <link rel="stylesheet" href="{{ asset('assets/css/brand.css') }}?v={{ @filemtime(public_path('assets/css/brand.css')) ?: time() }}">
     @stack('styles')
 </head>
-<body class="@yield('body_class') font-sans bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 min-h-screen transition-colors duration-300">
+<body class="@yield('body_class', 'bs') font-sans bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 min-h-screen transition-colors duration-300">
     <div class="cp-wrap flex min-h-screen">
         @php
             $bsOn = fn (...$r) => request()->routeIs(...$r) ? 'on' : '';

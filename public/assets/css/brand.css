@@ -101,7 +101,11 @@ html.dark {
 /* الشريط اللي فوق: بيضل فيه عنوان الصفحة بس، وللصفحات اللي لسا ما انتقلت للأسلوب الجديد. */
 .bs-head { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; padding: 12px 16px; }
 .bs-head h1 { margin: 0; font-size: 1.125rem; font-weight: 700; }
-body.bs .bs-head { display: none; }
+/* العنوان فوق بيضل بس للصفحات اللي ما إلها عنوان جوا (cl-h). */
+body.bs:has(.cl-h) .bs-head, body.bs:has(.db-hello) .bs-head { display: none; }
+body.bs .db-hello h1 { font-size: 1.75rem; font-weight: 700; color: var(--bs-fg); }
+body.bs .bs-head { position: static; background: transparent !important; border: 0 !important; box-shadow: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; padding: 26px 28px 0; }
+body.bs .bs-head h1 { font-size: 1.6rem; color: var(--bs-fg); }
 
 /* شريط الموبايل */
 .bs-tabbar, .bs-more, .bs-wseg { display: none; }
@@ -265,3 +269,52 @@ body.bs .cl-actions .cp-btn[disabled] { background: var(--bs-chip); color: var(-
 }
 body.bs .bs-link.on { background: var(--bs-pink); color: #fff; box-shadow: 0 6px 16px -6px rgba(251, 0, 91, .6); }
 body.bs .bs-link:not(.on):hover { background: rgba(255, 255, 255, .06); }
+
+/* ——— 5. الثيم على كل النظام (11/11/2026) ———
+   الصفحات المبنية بـTailwind بتاخد نفس الألوان والخط والحواف والحقول. */
+body.bs .cp-main .bg-white,
+body.bs .cp-main .dark\:bg-slate-800 { background-color: var(--bs-surface) !important; }
+body.bs .cp-main .bg-slate-50,
+body.bs .cp-main .bg-slate-100,
+body.bs .cp-main .dark\:bg-slate-700\/50,
+body.bs .cp-main .dark\:bg-slate-900 { background-color: var(--bs-hover) !important; }
+body.bs .cp-main .border, body.bs .cp-main .border-t, body.bs .cp-main .border-b,
+body.bs .cp-main .divide-y > * + * { border-color: var(--bs-line) !important; }
+body.bs .cp-main .rounded-2xl { border-radius: 14px; }
+body.bs .cp-main .rounded-xl { border-radius: 10px; }
+body.bs .cp-main .text-slate-500, body.bs .cp-main .text-slate-400,
+body.bs .cp-main .text-gray-500, body.bs .cp-main .text-slate-600 { color: var(--bs-muted) !important; }
+body.bs .cp-main .text-slate-800, body.bs .cp-main .text-slate-900,
+body.bs .cp-main .dark\:text-slate-200, body.bs .cp-main .dark\:text-white { color: var(--bs-fg) !important; }
+body.bs .cp-main .text-primary { color: var(--bs-pink) !important; }
+body.bs .cp-main .bg-primary { background-color: var(--bs-pink) !important; }
+body.bs .cp-main .bg-primary\/5, body.bs .cp-main .bg-primary\/10 { background-color: var(--bs-pink-soft) !important; }
+
+/* الحقول */
+body.bs .cp-main input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=date]),
+body.bs .cp-main select,
+body.bs .cp-main textarea {
+    background-color: var(--bs-field) !important; border: 1px solid var(--bs-field-line) !important;
+    color: var(--bs-fg) !important; border-radius: 10px; font-family: inherit;
+}
+body.bs .cp-main input:focus, body.bs .cp-main select:focus, body.bs .cp-main textarea:focus {
+    border-color: var(--bs-pink) !important; box-shadow: 0 0 0 3px var(--bs-pink-soft) !important; outline: none;
+}
+body.bs .cp-main label.text-sm, body.bs .cp-main label.text-xs { font-weight: 600; color: var(--bs-fg); }
+
+/* الجداول */
+body.bs .cp-main table thead { background: var(--bs-hover) !important; }
+body.bs .cp-main table th { color: var(--bs-muted); font-weight: 600; font-size: .82rem; }
+body.bs .cp-main table td { color: var(--bs-fg); }
+body.bs .cp-main table tbody tr:hover { background: var(--bs-hover); }
+
+/* الأزرار */
+body.bs .cp-main .cp-btn-primary, body.bs .cp-main button.bg-primary, body.bs .cp-main a.bg-primary {
+    background: var(--bs-pink) !important; color: #fff !important; border-color: var(--bs-pink) !important; border-radius: 10px;
+}
+body.bs .cp-main .cp-btn-ghost { border-radius: 10px; }
+
+/* الكروت العامة (cs/st/bl) بنفس لون السطح والخط */
+body.bs .cp-main .st-card, body.bs .cp-main .cs-balance > *, body.bs .cp-main .bl-card, body.bs .cp-main .cl-list {
+    background: var(--bs-surface); border-color: var(--bs-line);
+}
