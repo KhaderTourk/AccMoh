@@ -60,7 +60,7 @@ class PartyPageService
             $rows->push($this->row('payment', $p, $p->occurred_on, $p->amount, $p->currency, $notes, $delta) + [
                 'group' => $isPerson ? ($out ? 'g1' : 'g2') : 'g2',
                 'kind' => $method,
-                'title' => ($isPerson ? ($out ? 'أعطيته · ' : 'أخدت منه · ') : 'دفعة · ').$method,
+                'title' => ($isPerson ? ($out ? 'مدين · ' : 'دائن · ') : 'دفعة · ').$method,
                 'icon' => $isPerson && ! $out ? 'south_west' : 'payments',
                 'edit' => route('cp.payments.edit', $p),
                 'delete' => route('cp.payments.destroy', $p),

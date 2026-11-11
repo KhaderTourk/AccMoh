@@ -98,7 +98,7 @@ class PartyPagesTest extends TestCase
         $supplier = Vendor::query()->create(['name' => 'مورد التحويل', 'type' => VendorType::Supplier, 'is_active' => true]);
 
         $this->actingAs($this->user)->get(route('cp.persons.show', $person))
-            ->assertOk()->assertSee('أعطيته')->assertSee('"key":"vendor:'.$supplier->id.'"', false);
+            ->assertOk()->assertSee('مدين')->assertSee('"key":"vendor:'.$supplier->id.'"', false);
 
         // «من حسابه لحساب تاني»: 300 he owed me now sits on the supplier.
         $this->actingAs($this->user)->post(route('cp.balance-memos.transfer.store'), [

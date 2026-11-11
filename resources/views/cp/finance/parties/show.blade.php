@@ -17,11 +17,11 @@
         <div class="cs-adds">
             @if($isPerson)
                 <div class="cs-add">
-                    <button type="button" class="cs-btn svc" data-menu="mG1"><span class="material-symbols-outlined">north_east</span> أعطيته</button>
+                    <button type="button" class="cs-btn svc" data-menu="mG1"><span class="material-symbols-outlined">north_east</span> مدين <small class="cs-dir">عليه</small></button>
                     <div class="cl-menu cs-menu" id="mG1" hidden></div>
                 </div>
                 <div class="cs-add">
-                    <button type="button" class="cs-btn pay" data-menu="mG2"><span class="material-symbols-outlined">south_west</span> أخدت منه</button>
+                    <button type="button" class="cs-btn pay" data-menu="mG2"><span class="material-symbols-outlined">south_west</span> دائن <small class="cs-dir">إله</small></button>
                     <div class="cl-menu cs-menu" id="mG2" hidden></div>
                 </div>
             @else
@@ -313,8 +313,8 @@
     const KIND = {
         charge: { title: WORKER ? 'مستحق' : 'خدمة / مورد', url: D.urls.charge, sign: 1, date: 'charge_date', amtLabel: 'المبلغ', group: 'g1' },
         pay: { title: 'دفعة', url: D.urls.payment, sign: -1, date: 'occurred_on', amtLabel: 'المبلغ', group: 'g2' },
-        give: { title: 'أعطيته', url: D.urls.give, sign: 1, date: 'occurred_on', amtLabel: 'المبلغ', group: 'g1' },
-        take: { title: 'أخدت منه', url: D.urls.take, sign: -1, date: 'occurred_on', amtLabel: 'المبلغ', group: 'g2' },
+        give: { title: 'مدين · عليه', url: D.urls.give, sign: 1, date: 'occurred_on', amtLabel: 'المبلغ', group: 'g1' },
+        take: { title: 'دائن · إله', url: D.urls.take, sign: -1, date: 'occurred_on', amtLabel: 'المبلغ', group: 'g2' },
         advance: { title: 'سلفة', url: D.urls.payment, sign: -1, date: 'occurred_on', amtLabel: 'المبلغ', group: 'other' },
         discount: { title: 'خصم', url: D.urls.goods, sign: -1, date: 'taken_on', amtLabel: 'قيمة الخصم', group: 'other' },
         goods: { title: 'بضاعة أخدها منا', url: D.urls.goods, sign: -1, date: 'taken_on', amtLabel: 'قيمة البضاعة', group: 'other' },
