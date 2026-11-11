@@ -133,6 +133,7 @@
         'refund' => route('cp.payments.store', ['outgoing']),
         'sub' => route('cp.subscriptions.store'),
         'subsConfirm' => route('cp.subscriptions.confirm'),
+        'clientsMonthly' => route('cp.clients.index'),
         'pdf' => route('cp.clients.export-pdf', $client),
     ],
     'today' => now()->toDateString(),
@@ -599,18 +600,19 @@
         $('csSubs').hidden = !S.length;
         if (S.length && location.hash === '#csSubs') setTimeout(() => $('csSubs').scrollIntoView({ block: 'start' }), 50);
         if (!S.length) return;
-        const active = S.filter((x) => !x.to || x.to >= D.today).length;
-        $('csSubsN').textContent = active + ' فعّال';
-        $('csSubsList').innerHTML = S.map((x) => `<div class="st-row${x.to && x.to < D.today ? ' is-off' : ''}">
+        // الموقوف (إله آخر يوم شغل) ما بينعدّ فعّال، وبينعرض باهت تحت الفعّالين.
+        const active = S.filter((x) => !x.to).length;
+        $('csSubsN').textContent = active ? active + ' فعّال' : 'ما في اشتراك فعّال';
+        $('csSubsList').innerHTML = S.map((x) => {
+            const acts = (x.to ? '' : `<button type="button" data-sub-stop="${x.id}">إيقاف</button>`)
+                + (x.months ? '' : `<button type="button" class="danger" data-sub-del="${x.id}">حذف</button>`);
+            return `<div class="st-row${x.to ? ' is-off' : ''}">
             <div class="st-name"><b>${esc(x.title)} · ${num(x.amount)} ₪ شهرياً</b>
-            <span>من ${dayLabel(x.from)}${x.to ? ' لغاية ' + dayLabel(x.to) : ''} · ${x.months} شهر مسجّل</span>
-            ${x.due ? `<a class="cs-sub-due" href="${esc(D.urls.subsConfirm)}">${x.due === 1 ? 'في فاتورة جاهزة' : 'في ' + x.due + ' فواتير جاهزة'} للتسجيل ←</a>` : ''}
-            ${x.accruing ? `<span class="cs-sub-run">الشهر الحالي: ${x.accruing.days} يوم لغاية اليوم ≈ ${num(x.accruing.amount)} ₪ · فاتورته بتطلع أول الشهر الجاي</span>` : ''}</div>
-            <div class="st-act"><button type="button" class="cl-more" aria-label="خيارات الاشتراك">⋯</button>
-            <div class="cl-menu" hidden>
-                ${x.to ? '' : `<button type="button" data-sub-stop="${x.id}">إيقاف</button>`}
-                ${x.months ? '' : `<button type="button" class="danger" data-sub-del="${x.id}">حذف</button>`}
-            </div></div></div>`).join('');
+            <span>من ${dayLabel(x.from)}${x.to ? ' · انوقف بآخر يوم شغل ' + dayLabel(x.to) : ''} · ${x.months} شهر مسجّل</span>
+            ${x.due ? `<a class="cs-sub-due" href="${esc(D.urls.clientsMonthly)}">${x.due === 1 ? 'في شهر' : 'في ' + x.due + ' شهور'} لسا ما انضاف ←</a>` : ''}</div>
+            ${acts ? `<div class="st-act"><button type="button" class="cl-more" aria-label="خيارات الاشتراك">⋯</button>
+            <div class="cl-menu" hidden>${acts}</div></div>` : ''}</div>`;
+        }).join('');
     }
     $('csSubsList').addEventListener('click', (e) => {
         const more = e.target.closest('.cl-more');
