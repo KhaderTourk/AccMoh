@@ -12,7 +12,7 @@
     <div class="db-cards">
         <a class="db-card" href="{{ route('cp.balances.index') }}">
             <span class="db-k">معي</span>
-            <b class="db-v">{{ $n($withMe) }}</b>
+            <b class="db-v bl-money">{{ $n($withMe) }}</b>
             <small>بكل الأدراج، بسعر اليوم · الأدراج والأرصدة ‹</small>
         </a>
         <div class="db-card">

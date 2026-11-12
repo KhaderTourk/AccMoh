@@ -10,12 +10,13 @@
     <div class="cl-top">
         <h1 class="cl-h">الأدراج والأرصدة</h1>
         <div class="cl-sp"></div>
-        <a href="{{ route('cp.transfers.create') }}" class="cp-btn cp-btn-primary"><span class="material-symbols-outlined">swap_horiz</span> تحويل</a>
+        @include('cp.partials.transfer-wizard', ['wizard' => $wizard])
     </div>
 
     <div class="bl-total">
         <span>المجموع بسعر اليوم</span>
-        <b class="{{ $total < 0 ? 'due' : '' }}">{{ $n($total) }}</b>
+        <b class="bl-money {{ $total < 0 ? 'due' : '' }}">{{ $n($total) }}</b>
+        @include('cp.partials.money-eye')
         <button type="button" class="bl-rates" id="blRatesBtn">
             @forelse($fx as $code => $r)
                 <span>{{ $code === 'USD' ? 'الدولار' : ($code === 'JOD' ? 'الدينار' : $code) }} {{ rtrim(rtrim(number_format($r, 4), '0'), '.') }}</span>
@@ -39,14 +40,12 @@
             <div class="bl-card">
                 <a class="bl-main" href="{{ route('cp.balances.show', ['method' => $card['method']->id]) }}">
                     <span class="bl-name">{{ $card['method']->name }}</span>
-                    @if(!count($card['currencies']))
-                        <b class="bl-empty">فاضي</b>
-                    @else
-                        <b class="{{ $card['ils'] < 0 ? 'due' : '' }}">{{ $n($card['ils']) }}</b>
-                        <span class="bl-curs">
-                            @foreach($card['currencies'] as $c)<i class="{{ $c['negative'] ? 'due' : '' }}">{{ $c['label'] }}</i>@endforeach
-                        </span>
-                    @endif
+                    <b class="bl-money {{ $card['ils'] < 0 ? 'due' : '' }}">{{ $n($card['ils']) }}</b>
+                    <span class="bl-curs">
+                        @foreach($card['currencies'] as $c)
+                            <span class="bl-cur {{ $c['zero'] ? 'zero' : '' }}"><span>{{ $c['name'] }} {{ $c['symbol'] }}</span><b class="bl-money {{ $c['negative'] ? 'due' : '' }}" dir="ltr">{{ $c['label'] }}</b></span>
+                        @endforeach
+                    </span>
                 </a>
                 <button type="button" class="cl-more" aria-label="خيارات {{ $card['method']->name }}">⋯</button>
                 <div class="cl-menu" hidden>

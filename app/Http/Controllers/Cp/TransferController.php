@@ -87,6 +87,11 @@ class TransferController extends Controller
             return back()->withInput()->with('error', $e->getMessage());
         }
 
+        // من نافذة التحويل: بنرجع لنفس الشاشة («ضل مكانك»).
+        if ($request->boolean('stay')) {
+            return back()->with('success', $isFx && (int) $data['from_payment_method_id'] === (int) $data['to_payment_method_id'] ? 'تم الصرف.' : 'تم التحويل.');
+        }
+
         return redirect()->route('cp.transfers.index')->with('success', 'تم تنفيذ التحويل.');
     }
 

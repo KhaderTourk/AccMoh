@@ -15,6 +15,12 @@
         'ads' => '<path d="M4 10v4a1 1 0 0 0 1 1h2l5 4V5L7 9H5a1 1 0 0 0-1 1z"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"/>',
         'moon' => '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',
         'logout' => '<path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 16l-4-4 4-4M6 12h10"/>',
+        'edit' => '<path d="M4 20h4L19 9l-4-4L4 16v4z"/>',
+        'back' => '<path d="M9 6l6 6-6 6"/>',
+        'close' => '<path d="M6 6l12 12M18 6 6 18"/>',
+        'check' => '<path d="M5 12l5 5 9-10"/>',
+        'exchange' => '<circle cx="9" cy="9" r="5"/><circle cx="15" cy="15" r="5"/>',
+        'chevron' => '<path d="M6 9l6 6 6-6"/>',
         'more' => '<circle cx="5" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="19" cy="12" r="1.6" fill="currentColor"/>',
     ];
 @endphp

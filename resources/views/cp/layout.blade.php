@@ -50,6 +50,34 @@
     <link rel="stylesheet" href="{{ asset('assets/css/cp.css') }}?v={{ @filemtime(public_path('assets/css/cp.css')) ?: time() }}">
     <link rel="stylesheet" href="{{ asset('assets/css/brand.css') }}?v={{ @filemtime(public_path('assets/css/brand.css')) ?: time() }}">
     @stack('styles')
+    <script>
+        /* تمويه أرصدة الأدراج (قرار 12/11/2026): متموّهة افتراضياً، وزر العين بيظهرها.
+           بترجع تتموّه لما تفتح النظام من جديد، أو تروح لتطبيق/تاب ثاني وترجع. التنقل بين صفحات النظام ما بيرجّعها. */
+        (function () {
+            var K = 'cpMoneyShow', H = 'cpMoneyHiddenAt', root = document.documentElement, ss;
+            try { ss = window.sessionStorage; } catch (e) { ss = null; }
+            function get(k) { try { return ss ? ss.getItem(k) : null; } catch (e) { return null; } }
+            function set(k, v) { try { if (!ss) return; if (v === null) ss.removeItem(k); else ss.setItem(k, v); } catch (e) {} }
+            var hiddenAt = +get(H) || 0;
+            if (get(K) === '1' && (!hiddenAt || Date.now() - hiddenAt < 4000)) root.classList.add('bl-show'); else set(K, null);
+            set(H, null);
+            function apply(on) {
+                root.classList.toggle('bl-show', on);
+                set(K, on ? '1' : null);
+                document.querySelectorAll('[data-money-eye]').forEach(function (b) {
+                    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+                    var t = b.querySelector('[data-eye-text]'); if (t) t.textContent = on ? 'إخفاء' : 'إظهار الأرقام';
+                });
+            }
+            window.cpMoney = { show: function () { apply(true); }, hide: function () { apply(false); }, toggle: function () { apply(!root.classList.contains('bl-show')); } };
+            document.addEventListener('visibilitychange', function () {
+                if (document.visibilityState === 'hidden') { set(H, String(Date.now())); }
+                else { set(H, null); if (root.classList.contains('bl-show')) apply(false); }
+            });
+            document.addEventListener('click', function (e) { if (e.target.closest && e.target.closest('[data-money-eye]')) cpMoney.toggle(); });
+            document.addEventListener('DOMContentLoaded', function () { apply(root.classList.contains('bl-show')); });
+        })();
+    </script>
 </head>
 <body class="@yield('body_class', 'bs') font-sans bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 min-h-screen transition-colors duration-300">
     <div class="cp-wrap flex min-h-screen">

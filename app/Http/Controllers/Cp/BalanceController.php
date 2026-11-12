@@ -16,6 +16,7 @@ use App\Services\Finance\AdjustmentService;
 use App\Services\Finance\BalanceService;
 use App\Services\Finance\FinancialLedgerService;
 use App\Support\DateRange;
+use App\Support\DrawerPlaces;
 use App\Support\Money;
 use App\Support\Rates;
 use Illuminate\Http\Request;
@@ -56,14 +57,24 @@ class BalanceController extends Controller
                     $sum += $v;
                     $byFund[$fund->id] = ($byFund[$fund->id] ?? 0) + Rates::toIls($v, $c->code);
                 }
-                if (abs($sum) >= 0.005) {
-                    $byCurrency[] = ['code' => $c->code, 'id' => $c->id, 'label' => ($sum < 0 ? '−' : '').$c->format(abs($sum)), 'negative' => $sum < 0];
-                }
+                // كل العملات بتظهر بالكرت حتى لو صفر (ملاحظات الأدراج 12/11/2026).
+                $byCurrency[] = ['code' => $c->code, 'id' => $c->id, 'name' => DrawerPlaces::curName($c->code, $c->name), 'symbol' => $c->symbol, 'amount' => round($sum, 2),
+                    'label' => ($sum < 0 ? '−' : '').number_format(abs($sum), 2), 'negative' => $sum < -0.004, 'zero' => abs($sum) < 0.005];
                 $ils += Rates::toIls($sum, $c->code);
             }
             $total += $ils;
             $cards[] = ['method' => $method, 'ils' => round($ils, 2), 'currencies' => $byCurrency, 'byFund' => $byFund];
         }
+
+        // بيانات نافذة التحويل: رصيد كل درج بكل عملة.
+        $wizard = [
+            'methods' => collect($cards)->map(fn ($c) => [
+                'id' => $c['method']->id,
+                'name' => $c['method']->name,
+                'bal' => collect($c['currencies'])->mapWithKeys(fn ($x) => [$x['code'] => $x['amount']])->all(),
+            ])->values()->all(),
+            'currencies' => $snapshot['currencies']->map(fn ($c) => ['id' => $c->id, 'code' => $c->code, 'name' => DrawerPlaces::curName($c->code, $c->name), 'symbol' => $c->symbol])->values()->all(),
+        ];
 
         return view('cp.finance.balances.index', [
             'tab' => $tab,
@@ -73,6 +84,7 @@ class BalanceController extends Controller
             'total' => round($total, 2),
             'rates' => $rates,
             'currencies' => $snapshot['currencies'],
+            'wizard' => $wizard,
         ]);
     }
 
@@ -115,16 +127,16 @@ class BalanceController extends Controller
             foreach ($funds as $fund) {
                 $sum += (float) ($snapshot['cells'][$fund->id][$method->id][$c->id] ?? 0);
             }
-            if (abs($sum) >= 0.005 || ($cur && $cur->id === $c->id)) {
-                $cards[] = ['currency' => $c, 'amount' => $sum];
-            }
+            $cards[] = ['currency' => $c, 'amount' => round($sum, 2)];
         }
+        $places = DrawerPlaces::get($method->id);
 
         return view('cp.finance.balances.show', [
             'method' => $method,
             'tab' => $tab,
             'funds' => $snapshot['funds'],
             'cards' => $cards,
+            'places' => $places,
             'rows' => array_reverse($rows),
             'opening' => $opening,
             'currencies' => $snapshot['currencies'],
@@ -132,6 +144,53 @@ class BalanceController extends Controller
             'from' => $from,
             'to' => $to,
         ]);
+    }
+
+    /**
+     * توزيع الدرج على أماكن (للعرض بس، قرار 12/11/2026): ما بيلمس الحركات ولا الأرصدة.
+     * الموزّع بكل عملة ما بيزيد عن رصيد الدرج بهالعملة.
+     */
+    public function places(Request $request, PaymentMethod $method, BalanceService $balances)
+    {
+        $codes = Currency::query()->pluck('code', 'id');
+        $data = $request->validate([
+            'places' => ['array', 'max:30'],
+            'places.*.name' => ['nullable', 'string', 'max:60'],
+            'places.*.amounts' => ['array'],
+            'places.*.amounts.*' => ['nullable', 'numeric', 'gte:0'],
+        ]);
+
+        $clean = [];
+        $sums = [];
+        foreach ($data['places'] ?? [] as $p) {
+            $name = trim((string) ($p['name'] ?? ''));
+            $amounts = [];
+            foreach ($codes as $code) {
+                $v = round((float) ($p['amounts'][$code] ?? 0), 2);
+                if ($v > 0) {
+                    $amounts[$code] = $v;
+                    $sums[$code] = ($sums[$code] ?? 0) + $v;
+                }
+            }
+            if ($name === '' && ! $amounts) {
+                continue;
+            }
+            if ($name === '') {
+                throw ValidationException::withMessages(['places' => 'اكتب اسم لكل مكان.']);
+            }
+            $clean[] = ['name' => $name, 'amounts' => $amounts];
+        }
+
+        foreach ($codes as $id => $code) {
+            $have = max(0, (float) $balances->drawerCash($method->id, (int) $id));
+            if (($sums[$code] ?? 0) > $have + 0.004) {
+                throw ValidationException::withMessages(['places' => 'الموزّع بال'.Currency::query()->find($id)->name.' أكتر من رصيد الدرج.']);
+            }
+        }
+
+        DrawerPlaces::put($method->id, $clean);
+
+        return back()->with('success', 'انحفظ توزيع '.$method->name.'.');
     }
 
     /** «تسوية رصيد»: بتسجّل حركة بالفرق بين الموجود فعلياً واللي بالنظام، مع ملاحظة إجبارية. */
