@@ -351,7 +351,7 @@
         const cur = L.currencies.filter((c) => !ilsOnly || c.code === 'ILS').map((c) => `<option value="${c.id}" data-code="${esc(c.code)}">${esc(c.code)} ${esc(c.symbol)}</option>`).join('');
         return `<div class="cs-two"><div class="cl-field"><label for="xAmt">${label}</label><input id="xAmt" inputmode="decimal" dir="ltr" placeholder="0.00"><small class="cs-hint" id="xHint"></small></div>
             <div class="cl-field"><label for="xCur">العملة</label><select id="xCur" name="currency_id">${cur}</select></div></div>
-            <div class="cl-field" id="xRateWrap" hidden><label for="xRate">سعر الصرف للشيكل</label><input id="xRate" name="exchange_rate" inputmode="decimal" dir="ltr"><small class="cs-hint" id="xIls"></small></div>
+            <div class="cl-field" id="xRateWrap" hidden><label for="xRate" id="xRateL">سعر الصرف</label><input id="xRate" name="exchange_rate" inputmode="decimal" dir="ltr"><small class="cs-hint" id="xIls"></small></div>
             <input type="hidden" name="amount" id="xAmtIls"><input type="hidden" name="source_amount" id="xAmtSrc">`;
     }
     function openTx(kind, opt) {
@@ -443,7 +443,7 @@
         if (dir) dir.addEventListener('click', (e) => { const b = e.target.closest('[data-d]'); if (!b) return; dir.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); $('xDirIn').value = b.dataset.d; check(); });
         cur.addEventListener('change', () => {
             const fx = curCode() !== 'ILS';
-            if ($('xRateWrap')) { $('xRateWrap').hidden = !fx; if (fx && !$('xRate').value) { const r = L.rates[cur.value]; if (r) $('xRate').value = r; } }
+            if ($('xRateWrap')) { $('xRateL').textContent = 'سعر صرف ' + ({ USD: 'الدولار', JOD: 'الدينار', ILS: 'الشيكل' }[(cur.selectedOptions[0] && cur.selectedOptions[0].dataset.code) || ''] || 'العملة'); $('xRateWrap').hidden = !fx; if (fx && !$('xRate').value) { const r = L.rates[cur.value]; if (r) $('xRate').value = r; } }
             check();
         });
         if ($('xToday')) $('xToday').addEventListener('click', () => { $('xDate').value = dayLabel(D.today); check(); });

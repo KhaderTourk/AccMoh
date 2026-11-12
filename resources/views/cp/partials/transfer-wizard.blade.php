@@ -109,7 +109,10 @@
         let strong, weak;
         if (a === 'ILS') { strong = b; weak = a; } else if (b === 'ILS') { strong = a; weak = b; } else { strong = (a === 'JOD' || b === 'JOD') ? 'JOD' : a; weak = strong === a ? b : a; }
         const today = weak === 'ILS' ? RATES[strong] : (RATES[strong] && RATES[weak] ? RATES[strong] / RATES[weak] : null);
-        return { label: cur(strong).name + ' بكم ' + cur(weak).name, mul: S.send === strong, today };
+        // «سعر صرف» لما تبيع العملة القوية، و«سعر شراء» لما تشتريها (12/11/2026).
+        const DEF = { USD: 'الدولار', JOD: 'الدينار', ILS: 'الشيكل' };
+        const label = (S.send === strong ? 'سعر صرف ' : 'سعر شراء ') + (DEF[strong] || cur(strong).name) + (weak === 'ILS' ? '' : ' بـ' + (DEF[weak] || cur(weak).name));
+        return { label, mul: S.send === strong, today };
     }
     function calc() {
         const amt = num(S.amount), fx = S.send !== S.recv;
@@ -186,7 +189,7 @@
             rows.push(['بيطلع', money(S.send, c.amt)]);
             rows.push(['بيدخل', money(S.recv, c.to)]);
         }
-        if (c.fx) rows.push(['سعر الصرف', '<span dir="ltr">' + esc(rateInfo().label) + ': ' + esc(String(num(S.rate))) + '</span>']);
+        if (c.fx) rows.push([esc(rateInfo().label), '<span dir="ltr">' + esc(String(num(S.rate))) + '</span>']);
         const after = S.mode === 'move'
             ? esc(from.name) + ' ' + money(S.send, (from.bal[S.send] || 0) - c.amt) + ' · ' + esc(to.name) + ' ' + money(S.recv, (to.bal[S.recv] || 0) + c.to)
             : money(S.recv, (from.bal[S.recv] || 0) + c.to) + ' · ' + money(S.send, (from.bal[S.send] || 0) - c.amt);

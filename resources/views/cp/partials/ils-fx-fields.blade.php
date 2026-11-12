@@ -1,7 +1,7 @@
 <label class="flex items-center gap-2 text-sm cursor-pointer">
     <input type="hidden" name="requires_fx" value="0">
     <input type="checkbox" name="requires_fx" value="1" x-model="requiresFx" class="rounded border">
-    سعر الصرف / دولار
+    المبلغ بالدولار
 </label>
 
 <div x-show="!requiresFx">
@@ -15,7 +15,7 @@
         <input type="number" step="0.01" min="0.01" name="source_amount" x-model="usdAmount" x-bind:disabled="!requiresFx" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
     </div>
     <div>
-        <label class="text-sm">سعر الدولار *</label>
+        <label class="text-sm">سعر صرف الدولار *</label>
         <input type="number" step="0.0001" min="0.0001" name="exchange_rate" x-model="rate" x-bind:disabled="!requiresFx" required class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700" placeholder="مثال: 3.65">
     </div>
     <div>
@@ -23,5 +23,5 @@
         <input type="text" :value="ilsTotal()" readonly tabindex="-1" class="w-full rounded-xl border px-3 py-2 bg-slate-50 dark:bg-slate-700/60">
         <input type="hidden" name="amount" :value="ilsTotal()" x-bind:disabled="!requiresFx">
     </div>
-    <p class="text-xs text-slate-500">تُسجَّل الحركة بالشيكل. الإجمالي = المبلغ بالدولار × سعر الدولار.</p>
+    <p class="text-xs text-slate-500">تُسجَّل الحركة بالشيكل. الإجمالي = المبلغ بالدولار × سعر صرف الدولار.</p>
 </div>

@@ -100,7 +100,7 @@
             <input type="number" step="0.01" min="0.01" name="source_amount" x-model="amount" x-bind:disabled="!isFx" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
         </div>
         <div>
-            <label class="text-sm">سعر الصرف *</label>
+            <label class="text-sm" x-text="'سعر صرف ' + ({{ \Illuminate\Support\Js::from($currencies->mapWithKeys(fn ($c) => [(string) $c->id => \App\Support\DrawerPlaces::curDef($c->code, $c->name)])) }}[String(currencyId)] || 'العملة') + ' *'">سعر الصرف *</label>
             <input type="number" step="0.0001" min="0.0001" name="exchange_rate" x-model="rate" x-bind:disabled="!isFx" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700" placeholder="مثال: 3.65">
         </div>
         <div>

@@ -13,6 +13,12 @@ use App\Models\AppSetting;
 class DrawerPlaces
 {
     /** اسم العملة القصير بالكروت والنوافذ: شيكل، دولار، دينار. */
+    /** اسم العملة معرّف («الدولار»)، لعناوين زي «سعر صرف الدولار». */
+    public static function curDef(string $code, ?string $fallback = null): string
+    {
+        return ['ILS' => 'الشيكل', 'USD' => 'الدولار', 'JOD' => 'الدينار'][$code] ?? ($fallback ?? $code);
+    }
+
     public static function curName(string $code, ?string $fallback = null): string
     {
         return ['ILS' => 'شيكل', 'USD' => 'دولار', 'JOD' => 'دينار'][$code] ?? ($fallback ?? $code);

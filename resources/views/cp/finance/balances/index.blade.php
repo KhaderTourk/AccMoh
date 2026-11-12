@@ -13,24 +13,36 @@
         @include('cp.partials.transfer-wizard', ['wizard' => $wizard])
     </div>
 
-    {{-- المجموع بسعر اليوم (12/11/2026، صورة م. محمد): كرت زي كرت «نقدي» بالضبط، لحاله بسطر فوق الأدراج.
-         الدولار والدينار للعرض بس، والنقاط الثلاث فيها «تعديل سعر الصرف». --}}
+    {{-- المجموع بسعر اليوم (12/11/2026، صورة م. محمد): بعرض كرت «نقدي» بدون إطار. سعر صرف الدولار والدينار نص للعرض بس.
+         القلم بيحوّل الأرقام لحقول بنفس المكان (بدون نافذة)، مع السعر العالمي اليوم و«استعمله»، و«حفظ» بيشتغل لما يتغيّر رقم. --}}
     <div class="bl-grid bl-sumrow">
-        <div class="bl-card bl-sum">
+        <form class="bl-card bl-sum" id="blSum" method="post" action="{{ route('cp.balances.rates') }}">
+            @csrf
             <div class="bl-main">
                 <span class="bl-name">المجموع بسعر اليوم</span>
                 <b class="bl-money {{ $total < 0 ? 'due' : '' }}" dir="ltr">{{ $total < 0 ? '−' : '' }}₪ {{ number_format(abs($total), 2) }}</b>
-                <span class="bl-curs">
+                <span class="bl-rview">
                     @foreach($currencies->where('code', '!=', 'ILS') as $c)
-                        <span class="bl-cur {{ isset($fx[$c->code]) ? '' : 'zero' }}"><span>{{ \App\Support\DrawerPlaces::curName($c->code, $c->name) }} {{ $c->symbol }}</span><b dir="ltr">{{ isset($fx[$c->code]) ? '₪ '.rtrim(rtrim(number_format($fx[$c->code], 4), '0'), '.') : '—' }}</b></span>
+                        <span class="bl-rv"><span>سعر صرف {{ \App\Support\DrawerPlaces::curDef($c->code, $c->name) }}</span><b dir="ltr">{{ isset($fx[$c->code]) ? '₪ '.rtrim(rtrim(number_format($fx[$c->code], 4), '0'), '.') : '—' }}</b></span>
                     @endforeach
                 </span>
+                <span class="bl-redit" hidden>
+                    @foreach($currencies->where('code', '!=', 'ILS') as $c)
+                        @php($v = isset($rates[$c->code]) ? rtrim(rtrim(number_format($rates[$c->code], 4, '.', ''), '0'), '.') : '')
+                        <span class="bl-re">
+                            <label for="blRate{{ $c->code }}">سعر صرف {{ \App\Support\DrawerPlaces::curDef($c->code, $c->name) }}</label>
+                            <input id="blRate{{ $c->code }}" name="rates[{{ $c->code }}]" class="bl-rin" inputmode="decimal" dir="ltr" value="{{ $v }}" data-orig="{{ $v }}" placeholder="مثلاً 3.70" autocomplete="off">
+                            <span class="bl-sug" data-sug="{{ $c->code }}"><span>العالمي اليوم <b dir="ltr">…</b></span><button type="button" class="bl-use" data-use="{{ $c->code }}" hidden>استعمله</button></span>
+                        </span>
+                    @endforeach
+                    <small class="bl-src" id="blSugSrc"></small>
+                    <button type="submit" class="bl-save" id="blSave" disabled>حفظ</button>
+                </span>
             </div>
-            <button type="button" class="cl-more" aria-label="خيارات المجموع">⋯</button>
-            <div class="cl-menu" hidden>
-                <button type="button" data-rates-open>تعديل سعر الصرف</button>
-            </div>
-        </div>
+            <button type="button" class="bl-penc" id="blEdit" aria-label="تعديل سعر الصرف" title="تعديل سعر الصرف">
+                <span class="bl-pi">@include('cp.partials.bs-icon', ['name' => 'edit', 'size' => 16])</span><span class="bl-xi">@include('cp.partials.bs-icon', ['name' => 'close', 'size' => 16])</span>
+            </button>
+        </form>
     </div>
 
     <div class="bl-grid">
@@ -84,32 +96,6 @@
     </form>
 </div>
 
-{{-- سعر اليوم: الأسعار المحفوظة، وجنب كل عملة سعر مقترح من مصدر رسمي بزر «استعمله». ما بينحفظ إشي إلا بـ«حفظ». --}}
-<div class="cl-sheet tw-sheet" id="blRatesSheet" hidden>
-    <form class="tw-dialog" method="post" action="{{ route('cp.balances.rates') }}" role="dialog" aria-modal="true" aria-labelledby="blRatesT">
-        @csrf
-        <div class="tw-head">
-            <h2 id="blRatesT">سعر اليوم</h2>
-            <button type="button" class="tw-x" data-close aria-label="إغلاق">@include('cp.partials.bs-icon', ['name' => 'close', 'size' => 18])</button>
-        </div>
-        <div class="tw-body">
-            <p class="tw-hint" style="margin:0">كم شيكل بتسوى الوحدة. السعر للمجاميع بس، وكل حركة محفوظة بسعرها وقت التسجيل.</p>
-            @foreach($currencies->where('code', '!=', 'ILS') as $c)
-                <div class="bl-rrow">
-                    <label class="tw-l" for="blRate{{ $c->code }}">{{ \App\Support\DrawerPlaces::curName($c->code, $c->name) }} {{ $c->symbol }} بكم شيكل</label>
-                    <input id="blRate{{ $c->code }}" name="rates[{{ $c->code }}]" class="tw-mid bl-rin" inputmode="decimal" dir="ltr" value="{{ isset($rates[$c->code]) ? rtrim(rtrim(number_format($rates[$c->code], 4, '.', ''), '0'), '.') : '' }}" placeholder="مثلاً 3.70" autocomplete="off">
-                    <div class="bl-sug" data-sug="{{ $c->code }}" hidden><span></span><button type="button" class="bl-use" data-use="{{ $c->code }}">استعمله</button></div>
-                </div>
-            @endforeach
-            <small class="tw-hint" id="blSugSrc">بنجيب السعر الرسمي…</small>
-        </div>
-        <div class="tw-foot">
-            <span class="tw-grow"></span>
-            <button type="submit" class="tw-pri">حفظ</button>
-        </div>
-    </form>
-</div>
-
 <script>
 (function () {
     const $ = (id) => document.getElementById(id);
@@ -150,39 +136,47 @@
             $('blActual').value = ''; $('blNotes').value = ''; paint();
             open($('blSheet'), $('blActual')); return;
         }
-        if (e.target.closest('[data-rates-open]')) { closeMenus(); open($('blRatesSheet')); suggest(); return; }
         const x = e.target.closest('.tw-sheet [data-close]');
         if (x) { shut(x.closest('.tw-sheet')); return; }
         if (e.target.classList && e.target.classList.contains('tw-sheet') && e.target.id !== 'twSheet') { shut(e.target); return; }
         if (!e.target.closest('.cl-menu')) closeMenus();
     });
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') ['blSheet', 'blRatesSheet'].forEach((id) => { if (!$(id).hidden) shut($(id)); }); });
+    document.addEventListener('keydown', (e) => { if (e.key !== 'Escape') return; if (!$('blSheet').hidden) shut($('blSheet')); else if ($('blSum').classList.contains('editing')) editMode(false); });
 
-    // السعر المقترح: بينجاب لما تفتح النافذة بس، و«استعمله» بيعبّي الحقل (الحفظ بإيدك).
+    // سعر الصرف: القلم بيفتح التعديل بنفس المكان، ✕ بيرجّع الأرقام زي ما كانت.
+    const sum = $('blSum'), ins = () => sum.querySelectorAll('.bl-rin');
+    function dirty() { $('blSave').disabled = ![...ins()].some((i) => i.value.trim() !== i.dataset.orig && !(num(i.value) <= 0)); }
+    function editMode(on) {
+        sum.classList.toggle('editing', on);
+        sum.querySelector('.bl-rview').hidden = on; sum.querySelector('.bl-redit').hidden = !on;
+        $('blEdit').setAttribute('aria-label', on ? 'إلغاء التعديل' : 'تعديل سعر الصرف'); $('blEdit').title = $('blEdit').getAttribute('aria-label');
+        if (on) { suggest(); setTimeout(() => ins()[0] && ins()[0].focus(), 30); } else { ins().forEach((i) => { i.value = i.dataset.orig; }); }
+        dirty();
+    }
+    $('blEdit').addEventListener('click', () => editMode(!sum.classList.contains('editing')));
+    sum.addEventListener('input', (e) => { if (e.target.classList.contains('bl-rin')) dirty(); });
+    sum.addEventListener('click', (e) => { const u = e.target.closest('[data-use]'); if (!u || !u.dataset.val) return; const i = $('blRate' + u.dataset.use); i.value = u.dataset.val; dirty(); });
+
+    // السعر العالمي: بينجاب لما تفتح التعديل بس، و«استعمله» بيعبّي الحقل (الحفظ بإيدك).
     let asked = false;
+    const noSug = () => { $('blSugSrc').textContent = 'ما قدرنا نجيب السعر العالمي هلأ. اكتب السعر بإيدك.'; sum.querySelectorAll('.bl-sug').forEach((b) => { b.hidden = true; }); };
     function suggest() {
         if (asked) return; asked = true;
         fetch(@json(route('cp.balances.rates.suggest')), { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
             .then((r) => r.json())
             .then((d) => {
-                if (!d.ok) { $('blSugSrc').textContent = 'ما قدرنا نجيب السعر الرسمي هلأ. اكتب السعر بإيدك.'; return; }
-                Object.entries(d.rates).forEach(([c, v]) => {
-                    const box = document.querySelector('[data-sug="' + c + '"]');
-                    if (!box) return;
-                    box.querySelector('span').innerHTML = 'المقترح اليوم <b dir="ltr">₪ ' + v + '</b>' + ((d.derived || []).includes(c) ? ' <small>(محسوب من الدولار)</small>' : '');
-                    box.querySelector('button').dataset.val = v;
-                    box.hidden = false;
+                if (!d.ok) { noSug(); return; }
+                sum.querySelectorAll('[data-sug]').forEach((box) => {
+                    const c = box.dataset.sug, v = d.rates[c];
+                    if (!v) { box.hidden = true; return; }
+                    box.querySelector('b').textContent = String(v);
+                    const btn = box.querySelector('button'); btn.dataset.val = v; btn.hidden = false;
                 });
                 const day = d.as_of ? d.as_of.split('-').map(Number) : null;
-                $('blSugSrc').textContent = 'المصدر: ' + d.source + (day ? '، ' + day[2] + '/' + day[1] + '/' + day[0] : '') + '. اقتراح بس، ما بينحفظ إلا بـ«حفظ».';
+                $('blSugSrc').textContent = 'المصدر: ' + d.source + (day ? '، ' + day[2] + '/' + day[1] + '/' + day[0] : '') + ((d.derived || []).length ? '. الدينار محسوب من الدولار' : '');
             })
-            .catch(() => { $('blSugSrc').textContent = 'ما قدرنا نجيب السعر الرسمي هلأ. اكتب السعر بإيدك.'; asked = false; });
+            .catch(() => { noSug(); asked = false; });
     }
-    document.addEventListener('click', (e) => {
-        const u = e.target.closest('[data-use]');
-        if (!u || !u.dataset.val) return;
-        const inp = $('blRate' + u.dataset.use); inp.value = u.dataset.val; inp.focus();
-    });
 })();
 </script>
 @endsection
