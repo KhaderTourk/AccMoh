@@ -81,7 +81,7 @@ class LedgerController extends Controller
             ->withoutReversedPayments()
             ->withoutArchivedParties()
             ->tap($apply)
-            ->selectRaw('currency_id, SUM(amount) as total')
+            ->selectRaw('currency_id, SUM(amount) as total, SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) as total_in, SUM(CASE WHEN amount < 0 THEN amount ELSE 0 END) as total_out')
             ->groupBy('currency_id')
             ->get()
             ->map(function ($row) {
@@ -90,12 +90,16 @@ class LedgerController extends Controller
                 return [
                     'currency' => $currency,
                     'total' => $row->total,
+                    'in' => $row->total_in,
+                    'out' => $row->total_out,
                 ];
             });
 
         return view('cp.finance.ledger.index', [
             'entries' => $entries,
-            'totals' => $totals,
+            'totals' => $totals->filter(fn ($t) => $t['currency'])->values(),
+            'from' => $from,
+            'to' => $to,
             'types' => [
                 TransactionType::IncomingPayment,
                 TransactionType::OutgoingPayment,

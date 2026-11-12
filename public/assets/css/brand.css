@@ -719,3 +719,62 @@ body.bs .cs-row.no-ic { grid-template-columns: minmax(0, 1fr) auto 8rem 2rem; }
     body.bs .cs-row, body.bs .cs-row.no-ic { grid-template-columns: minmax(0, 1fr) auto 2rem; }
     .cs-strip .bl-rates { width: 100%; }
 }
+
+/* ── صفحات التحويلات والحركات بستايل الأدراج (12/11/2026) ── */
+.bl-top { display: flex; align-items: center; gap: 12px; margin: 0 0 16px; }
+.bl-top .cl-search { max-width: 420px; }
+.bl-top .tw-wrap { margin-inline-start: auto; }
+.bl-trow { grid-template-columns: minmax(0, 1fr) 190px 36px; }
+.bl-trow .bl-ldesc { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.bl-trow .bl-ldesc > span:last-child { min-width: 0; }
+.bl-trow .bl-ldesc b { font-weight: 600; }
+.bl-tic { display: grid; flex: none; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: var(--bs-chip); color: var(--bs-muted); }
+.bl-lamt small { display: block; color: var(--bs-muted); font-size: .76rem; font-weight: 500; }
+.bl-trow.off { opacity: .5; }
+.bl-off { margin-inline-start: 8px; padding: 1px 8px; border-radius: 999px; background: var(--bs-chip); color: var(--bs-muted); font-size: .72rem; font-style: normal; }
+.cl-mwrap { position: relative; display: flex; justify-content: flex-end; }
+.bl-trow .cl-mwrap .cl-menu { position: absolute; top: 36px; left: 0; z-index: 30; }
+.bl-trow .cl-menu form { display: grid; margin: 0; }
+.bl-trow .cl-menu button { border: 0; background: none; text-align: right; cursor: pointer; font: inherit; }
+.bl-pages { display: flex; align-items: center; justify-content: center; gap: 14px; margin: -4px 0 16px; }
+.bl-pages .is-off { opacity: .4; pointer-events: none; }
+.bl-pnum { color: var(--bs-muted); font-size: .85rem; }
+.bl-lrow .cp-type-pill { font-size: .7rem; }
+@media (max-width: 760px) {
+    .bl-top { flex-wrap: wrap; }
+    .bl-top .cl-search { max-width: none; flex-basis: 100%; order: 2; }
+    .bl-top .tw-wrap { order: 1; width: 100%; }
+    .bl-top .tw-wrap .tw-btn { width: 100%; justify-content: center; }
+    .bl-trow { grid-template-columns: minmax(0, 1fr) auto 30px; gap: 4px 8px; }
+    .bl-tic { width: 30px; height: 30px; }
+}
+body.bs .cp-main .bl-strip.bl-gsum { display: flex; flex-direction: row; flex-wrap: wrap; align-items: stretch; gap: 0; padding: 0; }
+.bl-gtot { flex: 1 1 200px; display: grid; gap: 2px; padding: 16px 20px; border-inline-start: 1px solid var(--bs-line); }
+.bl-gtot:first-child { border-inline-start: 0; }
+.bl-gtot > span { color: var(--bs-muted); font-size: .8rem; }
+.bl-gtot b { font-size: 1.35rem; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
+.bl-gtot b.credit { color: #1FA971; } html.dark .bl-gtot b.credit { color: #3DDC97; }
+.bl-gtot b.due { color: var(--bs-pink); }
+.bl-gtot small { display: flex; gap: 14px; color: var(--bs-muted); font-size: .76rem; }
+.bl-gtot small i { font-style: normal; font-variant-numeric: tabular-nums; }
+.bl-grow { grid-template-columns: minmax(0, 1fr) 130px 170px; }
+.bl-grow .bl-ldesc b { font-weight: 600; }
+.bl-gm { color: var(--bs-muted); font-size: .85rem; }
+.bl-fm { position: relative; }
+.bl-fm .cl-menu { position: absolute; top: calc(100% + 6px); right: 0; left: auto; z-index: 30; max-height: 60vh; overflow: auto; }
+.bl-fm .cl-menu a { display: block; text-decoration: none; white-space: nowrap; }
+.bl-fm .cl-menu a.on { font-weight: 700; color: var(--bs-pink); }
+.bl-fm .cs-range-btn svg { opacity: .6; }
+@media (max-width: 760px) {
+    .bl-gtot { padding: 12px 16px; border-inline-start: 0; border-top: 1px solid var(--bs-line); }
+    .bl-gtot:first-child { border-top: 0; }
+    .bl-grow { grid-template-columns: minmax(0, 1fr) auto; }
+    .bl-gm { grid-column: 1; grid-row: 2; font-size: .76rem; }
+}
+body.bs .cp-main .bl-page .bl-top .cl-search input[type=search]:not([type=hidden]):not([type=checkbox]) { height: auto !important; min-height: 0 !important; padding: 1px 2px !important; border: 0 !important; background: transparent !important; box-shadow: none !important; }
+@media (max-width: 760px) {
+    body.bs .cp-main .bl-strip.bl-gsum { display: block; padding: 4px 0; }
+    .bl-card.bl-strip.bl-gsum .bl-gtot { grid-template-columns: 1fr auto; align-items: center; gap: 2px 10px; padding: 10px 16px; }
+    .bl-card.bl-strip.bl-gsum .bl-gtot b { font-size: 1.05rem; }
+    .bl-card.bl-strip.bl-gsum .bl-gtot small { grid-column: 1 / -1; }
+}

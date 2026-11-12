@@ -93,6 +93,12 @@ class BalanceController extends Controller
         ];
     }
 
+    /** بيانات نافذة التحويل لأي صفحة (التحويلات، الحركات). */
+    public function wizardFor(array $snapshot): array
+    {
+        return $this->wizardData($this->methodCards($snapshot, $snapshot['funds']), $snapshot);
+    }
+
     /** كروت كل الأدراج بعملاتها (للنافذة بصفحة الدرج). */
     protected function methodCards(array $snapshot, $funds): array
     {

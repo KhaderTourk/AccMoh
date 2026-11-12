@@ -1,95 +1,101 @@
 @extends('cp.layout')
-@section('title', 'سجل حركات الحساب')
+@section('title', 'سجل الحركات')
 @section('content')
 @php
-    $filterCount = collect(['q', 'from', 'to', '_preset', 'fund_id', 'currency_id', 'transaction_type', 'payment_method_id'])->filter(fn ($key) => filled(request($key)))->count();
+    // سجل الحركات بستايل الأدراج (12/11/2026): شريط صافي الفترة، فلاتر بقوائم البراند (بدون قوائم المتصفح)، والحركات مجمّعة باليوم.
+    $keep = fn (array $over) => route('cp.ledger.index', array_filter(array_merge(request()->only(['q', 'transaction_type', 'payment_method_id', 'currency_id']), ['from' => $from, 'to' => $to], $over), fn ($v) => $v !== null && $v !== ''));
+    $typeOn = collect($types)->first(fn ($t) => $t->value === request('transaction_type'));
+    $methodOn = $paymentMethods->firstWhere('id', (int) request('payment_method_id'));
+    $curOn = $currencies->firstWhere('id', (int) request('currency_id'));
+    $cName = fn ($c) => \App\Support\DrawerPlaces::curName($c->code, $c->name);
+    $signed = fn ($c, $v) => ((float) $v < 0 ? '−' : ((float) $v > 0 ? '+' : '')).$c->format(abs((float) $v));
 @endphp
-<div class="space-y-4">
-    @component('cp.partials.filter-panel', ['count' => $filterCount])
-        <div>
-            <label class="text-xs block mb-0.5 text-slate-500">بحث</label>
-            <input type="text" name="q" value="{{ request('q') }}" placeholder="الوصف أو الملاحظات" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-        </div>
-        <div>
-            <label class="text-xs block mb-0.5 text-slate-500">نوع الحركة</label>
-            <select name="transaction_type" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-                <option value="">الكل</option>
-                @foreach($types as $t)<option value="{{ $t->value }}" @selected(request('transaction_type')==$t->value)>{{ $t->label() }}</option>@endforeach
-            </select>
-        </div>
-        <div>
-            <label class="text-xs block mb-0.5 text-slate-500">طريقة الدفع</label>
-            <select name="payment_method_id" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-                <option value="">الكل</option>
-                @foreach($paymentMethods as $m)<option value="{{ $m->id }}" @selected(request('payment_method_id')==$m->id)>{{ $m->name }}</option>@endforeach
-            </select>
-        </div>
-        <div>
-            <label class="text-xs block mb-0.5 text-slate-500">العملة</label>
-            <select name="currency_id" class="w-full rounded-xl border px-3 py-2 dark:bg-slate-700">
-                <option value="">الكل</option>
-                @foreach($currencies as $c)<option value="{{ $c->id }}" @selected(request('currency_id')==$c->id)>{{ $c->code }}</option>@endforeach
-            </select>
-        </div>
-        @include('cp.partials.date-range-fields')
-        @slot('footer')
-            @include('cp.partials.date-range-shortcuts')
-        @endslot
-    @endcomponent
+<div class="cl-page bl-page bl-gpage">
+    <div class="bl-top">
+        <form class="cl-search" role="search">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <input type="search" name="q" value="{{ request('q') }}" placeholder="دوّر بالبيان أو الملاحظات" aria-label="بحث">
+            @foreach(['transaction_type', 'payment_method_id', 'currency_id'] as $k)@if(filled(request($k)))<input type="hidden" name="{{ $k }}" value="{{ request($k) }}">@endif @endforeach
+            @if($from)<input type="hidden" name="from" value="{{ $from }}">@endif
+            @if($to)<input type="hidden" name="to" value="{{ $to }}">@endif
+        </form>
+    </div>
 
     @if($totals->isNotEmpty())
-    <div class="rounded-2xl border bg-white dark:bg-slate-800 p-4">
-        <h3 class="font-bold mb-2">صافي أثر الحركات بعد التصفية</h3>
-        <div class="flex flex-wrap gap-4">
+        <div class="bl-card bl-strip bl-gsum">
             @foreach($totals as $row)
-                @if($row['currency'])
-                    <p class="text-lg font-extrabold {{ \App\Support\Money::isNegative($row['total']) ? 'text-rose-600' : 'text-emerald-600' }}">
-                        {{ $row['currency']->format($row['total']) }}
-                    </p>
-                @endif
+                <div class="bl-gtot">
+                    <span>صافي {{ $cName($row['currency']) }}</span>
+                    <b class="bl-money {{ (float) $row['total'] < 0 ? 'due' : 'credit' }}" dir="ltr">{{ $signed($row['currency'], $row['total']) }}</b>
+                    <small><span>دخل <i dir="ltr">{{ $row['currency']->format((float) $row['in']) }}</i></span><span>طلع <i dir="ltr">{{ $row['currency']->format(abs((float) $row['out'])) }}</i></span></small>
+                </div>
             @endforeach
         </div>
-    </div>
     @endif
-    <div class="rounded-2xl border bg-white dark:bg-slate-800 overflow-x-auto">
-        <table class="w-full text-sm text-right min-w-[860px]">
-            <thead class="bg-slate-50 dark:bg-slate-700/50"><tr>
-                <th class="px-3 py-3" data-sort-key="date">التاريخ</th>
-                <th class="px-3 py-3" data-sort-key="time">الوقت</th>
-                <th class="px-3 py-3" data-sort-key="type">نوع الحركة</th>
-                <th class="px-3 py-3" data-sort-key="description">البيان</th>
-                <th class="px-3 py-3" data-sort-key="party">الطرف</th>
-                <th class="px-3 py-3" data-sort-key="method">الطريقة</th>
-                <th class="px-3 py-3" data-sort-key="amount">المبلغ</th>
-                <th class="px-3 py-3" data-sort-key="user">بواسطة</th>
-            </tr></thead>
-            <tbody class="divide-y dark:divide-slate-700">
-            @forelse($entries as $e)
-                <tr class="{{ \App\Support\Money::isNegative($e->amount) ? 'bg-rose-50/70 dark:bg-rose-900/20' : 'bg-emerald-50/70 dark:bg-emerald-900/20' }}">
-                    <td class="px-3 py-3 whitespace-nowrap font-medium">{{ format_date($e->occurred_on) }}</td>
-                    <td class="px-3 py-3 whitespace-nowrap text-slate-500">{{ $e->recordedAt() }}</td>
-                    <td class="px-3 py-3 whitespace-nowrap">
-                        <span class="cp-type-pill {{ $e->transaction_type->badgeClass() }}">{{ $e->transaction_type->label() }}</span>
-                    </td>
-                    <td class="px-3 py-3">
-                        {{ \App\Support\LedgerText::for($e) }}
-                        @if($e->is_reversal)<span class="text-xs text-rose-600"> (إلغاء)</span>@endif
-                        @include('cp.partials.note-line', ['notes' => $e->notes])
-                    </td>
-                    <td class="px-3 py-3 text-slate-600 dark:text-slate-300">
-                        {{ $e->counterpartyLabel() ?: '—' }}
-                        @includeWhen(($e->related instanceof \App\Models\CashPayment) && $e->related->party && $e->related->party->is_active === false, 'cp.partials.archived-badge')
-                    </td>
-                    <td class="px-3 py-3">{{ $e->paymentMethod->name }}</td>
-                    <td class="px-3 py-3 font-bold {{ \App\Support\Money::isNegative($e->amount) ? 'text-rose-600' : 'text-emerald-600' }}">{{ $e->currency->format($e->amount) }}</td>
-                    <td class="px-3 py-3 text-xs text-slate-500">{{ $e->creator?->name ?: '—' }}</td>
-                </tr>
-            @empty
-                <tr><td colspan="9" class="cp-empty">لا توجد حركات.</td></tr>
-            @endforelse
-            </tbody>
-        </table>
-        <div class="p-3">{{ $entries->links() }}</div>
-    </div>
+
+    <section class="bl-sec bl-led">
+        <div class="bl-sh bl-ledh">
+            <h2>الحركات</h2>
+            <div class="bl-ledf">
+                <div class="bl-fm">
+                    <button type="button" class="cs-range-btn {{ $typeOn ? 'on' : '' }}" data-fm>{{ $typeOn ? $typeOn->label() : 'كل الأنواع' }} @include('cp.partials.bs-icon', ['name' => 'chevron', 'size' => 12])</button>
+                    <div class="cl-menu" hidden>
+                        <a href="{{ $keep(['transaction_type' => null]) }}" class="{{ $typeOn ? '' : 'on' }}">كل الأنواع</a>
+                        @foreach($types as $t)<a href="{{ $keep(['transaction_type' => $t->value]) }}" class="{{ $typeOn === $t ? 'on' : '' }}">{{ $t->label() }}</a>@endforeach
+                    </div>
+                </div>
+                <div class="bl-fm">
+                    <button type="button" class="cs-range-btn {{ $methodOn ? 'on' : '' }}" data-fm>{{ $methodOn ? $methodOn->name : 'كل الأدراج' }} @include('cp.partials.bs-icon', ['name' => 'chevron', 'size' => 12])</button>
+                    <div class="cl-menu" hidden>
+                        <a href="{{ $keep(['payment_method_id' => null]) }}" class="{{ $methodOn ? '' : 'on' }}">كل الأدراج</a>
+                        @foreach($paymentMethods as $m)<a href="{{ $keep(['payment_method_id' => $m->id]) }}" class="{{ $methodOn?->id === $m->id ? 'on' : '' }}">{{ $m->name }}</a>@endforeach
+                    </div>
+                </div>
+                <div class="bl-seg2">
+                    <a href="{{ $keep(['currency_id' => null]) }}" class="{{ $curOn ? '' : 'on' }}">الكل</a>
+                    @foreach($currencies as $c)<a href="{{ $keep(['currency_id' => $c->id]) }}" class="{{ $curOn?->id === $c->id ? 'on' : '' }}">{{ $cName($c) }}</a>@endforeach
+                </div>
+                @include('cp.partials.period-filter')
+            </div>
+        </div>
+
+        @if($entries->count())
+            <div class="bl-lrow bl-grow bl-lhead"><span>البيان</span><span>الدرج</span><span>المبلغ</span></div>
+            @php $lastDay = null; @endphp
+            @foreach($entries as $e)
+                @php
+                    $day = $e->occurred_on->toDateString();
+                    $in = (float) $e->amount > 0;
+                    $party = $e->counterpartyLabel();
+                    $text = \App\Support\LedgerText::for($e);
+                    $meta = array_filter([str_contains($text, $e->transaction_type->label()) ? null : $e->transaction_type->label(), $party && ! str_contains($text, $party) ? $party : null]);
+                @endphp
+                @if($day !== $lastDay)
+                    <div class="bl-lday">{{ day_label($e->occurred_on) }}</div>
+                    @php $lastDay = $day; @endphp
+                @endif
+                <div class="bl-lrow bl-grow">
+                    <span class="bl-ldesc">
+                        <b>{{ $text }}</b>@if($e->is_reversal)<em class="bl-off">إلغاء</em>@endif
+                        <small>{{ implode(' · ', array_merge($meta, array_filter([$e->notes, $e->recordedAt()]))) }} @includeWhen(($e->related instanceof \App\Models\CashPayment) && $e->related->party && $e->related->party->is_active === false, 'cp.partials.archived-badge')</small>
+                    </span>
+                    <span class="bl-gm">{{ $e->paymentMethod->name }}</span>
+                    <span class="bl-lamt {{ $in ? 'in' : '' }}" dir="ltr">{{ $in ? '+' : '−' }}{{ $e->currency->format(abs((float) $e->amount)) }}</span>
+                </div>
+            @endforeach
+        @else
+            <p class="cl-empty">ما في حركات بهالفلاتر.</p>
+        @endif
+    </section>
+    @include('cp.partials.bl-pages', ['p' => $entries])
 </div>
+@include('cp.partials.period-filter-go', ['base' => $keep(['from' => null, 'to' => null])])
+<script>
+document.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-fm]');
+    document.querySelectorAll('.bl-fm .cl-menu').forEach((m) => { if (!b || m !== b.nextElementSibling) m.hidden = true; });
+    if (b) { e.stopPropagation(); b.nextElementSibling.hidden = !b.nextElementSibling.hidden; }
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') document.querySelectorAll('.bl-fm .cl-menu').forEach((m) => { m.hidden = true; }); });
+</script>
 @endsection

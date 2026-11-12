@@ -147,11 +147,23 @@ if (!function_exists('money_format_currency')) {
 
 if (! function_exists('format_date')) {
     /**
-     * Display a date as day\month\year (e.g. 15\09\2026).
+     * Display a date as day/month/year (e.g. 15/9/2026).
      */
     function format_date(mixed $value, bool $withTime = false): string
     {
         return \App\Support\DateRange::display($value, $withTime);
+    }
+}
+
+if (! function_exists('day_label')) {
+    /** عنوان مجموعة اليوم بالحركات: «اليوم · 12/11/2026» أو «مبارح · …» أو التاريخ لحاله. */
+    function day_label(mixed $value): string
+    {
+        $d = \Illuminate\Support\Carbon::parse($value);
+        $t = now()->startOfDay();
+        $txt = $d->format('j/n/Y');
+
+        return $d->isSameDay($t) ? 'اليوم · '.$txt : ($d->isSameDay($t->copy()->subDay()) ? 'مبارح · '.$txt : $txt);
     }
 }
 

@@ -20,6 +20,8 @@ class TransferController extends Controller
 
     public function index(Request $request)
     {
+        $from = DateRange::normalize((string) $request->query('from')) ?: null;
+        $to = DateRange::normalize((string) $request->query('to')) ?: null;
         $transfers = TableSort::paginate(
             FundTransfer::query()
                 ->with(['fund', 'fromMethod', 'toMethod', 'currency', 'toCurrency'])
@@ -28,6 +30,8 @@ class TransferController extends Controller
                     $qq->where('currency_id', $id)->orWhere('to_currency_id', $id);
                 }))
                 ->when($request->q, fn ($q, $term) => $q->where('notes', 'like', "%{$term}%"))
+                ->when($from, fn ($q) => $q->whereDate('transfer_date', '>=', $from))
+                ->when($to, fn ($q) => $q->whereDate('transfer_date', '<=', $to))
                 ->when($request->boolean('active_only', true), fn ($q) => $q->active()),
             [
                 'fund' => ['query' => fn () => Fund::query()->select('name')->whereColumn('funds.id', 'fund_transfers.fund_id')],
@@ -40,7 +44,9 @@ class TransferController extends Controller
             'date'
         );
 
-        return view('cp.finance.transfers.index', array_merge(compact('transfers'), $this->financeLookups()));
+        $wizard = app(BalanceController::class)->wizardFor(app(\App\Services\Finance\BalanceService::class)->snapshot());
+
+        return view('cp.finance.transfers.index', array_merge(compact('transfers', 'from', 'to', 'wizard'), $this->financeLookups()));
     }
 
     public function create()
