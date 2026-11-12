@@ -74,7 +74,7 @@ class HomeAndDrawersTest extends TestCase
         $this->actingAs($this->user)->get(route('cp.dashboard'))->assertOk()
             ->assertSee('350.00 ₪')
             ->assertSee('على الزبائن')->assertSee('200.00 ₪')
-            ->assertSee('550.00 ₪')          // الصافي
+            ->assertSee('₪ 550.00')          // الصافي (بشريط الرئيسية زي شريط الأدراج)
             ->assertSee('زبون الرئيسية');
 
         // كل العملات بكل كرت حتى لو صفر، والأرقام متموّهة (bl-money)، وزر التحويل بقائمته.

@@ -27,6 +27,17 @@ class DashboardController extends Controller
         foreach ($snapshot['grand'] as $currencyId => $amount) {
             $withMe += Rates::toIls((float) $amount, $codes[$currencyId] ?? 'ILS');
         }
+        // معي لكل درج (بسعر اليوم) عشان كرت «معي» يبين التوزيع زي صفحة الأدراج.
+        $drawers = [];
+        foreach ($snapshot['methods'] as $method) {
+            $ils = 0.0;
+            foreach ($snapshot['funds'] as $fund) {
+                foreach ($snapshot['currencies'] as $c) {
+                    $ils += Rates::toIls((float) ($snapshot['cells'][$fund->id][$method->id][$c->id] ?? 0), $c->code);
+                }
+            }
+            $drawers[] = ['name' => $method->name, 'ils' => round($ils, 2), 'url' => route('cp.balances.show', ['method' => $method->id])];
+        }
         $pos = $positions->summary();
         $owed = array_sum($pos['owed']);
         $owe = array_sum($pos['owe']);
@@ -64,6 +75,7 @@ class DashboardController extends Controller
 
         return view('cp.dashboard', [
             'withMe' => round($withMe, 2),
+            'drawers' => $drawers,
             'owed' => $pos['owed'],
             'owe' => $pos['owe'],
             'net' => round($withMe + $owed - $owe, 2),

@@ -900,3 +900,46 @@ html.dark .bl-page .credit, html.dark .bl-page .bl-kv dd.in, html.dark .bl-page 
 .bl-racts a.cp-btn, .bl-racts a.cp-btn:hover { text-decoration: none; }
 .bl-rrow > b small { margin-inline-end: 4px; font-size: .74rem; font-weight: 500; }
 .bl-rrow i { font-style: normal; }
+
+/* ── الرئيسية بستايل الأدراج (12/11/2026) ── */
+.db2 .cl-top { align-items: baseline; }
+.db2-date { color: var(--bs-muted); font-size: .85rem; }
+.db2-hint { color: var(--bs-muted); font-size: .8rem; }
+.db2-month { display: grid; gap: 8px; }
+.db2-month > div { display: flex; gap: 28px; flex-wrap: wrap; }
+.db2 .bl-strip .bl-cb { min-width: 120px; }
+.db2 .bl-strip .bl-cb > b { display: block; margin-top: 4px; font-size: 1.12rem; font-weight: 600; color: var(--bs-fg); font-variant-numeric: tabular-nums; text-align: right; }
+.db2 .bl-strip .bl-cb > b.due, .db2 .bl-money.due { color: var(--bs-pink); }
+.db2 .bl-strip .bl-cb > b.in, .db2 .bl-money.credit, .db2 .bl-lamt.in { color: #1FA971; }
+html.dark .db2 .bl-strip .bl-cb > b.in, html.dark .db2 .bl-money.credit, html.dark .db2 .bl-lamt.in { color: #3DDC97; }
+.db2-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin: 0 0 16px; }
+.db2-cards .bl-card { position: relative; }
+.db2-cards .bl-main { display: flex; flex-direction: column; gap: 4px; padding: 18px 20px; color: inherit; text-decoration: none; }
+.db2-cards .bl-name small { margin-inline-start: 6px; color: var(--bs-muted); font-size: .74rem; font-weight: 400; }
+.db2-cards .bl-main > b.bl-money { align-self: flex-start; font-size: 1.6rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.db2-cards .bl-cur b { font-variant-numeric: tabular-nums; }
+.db2-cards .bl-cur.zero > span:only-child { color: var(--bs-muted); }
+.db2 .bl-sec .bl-sh { flex-wrap: wrap; }
+.db2 .db-legend { display: flex; gap: 14px; margin: 0; color: var(--bs-muted); font-size: .8rem; }
+.db2 .db-legend i { display: inline-block; width: 10px; height: 10px; margin-inline-end: 6px; border-radius: 3px; vertical-align: middle; }
+.db2 i.in { background: #1FA971; } .db2 i.out { background: var(--bs-pink); }
+html.dark .db2 i.in { background: #3DDC97; }
+.db2-bars { display: flex; align-items: flex-end; gap: 10px; height: 150px; padding: 0 20px 16px; }
+.db2-bars .db-bar { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; }
+.db2-bars .db-bar-pair { flex: 1; display: flex; align-items: flex-end; justify-content: center; gap: 4px; width: 100%; }
+.db2-bars .db-bar-pair i { width: 30%; max-width: 18px; min-height: 3px; border-radius: 5px 5px 0 0; }
+.db2-bars .db-bar small { color: var(--bs-muted); font-size: .74rem; }
+.db2-bars .db-bar.now small { color: var(--bs-fg); font-weight: 700; }
+.db2 .db2-row { grid-template-columns: minmax(0, 1fr) auto; color: inherit; text-decoration: none; }
+a.db2-row:hover { background: var(--bs-hover); }
+.db2 .db2-row .bl-ldesc b { font-weight: 600; }
+.db2 .db2-row .bl-ldesc small { margin-top: 2px; }
+@media (max-width: 1100px) { .db2-cards { grid-template-columns: minmax(0, 1fr); gap: 10px; } }
+@media (max-width: 640px) {
+    .db2-month > div { gap: 10px; justify-content: space-between; }
+    .db2 .bl-strip .bl-cb { min-width: 0; }
+    .db2 .bl-strip .bl-cb > b { font-size: 1rem; }
+    .db2-cards .bl-main { padding: 16px; }
+    .db2-bars { gap: 6px; height: 130px; padding: 0 12px 14px; }
+}
+.db2 a.bl-tbtn { text-decoration: none; }
