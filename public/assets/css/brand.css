@@ -83,7 +83,10 @@ html.dark {
 .bs-extra .bs-sub { margin-block: 2px 4px; }
 .bs-badge { margin-inline-start: auto; min-width: 18px; padding: 0 6px; border-radius: 999px; background: var(--bs-pink); color: #fff; font-size: .68rem; font-weight: 700; text-align: center; line-height: 18px; }
 .bs-badge.hidden { display: none; }
-.bs-user { display: flex; align-items: center; gap: 4px; margin-top: 12px; padding: 8px; border-radius: 12px; background: rgba(255, 255, 255, .05); border: 1px solid rgba(255, 255, 255, .08); }
+.bs-user { display: grid; gap: 8px; margin-top: 12px; padding: 10px; border-radius: 12px; background: rgba(255, 255, 255, .05); border: 1px solid rgba(255, 255, 255, .08); }
+.bs-uhead { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.bs-uacts { display: flex; align-items: center; gap: 4px; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, .08); }
+.bs-uacts .bs-ubtn { flex: 1; width: auto; height: 32px; }
 .bs-user form { display: contents; }
 .bs-av { flex: none; width: 32px; height: 32px; border-radius: 50%; background: var(--bs-pink); color: #fff; display: grid; place-items: center; font-weight: 700; }
 .bs-who { flex: 1; min-width: 0; display: grid; }
@@ -145,8 +148,8 @@ body.bs .bs-head h1 { font-size: 1.6rem; color: var(--bs-fg); }
     .bs-wseg a { flex: 1; padding: 6px 14px; border-radius: 8px; color: var(--bs-fg); font-size: .88rem; text-align: center; text-decoration: none; }
     .bs-wseg a.on { background: var(--bs-surface); box-shadow: 0 1px 3px rgba(11, 37, 55, .18); font-weight: 600; }
 
-    /* زر التسجيل السريع العائم */
-    .qe-fab { left: 16px; bottom: calc(76px + env(safe-area-inset-bottom)); z-index: 39; width: 56px; height: 56px; box-shadow: 0 12px 26px -10px rgba(251, 0, 91, .7); }
+    /* زر «+» العائم مخفي عالجوال حالياً (12/11/2026). */
+    .qe-fab { display: none !important; }
 }
 @keyframes bs-up { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
 
@@ -329,11 +332,6 @@ html.bl-show .bl-eye .bl-eye-on { display: block; }
 html.bl-show .bl-eye .bl-eye-off { display: none; }
 /* ضغطة على رقم متموّه بتظهر الأرقام. */
 html:not(.bl-show) .bl-money { cursor: pointer; }
-/* عالجوال: القائمة الجانبية مخفية، فالعين زر صغير ثابت تحت على اليمين فوق شريط التنقل (زر التسجيل السريع على اليسار). */
-.bs-meye { display: none; }
-@media (max-width: 1023px) {
-    .bs-meye { position: fixed; right: 16px; bottom: calc(84px + env(safe-area-inset-bottom)); z-index: 38; display: grid; place-items: center; width: 40px; height: 40px; padding: 0; border: 1px solid var(--bs-line); border-radius: 12px; background: var(--bs-surface); color: var(--bs-fg); box-shadow: 0 6px 16px -8px rgba(6, 20, 31, .4); }
-}
 .bl-total { align-items: center; }
 
 /* كرت الدرج: الاسم، المجموع، وتحته كل عملة بسطر (حتى لو صفر). */
@@ -441,3 +439,77 @@ html:not(.bl-show) .bl-money { cursor: pointer; }
     .tw-dialog { width: 100%; max-height: 92vh; border-radius: 18px 18px 0 0; }
     .tw-menu { min-width: 240px !important; }
 }
+
+/* كرت الحساب بآخر «المزيد» عالجوال: نفس ترتيب القائمة الجانبية بألوان الصفحة. */
+.bs-more .bs-user-more { margin-top: 8px; background: var(--bs-field); border-color: var(--bs-line); color: var(--bs-fg); }
+.bs-more .bs-user-more .bs-who b { color: var(--bs-fg); }
+.bs-more .bs-user-more .bs-who small { margin: 0; color: var(--bs-muted); font-size: .76rem; }
+.bs-more .bs-user-more .bs-uacts { border-top-color: var(--bs-line); }
+.bs-more .bs-user-more .bs-ubtn { display: grid; place-items: center; height: 40px; padding: 0; border-radius: 10px; color: var(--bs-fg); }
+.bs-more .bs-user-more .bs-ubtn:hover { background: var(--bs-chip); }
+.bs-more .bs-user-more .bs-uacts form { display: contents; }
+
+/* حركات الدرج (12/11/2026): أرقام ظاهرة بس صغيرة وهادية، مش زي أرقام الأرصدة الكبيرة فوق. */
+body.bs .bl-ledger .bl-row > span.bl-amt, body.bs .bl-ledger .bl-row > span.bl-after { font-size: .84rem; font-weight: 500; font-variant-numeric: tabular-nums; text-align: left; }
+body.bs .bl-ledger .bl-row > span.bl-after { color: var(--bs-muted); }
+body.bs .bl-ledger .bl-row > span.bl-amt.credit { color: var(--bs-fg); }
+body.bs .bl-ledger .bl-head > span { font-size: .75rem; font-weight: 500; color: var(--bs-muted); }
+body.bs .bl-ledger .bl-head > span:nth-child(n+3) { text-align: left; }
+
+/* فلتر الفترة (12/11/2026): لوحة مرتبة بستايل الأدراج. الفترات الجاهزة أزرار بعمودين،
+   وتحتها «من» و«لغاية» جنب بعض، وزر «تطبيق» بعرض كامل. عالجوال بتطلع من تحت زي باقي النوافذ. */
+body.bs .cs-range-menu { right: 0; left: auto; top: calc(100% + 6px); z-index: 45; width: 320px; min-width: 0; max-width: calc(100vw - 32px); padding: 12px; gap: 12px; border-radius: 16px; }
+body.bs .cs-range-menu hr { display: none; }
+body.bs .cs-range-menu #csPresets { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+body.bs .cs-range-menu #csPresets button { padding: 9px 8px; border: 1px solid var(--bs-line); border-radius: 10px; background: var(--bs-field); color: var(--bs-fg); font-size: .85rem; font-weight: 500; text-align: center; line-height: 1.3; }
+body.bs .cs-range-menu #csPresets button:hover { border-color: var(--bs-pink); background: var(--bs-field); }
+body.bs .cs-range-menu #csPresets button.on { border-color: var(--bs-pink); background: rgba(251, 0, 91, .08); color: var(--bs-pink); font-weight: 600; }
+body.bs .cs-range-menu .cs-custom { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 12px 0 0; border-top: 1px solid var(--bs-line); }
+body.bs .cs-range-menu .cs-pf-row { display: grid; gap: 4px; min-width: 0; font-size: .78rem; color: var(--bs-muted); }
+body.bs .cs-range-menu .cs-date-in { display: flex; gap: 6px; min-width: 0; height: 40px; }
+body.bs .cs-range-menu .cs-date-in > input { flex: 1; min-width: 0; height: 100%; padding: 0 8px; font-size: .85rem; }
+body.bs .cs-range-menu .cs-date-in .cs-cal { flex: none; width: 40px; height: 100%; border: 1px solid var(--bs-field-line, var(--bs-line)); border-radius: 10px; background: var(--bs-field); color: var(--bs-muted); }
+body.bs .cs-range-menu .cs-date-in .cs-cal:hover { border-color: var(--bs-pink); color: var(--bs-pink); }
+body.bs .cs-range-menu .cs-date-in .cs-cal .material-symbols-outlined { font-size: 1.15rem; }
+body.bs .cs-range-menu.up { top: auto; bottom: calc(100% + 6px); }
+body.bs .cs-range-menu #csApply { grid-column: 1 / -1; height: 42px; border-radius: 10px; }
+@media (max-width: 1023px) {
+    body.bs .cs-range-menu:not([hidden]) { position: fixed; inset: auto 0 0 0; width: auto; max-width: none; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); border-radius: 18px 18px 0 0; z-index: 60; box-shadow: 0 0 0 100vmax rgba(6, 20, 31, .45); animation: bs-up .22s ease-out; }
+    body.bs .cs-range-menu .cs-date-in { height: 44px; }
+    body.bs .cs-range-menu .cs-date-in > input { font-size: 1rem; }
+    body.bs .cs-range-menu .cs-date-in .cs-cal { width: 44px; }
+    body.bs .cs-range-menu #csPresets button { padding: 11px 8px; font-size: .9rem; }
+}
+
+/* «المجموع بسعر اليوم» (12/11/2026): كرت بستايل الأدراج. */
+.bl-hero { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px 24px; margin-bottom: 16px; padding: 16px 18px; border: 1px solid var(--bs-line); border-radius: 16px; background: var(--bs-surface); font-family: var(--bs-font); }
+.bl-hero-main { display: grid; gap: 2px; min-width: 0; }
+.bl-hero-l { color: var(--bs-muted); font-size: .85rem; }
+.bl-hero-main b { font-size: 1.85rem; font-weight: 700; line-height: 1.25; color: var(--bs-fg); font-variant-numeric: tabular-nums; text-align: right; }
+.bl-hero-main b.due { color: var(--bs-pink); }
+.bl-hero-rates { display: flex; align-items: stretch; gap: 8px; }
+.bl-rate { display: grid; gap: 1px; min-width: 104px; padding: 8px 12px; border: 1px solid var(--bs-line); border-radius: 12px; background: var(--bs-field); color: var(--bs-fg); font: inherit; text-align: right; cursor: pointer; }
+.bl-rate:hover, .bl-rate-edit:hover { border-color: var(--bs-pink); }
+.bl-rate span { color: var(--bs-muted); font-size: .75rem; }
+.bl-rate b { font-size: .98rem; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
+.bl-rate.none b { color: var(--bs-pink); font-size: .85rem; }
+.bl-rate-edit { display: grid; place-items: center; width: 40px; border: 1px solid var(--bs-line); border-radius: 12px; background: var(--bs-field); color: var(--bs-muted); cursor: pointer; }
+@media (max-width: 640px) {
+    .bl-hero { padding: 14px; }
+    .bl-hero-main b { font-size: 1.55rem; }
+    .bl-hero-rates { width: 100%; }
+    .bl-rate { flex: 1; min-width: 0; }
+}
+
+/* نوافذ التسوية وسعر اليوم */
+.tw-area { height: auto; min-height: 64px; padding: 10px 12px; resize: vertical; }
+.bl-diff #blDiff { font-weight: 700; }
+.bl-diff #blDiff.due { color: var(--bs-pink); }
+.bl-rrow { display: grid; gap: 6px; padding-bottom: 12px; border-bottom: 1px solid var(--bs-line); }
+.bl-rrow:last-of-type { border-bottom: 0; }
+.bl-sug { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; border-radius: 10px; background: var(--bs-pink-soft); font-size: .84rem; }
+.bl-sug[hidden] { display: none; }
+.bl-sug b { font-weight: 700; }
+.bl-sug small { color: var(--bs-muted); }
+.bl-use { flex: none; height: 32px; padding: 0 14px; border: 1px solid var(--bs-pink); border-radius: 9px; background: var(--bs-surface); color: var(--bs-pink); font: inherit; font-size: .84rem; font-weight: 600; cursor: pointer; }
+.bl-use:hover { background: var(--bs-pink); color: #fff; }

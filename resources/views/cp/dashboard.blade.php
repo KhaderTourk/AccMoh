@@ -29,7 +29,7 @@
 
     <div class="db-net">
         <span>الصافي</span>
-        <b class="{{ $net < 0 ? 'due' : '' }}">{{ $net < 0 ? '−' : '' }}{{ $n($net) }}</b>
+        <b class="bl-money {{ $net < 0 ? 'due' : '' }}">{{ $net < 0 ? '−' : '' }}{{ $n($net) }}</b>
         <small>معي + إلي − علي: لو انسدّ كل إشي، هاد اللي بيضل معك</small>
     </div>
 

@@ -71,6 +71,7 @@ Route::prefix('cp')->name('cp.')->middleware(['cp.auth', 'cp.check'])->group(fun
     Route::post('/balances/settle', [BalanceController::class, 'settle'])->name('balances.settle');
     Route::post('/balances/{method}/places', [BalanceController::class, 'places'])->whereNumber('method')->name('balances.places');
     Route::post('/balances/rates', [BalanceController::class, 'rates'])->name('balances.rates');
+    Route::get('/balances/rates/suggest', [BalanceController::class, 'suggestRates'])->name('balances.rates.suggest');
     Route::get('/balances/{method}', [BalanceController::class, 'show'])->whereNumber('method')->name('balances.show');
 
     Route::get('/balance-memos/transfer', [PartyBalanceMemoController::class, 'transferCreate'])->name('balance-memos.transfer');

@@ -179,7 +179,7 @@ class ClientController extends Controller
                 'price' => $t->default_price !== null ? (float) $t->default_price : null,
                 'last' => $lastPrices[$t->id] ?? null,
             ])->values(),
-            'methods' => \App\Models\PaymentMethod::query()->where('is_active', true)->orderBy('sort_order')->get(['id', 'name']),
+            'methods' => \App\Models\PaymentMethod::query()->active()->get(['id', 'name']),
             'fundId' => (tenantBusinessEnabled() ? \App\Models\Fund::query()->where('slug', 'business')->value('id') : null)
                 ?: \App\Models\Fund::family()->id,
             'rates' => \App\Models\CashPayment::query()->whereNotNull('fx_currency_id')->whereNotNull('exchange_rate')

@@ -71,9 +71,17 @@
                 });
             }
             window.cpMoney = { show: function () { apply(true); }, hide: function () { apply(false); }, toggle: function () { apply(!root.classList.contains('bl-show')); } };
+            // رجوع بالمتصفح أو تنقّل جوا النظام: الصفحة بتختفي ثواني وبترجع، فما نرجّع التمويه.
+            // رجعة من تطبيق ثاني بعد أكثر من 4 ثواني: بنموّه.
+            function recent() { var t = +get(H) || 0; return t && Date.now() - t < 4000; }
             document.addEventListener('visibilitychange', function () {
-                if (document.visibilityState === 'hidden') { set(H, String(Date.now())); }
-                else { set(H, null); if (root.classList.contains('bl-show')) apply(false); }
+                if (document.visibilityState === 'hidden') { set(H, String(Date.now())); return; }
+                apply(get(K) === '1' && recent());
+            });
+            window.addEventListener('pagehide', function () { set(H, String(Date.now())); });
+            window.addEventListener('pageshow', function (e) {
+                if (!e.persisted) return;
+                apply(get(K) === '1' && recent());
             });
             document.addEventListener('click', function (e) {
                 if (!e.target.closest) return;
@@ -149,16 +157,7 @@
                 @endif
             </div>
             @if($bsUser)
-            <div class="bs-user">
-                <span class="bs-av">{{ mb_substr($bsUser->name, 0, 1) }}</span>
-                <span class="bs-who"><b>{{ $bsUser->name }}</b><small data-net><i class="bs-dot"></i><span>متصل</span></small></span>
-                @include('cp.partials.money-eye', ['cls' => 'bs-ubtn'])
-                <button type="button" class="bs-ubtn" data-theme-toggle aria-label="تبديل الوضع الليلي" title="الوضع الليلي">@include('cp.partials.bs-icon', ['name' => 'moon'])</button>
-                <form action="{{ route('cp.logout') }}" method="post">
-                    @csrf
-                    <button type="submit" class="bs-ubtn" aria-label="تسجيل الخروج" title="تسجيل الخروج">@include('cp.partials.bs-icon', ['name' => 'logout'])</button>
-                </form>
-            </div>
+            @include('cp.partials.account-card')
             @endif
         </aside>
 
@@ -210,16 +209,17 @@
     @if(cpCan('finance'))
         @include('cp.partials.quick-entry')
     @endif
-    {{-- الموبايل (قرار 11/11/2026): الرئيسية، الشغل، الشخصي، الأدراج، المزيد. «الشغل» بيفتح على آخر قائمة استعملتها. --}}
-    @include('cp.partials.money-eye', ['cls' => 'bs-meye'])
+    {{-- الموبايل (12/11/2026): الرئيسية، الأدراج، الشغل، الشخصي، المزيد. «الشغل» بيفتح على آخر قائمة استعملتها. --}}
     <nav class="bs-tabbar" aria-label="التنقل">
         <a href="{{ route('cp.dashboard') }}" class="{{ $bsOn('cp.dashboard') }}">@include('cp.partials.bs-icon', ['name' => 'home', 'size' => 23])الرئيسية</a>
+        @if(cpCan('finance'))
+        <a href="{{ route('cp.balances.index') }}" class="{{ $bsOn('cp.balances.*') }}">@include('cp.partials.bs-icon', ['name' => 'drawers', 'size' => 23])الأدراج</a>
+        @endif
         @if($bsBiz)
         <a href="{{ route('cp.clients.index') }}" data-work-tab class="{{ $bsOn('cp.clients.*', 'cp.client-services.*', 'cp.workers.*', 'cp.suppliers.*') }}">@include('cp.partials.bs-icon', ['name' => 'work', 'size' => 23])الشغل</a>
         @endif
         @if(cpCan('finance'))
         <a href="{{ route('cp.persons.index') }}" class="{{ $bsOn('cp.persons.*') }}">@include('cp.partials.bs-icon', ['name' => 'person', 'size' => 23])الشخصي</a>
-        <a href="{{ route('cp.balances.index') }}" class="{{ $bsOn('cp.balances.*') }}">@include('cp.partials.bs-icon', ['name' => 'drawers', 'size' => 23])الأدراج</a>
         @endif
         <button type="button" id="cp-more-open" aria-haspopup="dialog" aria-controls="cp-more-sheet">@include('cp.partials.bs-icon', ['name' => 'more', 'size' => 23])المزيد</button>
     </nav>
@@ -238,13 +238,7 @@
             @if($bsBiz)
             <a href="{{ route('cp.settings.index') }}" class="{{ $bsOn('cp.settings.*') }}">@include('cp.partials.bs-icon', ['name' => 'gear', 'size' => 20])الإعدادات</a>
             @endif
-            <button type="button" data-theme-toggle>@include('cp.partials.bs-icon', ['name' => 'moon', 'size' => 20])الوضع الليلي</button>
-            @if($bsUser)
-            <form action="{{ route('cp.logout') }}" method="post">
-                @csrf
-                <button type="submit">@include('cp.partials.bs-icon', ['name' => 'logout', 'size' => 20])تسجيل الخروج<small data-net-line>{{ $bsUser->name }} · <span>متصل</span></small></button>
-            </form>
-            @endif
+            @include('cp.partials.account-card', ['more' => true])
         </div>
     </div>
 

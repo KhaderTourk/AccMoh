@@ -5,7 +5,7 @@
 --}}
 <div class="cs-range">
     <button type="button" class="cs-range-btn" id="csRangeBtn"><span class="material-symbols-outlined">calendar_month</span><span id="csRangeTxt">كل الوقت</span></button>
-    <div class="cl-menu cs-range-menu" id="csRangeMenu" hidden>
+    <div class="cl-menu cs-range-menu" id="csRangeMenu" role="dialog" aria-label="الفترة" hidden>
         <div id="csPresets"></div>
         <hr>
         <div class="cs-custom">
@@ -44,6 +44,26 @@ window.cpPeriod = window.cpPeriod || (function () {
         check();
     }
     document.addEventListener('DOMContentLoaded', wire);
+    // ضغطة برا اللوحة بتسكّرها بس (ما بتفتح اللي تحتها)، وEsc بيسكّرها.
+    document.addEventListener('click', function (e) {
+        var m = document.getElementById('csRangeMenu');
+        if (!m || m.hidden || !e.target.closest || e.target.closest('.cs-range')) return;
+        e.preventDefault(); e.stopPropagation(); m.hidden = true;
+    }, true);
+    // عالكمبيوتر: لو ما في مكان تحت الزر، اللوحة بتفتح لفوق.
+    document.addEventListener('click', function (e) {
+        if (!e.target.closest || !e.target.closest('#csRangeBtn')) return;
+        setTimeout(function () {
+            var m = document.getElementById('csRangeMenu');
+            if (!m || m.hidden) return;
+            m.classList.remove('up');
+            if (window.innerWidth >= 1024 && m.getBoundingClientRect().bottom > window.innerHeight - 8 && m.parentElement.getBoundingClientRect().top > m.offsetHeight + 16) m.classList.add('up');
+        }, 0);
+    }, true);
+    document.addEventListener('keydown', function (e) {
+        var m = document.getElementById('csRangeMenu');
+        if (e.key === 'Escape' && m && !m.hidden) { m.hidden = true; var b = document.getElementById('csRangeBtn'); if (b) b.focus(); }
+    });
     return { iso: iso, label: label, wire: wire };
 })();
 </script>

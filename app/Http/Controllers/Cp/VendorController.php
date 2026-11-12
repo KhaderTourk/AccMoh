@@ -231,7 +231,7 @@ class VendorController extends Controller
     protected function pagePayload(Vendor $vendor, PartyPageService $pages): array
     {
         $prefix = $this->type()->routePrefix();
-        $methods = \App\Models\PaymentMethod::query()->where('is_active', true)->orderBy('sort_order')->get(['id', 'name']);
+        $methods = \App\Models\PaymentMethod::query()->active()->get(['id', 'name']);
         if ($this->type() === VendorType::Worker) {
             \App\Models\VendorChargeType::seedDefaults();
         }

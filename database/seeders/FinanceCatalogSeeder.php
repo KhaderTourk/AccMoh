@@ -28,8 +28,8 @@ class FinanceCatalogSeeder extends Seeder
         foreach ([
             ['name' => 'نقدي', 'slug' => 'cash', 'icon' => 'payments', 'sort_order' => 1],
             ['name' => 'بنك فلسطين', 'slug' => 'bank', 'icon' => 'account_balance', 'sort_order' => 2],
-            ['name' => 'جوال باي', 'slug' => 'jawwal_pay', 'icon' => 'smartphone', 'sort_order' => 3],
-            ['name' => 'بال باي', 'slug' => 'palpay', 'icon' => 'wallet', 'sort_order' => 4],
+            ['name' => 'جوال باي', 'slug' => 'jawwal_pay', 'icon' => 'smartphone', 'sort_order' => 4],
+            ['name' => 'بال باي', 'slug' => 'palpay', 'icon' => 'wallet', 'sort_order' => 3],
         ] as $method) {
             PaymentMethod::query()->updateOrCreate(['slug' => $method['slug']], $method + ['is_active' => true]);
         }

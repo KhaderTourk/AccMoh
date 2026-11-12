@@ -78,7 +78,7 @@ class SettingsController extends Controller
         $serviceNames = $types->map(fn ($t) => ['id' => $t->id, 'name' => $t->name])->values();
 
         $methodUses = $this->methodUses();
-        $methods = PaymentMethod::query()->orderBy('sort_order')->orderBy('name')->get()->map(fn (PaymentMethod $m) => [
+        $methods = PaymentMethod::query()->ordered()->get()->map(fn (PaymentMethod $m) => [
             'id' => $m->id,
             'name' => $m->name,
             'active' => (bool) $m->is_active,

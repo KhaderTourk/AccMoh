@@ -16,6 +16,8 @@ use App\Support\TenantContext;
 use Database\Seeders\FinanceCatalogSeeder;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class HomeAndDrawersTest extends TestCase
@@ -144,5 +146,39 @@ class HomeAndDrawersTest extends TestCase
         $this->assertSame('380.00', $b->drawerCash($cash->id, $usd->id));
         $this->assertSame('370.00', $b->drawerCash($cash->id, $ils->id));
         $this->assertSame('74.00', $b->drawerCash($other->id, $ils->id));
+    }
+
+    public function test_drawers_follow_fixed_order_everywhere(): void
+    {
+        $names = PaymentMethod::query()->active()->pluck('slug')->all();
+        $this->assertSame(['cash', 'bank', 'palpay', 'jawwal_pay'], array_slice($names, 0, 4));
+
+        $this->actingAs($this->user)->get(route('cp.balances.index'))->assertOk()
+            ->assertSeeInOrder(['نقدي', 'بنك فلسطين', 'بال باي', 'جوال باي']);
+    }
+
+    public function test_rate_suggestion_comes_from_bank_of_israel_and_is_not_saved(): void
+    {
+        Cache::forget('official_rates.v1');
+        Http::fake([
+            'boi.org.il/*' => Http::response(['exchangeRates' => [
+                ['key' => 'USD', 'currentExchangeRate' => 3.712, 'unit' => 1, 'lastUpdate' => '2026-11-12T12:00:00'],
+                ['key' => 'JOD', 'currentExchangeRate' => 5.236, 'unit' => 1, 'lastUpdate' => '2026-11-12T12:00:00'],
+            ]]),
+        ]);
+        $this->actingAs($this->user)->getJson(route('cp.balances.rates.suggest'))->assertOk()
+            ->assertJson(['ok' => true, 'rates' => ['USD' => 3.712, 'JOD' => 5.236], 'as_of' => '2026-11-12']);
+        $this->assertNull(AppSetting::get('rate.USD'));
+    }
+
+    public function test_rate_suggestion_falls_back_and_derives_dinar(): void
+    {
+        Cache::forget('official_rates.v1');
+        Http::fake([
+            'boi.org.il/*' => Http::response('', 500),
+            'open.er-api.com/*' => Http::response(['rates' => ['ILS' => 3.7]]),
+        ]);
+        $this->actingAs($this->user)->getJson(route('cp.balances.rates.suggest'))->assertOk()
+            ->assertJson(['ok' => true, 'rates' => ['USD' => 3.7, 'JOD' => 5.2186], 'derived' => ['JOD']]);
     }
 }

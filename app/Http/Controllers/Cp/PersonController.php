@@ -83,7 +83,7 @@ class PersonController extends Controller
             'movements' => $pages->movements($person),
             'lookups' => [
                 'currencies' => Currency::query()->active()->get(['id', 'code', 'symbol', 'name']),
-                'methods' => \App\Models\PaymentMethod::query()->where('is_active', true)->orderBy('sort_order')->get(['id', 'name']),
+                'methods' => \App\Models\PaymentMethod::query()->active()->get(['id', 'name']),
                 'fundId' => \App\Models\Fund::family()->id,
                 'salary' => null,
                 'partyKey' => 'person:'.$person->id,

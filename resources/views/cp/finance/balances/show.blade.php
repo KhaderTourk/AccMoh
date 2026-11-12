@@ -67,7 +67,7 @@
     </div>
 
     @if($from && count($opening))
-        <p class="cs-sum">رصيد سابق: @foreach($opening as $cid => $v)<span class="bl-money">{{ $fmt($currencies->firstWhere('id', $cid), $v) }}</span>@if(!$loop->last)، @endif @endforeach</p>
+        <p class="cs-sum">رصيد سابق: @foreach($opening as $cid => $v)<span dir="ltr">{{ $fmt($currencies->firstWhere('id', $cid), $v) }}</span>@if(!$loop->last)، @endif @endforeach</p>
     @endif
 
     <div class="cl-list bl-ledger">
@@ -77,8 +77,8 @@
             <div class="bl-row">
                 <span class="bl-date">{{ format_date($e->occurred_on) }}</span>
                 <span class="bl-desc">{{ $e->description }}@if($e->notes)<small>{{ $e->notes }}</small>@endif</span>
-                <span class="bl-money {{ (float) $e->amount < 0 ? 'due' : 'credit' }}">{{ $fmt($e->currency, $e->amount) }}</span>
-                <span class="bl-money {{ (float) $r['after'] < 0 ? 'due' : '' }}">{{ $fmt($e->currency, $r['after']) }}</span>
+                <span class="bl-amt {{ (float) $e->amount < 0 ? 'due' : 'credit' }}" dir="ltr">{{ $fmt($e->currency, $e->amount) }}</span>
+                <span class="bl-after {{ (float) $r['after'] < 0 ? 'due' : '' }}" dir="ltr">{{ $fmt($e->currency, $r['after']) }}</span>
             </div>
         @empty
             <p class="cl-empty">ما في حركات بهالفترة.</p>
@@ -99,7 +99,7 @@
     const hit = P.find((p) => p[1] === from && p[2] === to);
     $('csRangeTxt').textContent = !from && !to ? 'كل الوقت' : (hit ? hit[0] : cpPeriod.label(from || '') + ' – ' + cpPeriod.label(to || today));
     $('csRangeBtn').classList.toggle('on', !!(from || to));
-    $('csPresets').innerHTML = P.map((p, i) => `<button type="button" data-i="${i}">${p[0]}</button>`).join('');
+    $('csPresets').innerHTML = P.map((p, i) => `<button type="button" data-i="${i}" class="${(p === hit || (!from && !to && i === 0)) ? 'on' : ''}">${p[0]}</button>`).join('');
     $('csPresets').addEventListener('click', (e) => { const b = e.target.closest('[data-i]'); if (b) go(P[b.dataset.i][1], P[b.dataset.i][2]); });
     $('csRangeBtn').addEventListener('click', (e) => { e.stopPropagation(); $('csRangeMenu').hidden = !$('csRangeMenu').hidden; });
     document.addEventListener('click', (e) => { if (!e.target.closest('.cs-range')) $('csRangeMenu').hidden = true; });

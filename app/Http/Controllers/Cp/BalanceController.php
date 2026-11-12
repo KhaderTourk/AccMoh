@@ -231,6 +231,14 @@ class BalanceController extends Controller
     }
 
     /** سعر الدولار والدينار اليوم بالشيكل، للمجاميع بس (الحركات بتنحفظ بسعرها وقت التسجيل). */
+    /** سعر مقترح من مصدر رسمي (اقتراح بس، ما بيحفظ إشي). */
+    public function suggestRates()
+    {
+        $s = \App\Support\OfficialRates::suggest();
+
+        return response()->json($s ? $s + ['ok' => true] : ['ok' => false]);
+    }
+
     public function rates(Request $request)
     {
         $data = $request->validate(['rates' => ['array'], 'rates.*' => ['nullable', 'numeric', 'gt:0']]);

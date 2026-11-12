@@ -47,7 +47,7 @@ class AdsController extends Controller
         $openMonths = collect($rec)->reject(fn ($r) => $r['month']?->isApproved())->keys()->values();
         $periods = $campaigns->pluck('period')->unique()->sortDesc()->values();
         $thisMonth = now()->format('Y-m');
-        $methods = PaymentMethod::query()->where('is_active', true)->orderBy('id')->get();
+        $methods = PaymentMethod::query()->active()->get();
         $meta = $ads->metaVendor();
 
         return view('cp.finance.ads.index', [
