@@ -112,27 +112,6 @@ class BalanceController extends Controller
         return $out;
     }
 
-    /** بيان أوضح للتحويلات (12/11/2026): «تحويل لبنك فلسطين»، «تحويل عملات: شيكل ← دولار». */
-    protected function ledgerText(LedgerEntry $e, $methods, $currencies): string
-    {
-        $t = $e->related;
-        if (! $t instanceof \App\Models\FundTransfer) {
-            return (string) $e->description;
-        }
-        $name = fn ($id) => DrawerPlaces::curName(optional($currencies->firstWhere('id', $id))->code ?? '', optional($currencies->firstWhere('id', $id))->name ?? '');
-        $pair = $t->to_currency_id && $t->to_currency_id != $t->currency_id ? $name($t->currency_id).' ← '.$name($t->to_currency_id) : null;
-        if ((int) $t->from_payment_method_id === (int) $t->to_payment_method_id) {
-            return 'تحويل عملات'.($pair ? ': '.$pair : '');
-        }
-        $other = (float) $e->amount < 0 ? $t->to_payment_method_id : $t->from_payment_method_id;
-        $txt = ((float) $e->amount < 0 ? 'تحويل ل' : 'تحويل من ').(optional($methods->get($other))->name ?? 'درج ثاني');
-        if ($e->transaction_type === TransactionType::TransferFee) {
-            return 'رسوم تحويل';
-        }
-
-        return $txt.($pair ? ' ('.$pair.')' : '');
-    }
-
     public function show(Request $request, PaymentMethod $method, BalanceService $balances)
     {
         $snapshot = $balances->snapshot();
@@ -175,9 +154,8 @@ class BalanceController extends Controller
             $cards[] = ['currency' => $c, 'amount' => round($sum, 2)];
         }
         $places = DrawerPlaces::get($method->id);
-        $methods = PaymentMethod::query()->get()->keyBy('id');
         foreach ($rows as &$r) {
-            $r['text'] = $this->ledgerText($r['entry'], $methods, $snapshot['currencies']);
+            $r['text'] = \App\Support\LedgerText::for($r['entry']);
         }
         unset($r);
         $wizard = $this->wizardData($this->methodCards($snapshot, $funds), $snapshot);

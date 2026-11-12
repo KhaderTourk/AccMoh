@@ -178,6 +178,6 @@ class CashPaymentFormTest extends TestCase
         $this->actingAs($this->user)
             ->get(route('cp.payments.edit', $payment))
             ->assertOk()
-            ->assertSee('value="17\\10\\2026"', false);
+            ->assertSee('value="17/10/2026"', false);
     }
 }

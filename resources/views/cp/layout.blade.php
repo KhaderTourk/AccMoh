@@ -354,7 +354,7 @@
     </script>
     <script>
         (function () {
-            var SEP = '\\';
+            var SEP = '/';
             var MAX = [2, 2, 4];
             var MIN_YEAR = {{ \App\Support\DateRange::MIN_YEAR }};
             var MAX_YEAR = {{ \App\Support\DateRange::MAX_YEAR }};
@@ -408,13 +408,14 @@
                 return { value: out, caret: pos === null ? out.length : pos };
             }
 
+            // صيغة النظام (12/11/2026): يوم/شهر/سنة بدون أصفار، مثل 1/10/2026.
             function pad(value) {
-                var m = value.match(/^(\d{1,2})\\(\d{1,2})\\(\d{4})$/);
-                return m ? ('0' + m[1]).slice(-2) + SEP + ('0' + m[2]).slice(-2) + SEP + m[3] : value;
+                var m = value.match(/^(\d{1,2})[\\\/](\d{1,2})[\\\/](\d{4})$/);
+                return m ? (+m[1]) + SEP + (+m[2]) + SEP + m[3] : value;
             }
 
             function isValid(value) {
-                var m = value.match(/^(\d{1,2})\\(\d{1,2})\\(\d{4})$/);
+                var m = value.match(/^(\d{1,2})[\\\/](\d{1,2})[\\\/](\d{4})$/);
                 if (!m) return false;
                 var d = +m[1], mo = +m[2], y = +m[3];
                 if (y < MIN_YEAR || y > MAX_YEAR) return false;
@@ -476,8 +477,8 @@
                 var field = textFieldFor(picker);
                 if (!field || field.disabled || field.readOnly) return false;
                 var value = pad(format(field.value, false, null).value);
-                var m = isValid(value) ? value.match(/^(\d{2})\\(\d{2})\\(\d{4})$/) : null;
-                picker.value = m ? m[3] + '-' + m[2] + '-' + m[1] : '';
+                var m = isValid(value) ? value.match(/^(\d{1,2})[\\\/](\d{1,2})[\\\/](\d{4})$/) : null;
+                picker.value = m ? m[3] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[1]).slice(-2) : '';
                 if (typeof picker.showPicker === 'function') {
                     try { picker.showPicker(); } catch (e) {}
                 }
@@ -528,7 +529,7 @@
                     return;
                 }
                 var parts = picker.value.split('-');
-                setValue(field, parts[2] + SEP + parts[1] + SEP + parts[0], null);
+                setValue(field, (+parts[2]) + SEP + (+parts[1]) + SEP + parts[0], null);
                 syncValidity(field);
             }
 

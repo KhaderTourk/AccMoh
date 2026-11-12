@@ -87,7 +87,7 @@
         <h2>آخر الحركات <small>من كل الأقسام</small></h2>
         @forelse($recent as $e)
             <div class="db-row">
-                <span>{{ $e->description }} <small>{{ $e->paymentMethod?->name }} · {{ format_date($e->occurred_on) }}</small></span>
+                <span>{{ \App\Support\LedgerText::for($e) }} <small>{{ $e->paymentMethod?->name }} · {{ format_date($e->occurred_on) }}</small></span>
                 <b class="{{ \App\Support\Money::isNegative($e->amount) ? 'due' : 'credit' }}">{{ \App\Support\Money::isNegative($e->amount) ? '−' : '' }}{{ $e->currency->format(\App\Support\Money::abs($e->amount)) }}</b>
             </div>
         @empty

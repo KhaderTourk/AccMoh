@@ -23,7 +23,7 @@ class DateRange
             $required ? 'required' : 'nullable',
             function (string $attribute, mixed $value, \Closure $fail): void {
                 if (self::toValidDate($value) === null) {
-                    $fail('التاريخ غير صحيح، أدخله بالصيغة يوم\\شهر\\سنة بين '.self::MIN_YEAR.' و'.self::MAX_YEAR.'.');
+                    $fail('التاريخ غير صحيح، أدخله بالصيغة يوم/شهر/سنة بين '.self::MIN_YEAR.' و'.self::MAX_YEAR.'.');
                 }
             },
         ];
@@ -213,8 +213,8 @@ class DateRange
         try {
             $date = $value instanceof Carbon ? $value : Carbon::parse($value);
 
-            // Four backslashes: date() needs "\\" to emit one "\".
-            return $date->format($withTime ? 'd\\\\m\\\\Y H:i' : 'd\\\\m\\\\Y');
+            // يوم/شهر/سنة بدون أصفار (12/11/2026)، مثل 1/10/2026.
+            return $date->format($withTime ? 'j/n/Y H:i' : 'j/n/Y');
         } catch (\Throwable) {
             return '';
         }

@@ -72,7 +72,7 @@
                         <span class="cp-type-pill {{ $e->transaction_type->badgeClass() }}">{{ $e->transaction_type->label() }}</span>
                     </td>
                     <td class="px-3 py-3">
-                        {{ $e->description }}
+                        {{ \App\Support\LedgerText::for($e) }}
                         @if($e->is_reversal)<span class="text-xs text-rose-600"> (إلغاء)</span>@endif
                         @include('cp.partials.note-line', ['notes' => $e->notes])
                     </td>
