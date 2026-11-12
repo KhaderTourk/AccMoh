@@ -778,3 +778,61 @@ body.bs .cp-main .bl-page .bl-top .cl-search input[type=search]:not([type=hidden
     .bl-card.bl-strip.bl-gsum .bl-gtot b { font-size: 1.05rem; }
     .bl-card.bl-strip.bl-gsum .bl-gtot small { grid-column: 1 / -1; }
 }
+
+/* ── قوائم الاختيار بستايل براند (cp-select.js، 12/11/2026) ── */
+.cp-sel { position: relative; display: block; width: 100%; min-width: 0; }
+.cp-sel > select.cp-sel-native { position: absolute !important; inset: 0; width: 100% !important; height: 100% !important; opacity: 0 !important; pointer-events: none; }
+.cp-sel-btn { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; min-height: 42px; padding: 8px 12px; border: 1px solid var(--bs-field-line); border-radius: 10px; background: var(--bs-field); color: var(--bs-fg); font: inherit; text-align: right; cursor: pointer; }
+.cp-sel-btn .cp-sel-txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cp-sel-btn.ph .cp-sel-txt { color: var(--bs-muted); }
+.cp-sel-btn svg { flex: none; opacity: .6; transition: transform .15s; }
+.cp-sel-btn[aria-expanded=true] { border-color: var(--bs-pink); box-shadow: 0 0 0 3px var(--bs-pink-soft); }
+.cp-sel-btn[aria-expanded=true] svg { transform: rotate(180deg); }
+.cp-sel-btn:focus-visible { outline: none; border-color: var(--bs-pink); box-shadow: 0 0 0 3px var(--bs-pink-soft); }
+.cp-sel-btn:disabled { opacity: .55; cursor: not-allowed; }
+.cp-sel.bad .cp-sel-btn { border-color: var(--bs-pink); }
+.cp-sel-menu { z-index: 2000; display: grid; overflow: auto; padding: 5px; border: 1px solid var(--bs-line); border-radius: 12px; background: var(--bs-surface); box-shadow: 0 14px 34px -12px rgba(11, 37, 55, .45); font-family: inherit; direction: rtl; animation: bs-pop .14s cubic-bezier(.2, .8, .2, 1); }
+.cp-sel-menu[hidden] { display: none; }
+.cp-sel-menu button { display: block; width: 100%; padding: 9px 12px; border: 0; border-radius: 8px; background: none; color: var(--bs-fg); font: inherit; font-size: .92rem; text-align: right; cursor: pointer; }
+.cp-sel-menu button:hover, .cp-sel-menu button:focus { outline: none; background: var(--bs-hover); }
+.cp-sel-menu button.on { color: var(--bs-pink); font-weight: 700; }
+.cp-sel-menu button:disabled { opacity: .4; cursor: default; }
+.cp-sel-h { padding: 8px 12px 4px; color: var(--bs-muted); font-size: .74rem; font-weight: 600; }
+.cp-sel-empty { margin: 0; padding: 10px 12px; color: var(--bs-muted); font-size: .85rem; }
+.cp-sel-menu.sheet { position: fixed; right: 0; left: 0; bottom: 0; max-height: 60vh; padding: 10px 10px calc(10px + env(safe-area-inset-bottom)); border-radius: 18px 18px 0 0; box-shadow: 0 -18px 40px -12px rgba(11, 37, 55, .5); }
+.cp-sel-menu.sheet button { padding: 13px 14px; font-size: 1rem; }
+
+/* ── الإعلانات الممولة بستايل الأدراج (12/11/2026) ── */
+body.bs .ad-qs { flex: 1 1 220px; max-width: 360px; }
+body.bs .cp-main .ad-qs input[type=search]:not([type=hidden]):not([type=checkbox]) { height: auto !important; min-height: 0 !important; padding: 1px 2px !important; border: 0 !important; background: transparent !important; box-shadow: none !important; }
+body.bs .ad-filters { align-items: center; gap: 10px; }
+body.bs #adMBtn svg { opacity: .6; }
+body.bs .ad-mmenu { padding: 6px; border: 1px solid var(--bs-line); border-radius: 12px; background: var(--bs-surface); box-shadow: 0 14px 34px -12px rgba(11, 37, 55, .45); gap: 0; }
+body.bs .ad-mmenu label { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; cursor: pointer; }
+body.bs .ad-mmenu label:hover { background: var(--bs-hover); }
+body.bs .ad-mmenu .all { border-bottom: 1px solid var(--bs-line); border-radius: 8px 8px 0 0; }
+body.bs .ad-mmenu input[type=checkbox] { accent-color: var(--bs-pink); }
+body.bs .ad-mmenu small { padding: 6px 10px; color: var(--bs-muted); }
+body.bs .ad-stats { gap: 0; margin: 0 0 16px; overflow: hidden; border: 1px solid var(--bs-line); border-radius: 16px; background: var(--bs-surface); }
+body.bs .ad-stats > div { padding: 16px 20px; border-radius: 0; border-inline-start: 1px solid var(--bs-line); background: none; box-shadow: none; }
+body.bs .ad-stats > div:first-child { border-inline-start: 0; }
+body.bs .ad-stats span, body.bs .ad-stats small { color: var(--bs-muted); }
+body.bs .ad-stats b { font-weight: 700; }
+body.bs .ad-table { overflow: visible; border: 1px solid var(--bs-line); border-radius: 16px; background: var(--bs-surface); box-shadow: none; }
+body.bs .ad-tr { border-bottom: 1px solid var(--bs-line); }
+body.bs .ad-th { background: transparent; color: var(--bs-muted); font-weight: 500; font-size: .75rem; }
+body.bs .ad-grp { background: var(--bs-field); font-weight: 700; }
+body.bs .ad-grp small, body.bs .ad-sub > span:first-child { color: var(--bs-muted); }
+body.bs .ad-sub > span:first-child { color: var(--bs-fg); }
+body.bs .ad-tf { border-bottom: 0; font-weight: 700; }
+body.bs .ad-ico { color: var(--bs-muted); }
+body.bs .ad-mstate { border: 1px solid var(--bs-line); background: var(--bs-surface); }
+body.bs .ad-mstate.done { border-color: rgba(31, 169, 113, .35); }
+body.bs .ad-err { background: var(--bs-pink-soft); color: var(--bs-pink); }
+html.dark body.bs .ad-warn { background: rgba(245, 165, 36, .12); color: #F5C26B; }
+@media (max-width: 760px) {
+    body.bs .ad-qs { max-width: none; flex-basis: 100%; }
+    body.bs .ad-stats > div { padding: 12px 14px; border-inline-start: 0; border-top: 1px solid var(--bs-line); }
+    body.bs .ad-stats > div:nth-child(-n+2) { border-top: 0; }
+    body.bs .ad-stats > div:nth-child(even) { border-inline-start: 1px solid var(--bs-line); }
+}

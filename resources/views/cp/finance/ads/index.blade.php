@@ -27,7 +27,7 @@
     @if($tab === 'campaigns')
         <div class="cl-tools ad-filters">
             <div class="ad-months">
-                <button type="button" class="cl-chip" id="adMBtn"><span>كل الشهور</span> ▾</button>
+                <button type="button" class="cs-range-btn" id="adMBtn"><span>كل الشهور</span> @include('cp.partials.bs-icon', ['name' => 'chevron', 'size' => 12])</button>
                 <div class="ad-mmenu" id="adMMenu" hidden>
                     <label class="all"><input type="checkbox" id="adMAll"> كل الشهور</label>
                     @foreach($periods as $p)<label><input type="checkbox" value="{{ $p }}" @checked(in_array($p, $defaultMonths, true))> {{ $ml($p) }}</label>@endforeach
@@ -39,7 +39,7 @@
                 <button type="button" data-p="fb">فيس</button>
                 <button type="button" data-p="ig">انستا</button>
             </div>
-            <input type="search" id="adQ" class="ad-q" placeholder="⌕ بحث بالزبون">
+            <label class="cl-search ad-qs" for="adQ"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" id="adQ" placeholder="دوّر بالزبون" autocomplete="off"></label>
             <button type="button" class="cp-btn cp-btn-ghost" data-open-rec>مطابقة واعتماد</button>
         </div>
 
