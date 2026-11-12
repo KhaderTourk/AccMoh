@@ -12,6 +12,7 @@ class CheckCpPermission
     protected array $routeToPermission = [
         'cp.users' => 'users',
         'cp.roles' => 'users',
+        'cp.style' => 'users',
         'cp.balances' => 'finance',
         'cp.balance-memos' => 'finance',
         'cp.clients' => 'finance',

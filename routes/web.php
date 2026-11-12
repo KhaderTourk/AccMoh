@@ -111,6 +111,7 @@ Route::prefix('cp')->name('cp.')->middleware(['cp.auth', 'cp.check'])->group(fun
         Route::resource('service-types', ServiceTypeController::class)->except(['show']);
 
         Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
+        Route::get('/style', [\App\Http\Controllers\Cp\StyleGuideController::class, 'index'])->name('style');
         Route::post('/settings/archived', [SettingsController::class, 'toggleArchived'])->name('settings.archived');
         Route::post('/settings/groups', [SettingsController::class, 'storeGroup'])->name('settings.groups.store');
         Route::put('/settings/groups/{group}', [SettingsController::class, 'updateGroup'])->name('settings.groups.update');

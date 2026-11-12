@@ -21,6 +21,7 @@
         <a href="{{ route('cp.settings.index', ['tab' => 'methods']) }}" class="{{ $tab === 'methods' ? 'on' : '' }}">طرق الدفع</a>
         <a href="{{ route('cp.settings.index', ['tab' => 'import']) }}" class="{{ $tab === 'import' ? 'on' : '' }}">الاستيراد</a>
         <a href="{{ route('cp.settings.index', ['tab' => 'view']) }}" class="{{ $tab === 'view' ? 'on' : '' }}">العرض</a>
+        @if(auth()->user()?->canAccess('users'))<a href="{{ route('cp.style') }}">نظام التصميم</a>@endif
     </nav>
 
     @if($errors->any())
