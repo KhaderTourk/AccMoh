@@ -21,6 +21,7 @@
         </form>
     </div>
 
+    <div data-soft="sum">
     @if($totals->isNotEmpty())
         <div class="bl-card bl-strip bl-gsum">
             @foreach($totals as $row)
@@ -32,26 +33,27 @@
             @endforeach
         </div>
     @endif
+    </div>
 
     <section class="bl-sec bl-led">
         <div class="bl-sh bl-ledh">
             <h2>الحركات</h2>
             <div class="bl-ledf">
-                <div class="bl-fm">
+                <div class="bl-fm" data-soft="fm-type">
                     <button type="button" class="cs-range-btn {{ $typeOn ? 'on' : '' }}" data-fm>{{ $typeOn ? $typeOn->label() : 'كل الأنواع' }} @include('cp.partials.bs-icon', ['name' => 'chevron', 'size' => 12])</button>
                     <div class="cl-menu" hidden>
                         <a href="{{ $keep(['transaction_type' => null]) }}" class="{{ $typeOn ? '' : 'on' }}">كل الأنواع</a>
                         @foreach($types as $t)<a href="{{ $keep(['transaction_type' => $t->value]) }}" class="{{ $typeOn === $t ? 'on' : '' }}">{{ $t->label() }}</a>@endforeach
                     </div>
                 </div>
-                <div class="bl-fm">
+                <div class="bl-fm" data-soft="fm-method">
                     <button type="button" class="cs-range-btn {{ $methodOn ? 'on' : '' }}" data-fm>{{ $methodOn ? $methodOn->name : 'كل الأدراج' }} @include('cp.partials.bs-icon', ['name' => 'chevron', 'size' => 12])</button>
                     <div class="cl-menu" hidden>
                         <a href="{{ $keep(['payment_method_id' => null]) }}" class="{{ $methodOn ? '' : 'on' }}">كل الأدراج</a>
                         @foreach($paymentMethods as $m)<a href="{{ $keep(['payment_method_id' => $m->id]) }}" class="{{ $methodOn?->id === $m->id ? 'on' : '' }}">{{ $m->name }}</a>@endforeach
                     </div>
                 </div>
-                <div class="bl-seg2">
+                <div class="bl-seg2" data-soft="cur">
                     <a href="{{ $keep(['currency_id' => null]) }}" class="{{ $curOn ? '' : 'on' }}">الكل</a>
                     @foreach($currencies as $c)<a href="{{ $keep(['currency_id' => $c->id]) }}" class="{{ $curOn?->id === $c->id ? 'on' : '' }}">{{ $cName($c) }}</a>@endforeach
                 </div>
@@ -59,6 +61,7 @@
             </div>
         </div>
 
+        <div data-soft="rows">
         @if($entries->count())
             <div class="bl-lrow bl-grow bl-lhead"><span>البيان</span><span>الدرج</span><span>المبلغ</span></div>
             @php $lastDay = null; @endphp
@@ -86,8 +89,9 @@
         @else
             <p class="cl-empty">ما في حركات بهالفلاتر.</p>
         @endif
+        </div>
     </section>
-    @include('cp.partials.bl-pages', ['p' => $entries])
+    <div data-soft="pages">@include('cp.partials.bl-pages', ['p' => $entries])</div>
 </div>
 @include('cp.partials.period-filter-go', ['base' => $keep(['from' => null, 'to' => null])])
 <script>

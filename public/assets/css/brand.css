@@ -623,7 +623,8 @@ body.bs .tw-ami > .tw-mid { padding-left: 30px; }
 .bl-sh { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; }
 .bl-sh h2 { margin: 0; font-size: 1.05rem; font-weight: 700; }
 .bl-sh small { display: block; margin-top: 2px; color: var(--bs-muted); font-size: .76rem; }
-.bl-tbtn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 4px; border: 0; background: none; color: var(--bs-pink); font: inherit; font-size: .88rem; font-weight: 600; cursor: pointer; }
+.bl-tbtn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 4px; border: 0; background: none; color: var(--bs-fg); font: inherit; font-size: .88rem; font-weight: 600; cursor: pointer; }
+.bl-tbtn:hover { color: var(--bs-pink); }
 .bl-stk { display: flex; height: 8px; margin: 0 20px 14px; overflow: hidden; border-radius: 6px; background: var(--bs-chip); }
 .bl-stk i { display: block; height: 100%; }
 .bl-stk i.free { background: var(--bs-field-line); }
@@ -943,3 +944,7 @@ a.db2-row:hover { background: var(--bs-hover); }
     .db2-bars { gap: 6px; height: 130px; padding: 0 12px 14px; }
 }
 .db2 a.bl-tbtn { text-decoration: none; }
+
+/* الفلاتر بدون إعادة تحميل (cp-soft.js، 12/11/2026): الأجزاء اللي بتتبدّل بتخفت شوي وقت التحميل. */
+div[data-soft]:not([class]) { display: contents; }
+html.cp-soft-busy [data-soft] { opacity: .55; transition: opacity .15s; pointer-events: none; }

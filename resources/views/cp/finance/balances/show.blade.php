@@ -18,7 +18,8 @@
     $pct = fn ($v) => $drawerIls > 0 ? max(0, min(100, round($v / $drawerIls * 100))) : 0;
     $free = collect($cards)->mapWithKeys(fn ($c) => [$c['currency']->code => round($c['amount'] - ($placed[$c['currency']->code] ?? 0), 2)])->all();
     $sym = collect($cards)->mapWithKeys(fn ($c) => [$c['currency']->code => $c['currency']->symbol])->all();
-    $palette = ['#FB005B', '#7C5CFF', '#F5A524', '#22B8CF', '#3DDC97', '#FF7A45'];
+    // ألوان الأماكن بدون لون الهوية (وردي) وبدون أخضر الأرصدة (12/11/2026).
+    $palette = ['#4C8DFF', '#7C5CFF', '#F5A524', '#22B8CF', '#94A3B8', '#C084FC'];
     $dayLabel = function ($d) {
         $t = now()->startOfDay();
         $txt = $d->format('j/n/Y');
@@ -119,7 +120,7 @@
         <div class="bl-sh bl-ledh">
             <h2>الحركات</h2>
             <div class="bl-ledf">
-                <div class="bl-seg2">
+                <div class="bl-seg2" data-soft="cur">
                     <a href="{{ $q(['cur' => null]) }}" class="{{ $cur ? '' : 'on' }}">الكل</a>
                     @foreach($currencies as $c)<a href="{{ $q(['cur' => $c->code]) }}" class="{{ $cur?->id === $c->id ? 'on' : '' }}">{{ \App\Support\DrawerPlaces::curName($c->code, $c->name) }}</a>@endforeach
                 </div>
@@ -127,6 +128,7 @@
             </div>
         </div>
 
+        <div data-soft="rows">
         @if($from && count($opening))
             <p class="bl-open">رصيد سابق: @foreach($opening as $cid => $v)<span dir="ltr">{{ $fmt($currencies->firstWhere('id', $cid), $v) }}</span>@if(!$loop->last)، @endif @endforeach</p>
         @endif
@@ -153,6 +155,7 @@
         @else
             <p class="cl-empty">ما في حركات بهالفترة.</p>
         @endif
+        </div>
     </section>
 </div>
 

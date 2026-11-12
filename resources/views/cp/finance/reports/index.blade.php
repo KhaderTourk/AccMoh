@@ -37,21 +37,21 @@
             @if($from)<input type="hidden" name="from" value="{{ $from }}">@endif
             @if($to)<input type="hidden" name="to" value="{{ $to }}">@endif
         </form>
-        <div class="bl-racts">
+        <div class="bl-racts" data-soft="acts">
             @if($biz)<a href="{{ route('cp.reports.services', $filterQuery) }}" class="cp-btn cp-btn-ghost">دخل الخدمات</a>@endif
             <a href="{{ route('cp.reports.export-pdf', request()->only($keys) + $filterQuery) }}" class="cp-btn cp-btn-primary">تصدير PDF</a>
         </div>
     </div>
 
     <div class="bl-rfil">
-        <div class="bl-fm">
+        <div class="bl-fm" data-soft="fm1">
             <button type="button" class="cs-range-btn {{ $pt ? 'on' : '' }}" data-fm>{{ $types[$pt] ?? 'كل الأطراف' }} @include('cp.partials.bs-icon', ['name' => 'chevron', 'size' => 12])</button>
             <div class="cl-menu" hidden>
                 <a href="{{ $keep(['party_type' => null]) }}" class="{{ $pt ? '' : 'on' }}">كل الأطراف</a>
                 @foreach($types as $k => $label)<a href="{{ $keep(['party_type' => $k]) }}" class="{{ $pt === $k ? 'on' : '' }}">{{ $label }}</a>@endforeach
             </div>
         </div>
-        <div class="bl-fm">
+        <div class="bl-fm" data-soft="fm2">
             <button type="button" class="cs-range-btn {{ $methodOn ? 'on' : '' }}" data-fm>{{ $methodOn ? $methodOn->name : 'كل الأدراج' }} @include('cp.partials.bs-icon', ['name' => 'chevron', 'size' => 12])</button>
             <div class="cl-menu" hidden>
                 <a href="{{ $keep(['payment_method_id' => null]) }}" class="{{ $methodOn ? '' : 'on' }}">كل الأدراج</a>
@@ -59,7 +59,7 @@
             </div>
         </div>
         @if($biz && $clients->isNotEmpty())
-        <div class="bl-fm">
+        <div class="bl-fm" data-soft="fm3">
             <button type="button" class="cs-range-btn {{ $clientOn ? 'on' : '' }}" data-fm>{{ $clientOn ? $clientOn->personName() : 'كل الزبائن' }} @include('cp.partials.bs-icon', ['name' => 'chevron', 'size' => 12])</button>
             <div class="cl-menu" hidden>
                 <a href="{{ $keep(['client_id' => null]) }}" class="{{ $clientOn ? '' : 'on' }}">كل الزبائن</a>
@@ -68,7 +68,7 @@
         </div>
         @endif
         @if($persons->isNotEmpty())
-        <div class="bl-fm">
+        <div class="bl-fm" data-soft="fm4">
             <button type="button" class="cs-range-btn {{ $personOn ? 'on' : '' }}" data-fm>{{ $personOn ? $personOn->name : 'كل الأشخاص' }} @include('cp.partials.bs-icon', ['name' => 'chevron', 'size' => 12])</button>
             <div class="cl-menu" hidden>
                 <a href="{{ $keep(['person_id' => null]) }}" class="{{ $personOn ? '' : 'on' }}">كل الأشخاص</a>
@@ -76,14 +76,14 @@
             </div>
         </div>
         @endif
-        <div class="bl-seg2">
+        <div class="bl-seg2" data-soft="cur">
             <a href="{{ $keep(['currency_id' => null]) }}" class="{{ $curOn ? '' : 'on' }}">الكل</a>
             @foreach($currencies as $c)<a href="{{ $keep(['currency_id' => $c->id]) }}" class="{{ $curOn?->id === $c->id ? 'on' : '' }}">{{ $cName($c) }}</a>@endforeach
         </div>
         @include('cp.partials.period-filter')
-        <span class="bl-rmeta">{{ $periodLabel }} · وارد {{ $incomingCount }} · صادر {{ $outgoingCount }}</span>
+        <span class="bl-rmeta" data-soft="meta">{{ $periodLabel }} · وارد {{ $incomingCount }} · صادر {{ $outgoingCount }}</span>
     </div>
-
+    <div data-soft="body">
     {{-- الأرصدة الحالية: ما بتتأثر بالفترة --}}
     <section class="bl-sec">
         <div class="bl-sh"><div><h2>الأرصدة الحالية</h2><small>زي ما هي هلأ، ما بتتأثر بالفترة.</small></div></div>
@@ -208,6 +208,7 @@
             </div>
         </section>
         @endforeach
+    </div>
     </div>
 </div>
 @include('cp.partials.period-filter-go', ['base' => $keep(['from' => null, 'to' => null])])

@@ -21,6 +21,7 @@
             <h2>التحويلات</h2>
             <div class="bl-ledf">@include('cp.partials.period-filter')</div>
         </div>
+        <div data-soft="rows">
         @if($transfers->count())
             <div class="bl-lrow bl-trow bl-lhead"><span>التحويل</span><span>المبلغ</span><span></span></div>
             @php $lastDay = null; @endphp
@@ -63,8 +64,9 @@
         @else
             <p class="cl-empty">{{ request('q') || $from || $to ? 'ما في تحويلات بهالبحث أو الفترة.' : 'لسا ما في تحويلات. اضغط «تحويل» فوق.' }}</p>
         @endif
+        </div>
     </section>
-    @include('cp.partials.bl-pages', ['p' => $transfers])
+    <div data-soft="pages">@include('cp.partials.bl-pages', ['p' => $transfers])</div>
 </div>
 @include('cp.partials.period-filter-go', ['base' => $base])
 <script>

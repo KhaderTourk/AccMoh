@@ -549,6 +549,7 @@
     </script>
     <script src="{{ asset('assets/js/cp-ui.js') }}?v={{ @filemtime(public_path('assets/js/cp-ui.js')) ?: time() }}"></script>
     <script src="{{ asset('assets/js/cp-select.js') }}?v={{ @filemtime(public_path('assets/js/cp-select.js')) ?: time() }}"></script>
+    <script src="{{ asset('assets/js/cp-soft.js') }}?v={{ @filemtime(public_path('assets/js/cp-soft.js')) ?: time() }}"></script>
     <script src="{{ asset('assets/js/cp-table-sort.js') }}?v={{ @filemtime(public_path('assets/js/cp-table-sort.js')) ?: time() }}"></script>
     @stack('scripts')
 </body>
