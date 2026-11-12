@@ -26,12 +26,11 @@
                         @php($v = isset($rates[$c->code]) ? rtrim(rtrim(number_format($rates[$c->code], 4, '.', ''), '0'), '.') : '')
                         @php($nm = 'سعر صرف '.\App\Support\DrawerPlaces::curDef($c->code, $c->name))
                         <span class="bl-rx" data-code="{{ $c->code }}">
-                            <span class="bl-rv"><span>{{ $nm }}</span><span class="bl-rvv"><button type="button" class="bl-pe" data-edit="{{ $c->code }}" aria-label="تعديل {{ $nm }}" title="تعديل {{ $nm }}">@include('cp.partials.bs-icon', ['name' => 'edit', 'size' => 14])</button><b dir="ltr">{{ isset($fx[$c->code]) ? '₪ '.rtrim(rtrim(number_format($fx[$c->code], 4), '0'), '.') : '—' }}</b></span></span>
-                            <span class="bl-re" hidden>
-                                <span class="bl-reh"><label for="blRate{{ $c->code }}">{{ $nm }}</label><button type="button" class="bl-pe on" data-cancel aria-label="إلغاء التعديل" title="إلغاء التعديل">@include('cp.partials.bs-icon', ['name' => 'close', 'size' => 14])</button></span>
-                                <input id="blRate{{ $c->code }}" name="rates[{{ $c->code }}]" class="bl-rin" inputmode="decimal" dir="ltr" value="{{ $v }}" data-orig="{{ $v }}" placeholder="مثلاً 3.70" autocomplete="off" disabled>
-                                <span class="bl-sug" data-sug="{{ $c->code }}"><span>العالمي اليوم <b dir="ltr">…</b></span><button type="button" class="bl-use" data-use="{{ $c->code }}" hidden>استعمله</button></span>
-                                <small class="bl-src"></small>
+                            <label class="bl-rl" for="blRate{{ $c->code }}">{{ $nm }}</label>
+                            <span class="bl-rline bl-rshow"><b dir="ltr">{{ isset($fx[$c->code]) ? '₪ '.rtrim(rtrim(number_format($fx[$c->code], 4), '0'), '.') : '—' }}</b><button type="button" class="bl-pe" data-edit="{{ $c->code }}" aria-label="تعديل {{ $nm }}" title="تعديل {{ $nm }}">@include('cp.partials.bs-icon', ['name' => 'edit', 'size' => 14])</button></span>
+                            <span class="bl-rline bl-redit" hidden>
+                                <input id="blRate{{ $c->code }}" name="rates[{{ $c->code }}]" class="bl-rin" inputmode="decimal" dir="ltr" value="{{ $v }}" data-orig="{{ $v }}" placeholder="3.70" autocomplete="off" disabled>
+                                <button type="button" class="bl-bank" data-use="{{ $c->code }}" disabled><span>سعر البنك</span><b dir="ltr">…</b></button>
                                 <button type="submit" class="bl-save" disabled>حفظ</button>
                             </span>
                         </span>
@@ -149,40 +148,39 @@
         r.querySelector('.bl-save').disabled = i.value.trim() === i.dataset.orig || !(num(i.value) > 0);
     }
     function editMode(code) {
-        if (editing) { const r = rowOf(editing), i = r.querySelector('.bl-rin'); i.value = i.dataset.orig; i.disabled = true; r.querySelector('.bl-rv').hidden = false; r.querySelector('.bl-re').hidden = true; }
+        if (editing) { const r = rowOf(editing), i = r.querySelector('.bl-rin'); i.value = i.dataset.orig; i.disabled = true; r.querySelector('.bl-rshow').hidden = false; r.querySelector('.bl-redit').hidden = true; }
         editing = code || null;
         sum.classList.toggle('editing', !!editing);
         if (!editing) return;
         const r = rowOf(editing), i = r.querySelector('.bl-rin');
-        r.querySelector('.bl-rv').hidden = true; r.querySelector('.bl-re').hidden = false; i.disabled = false;
+        r.querySelector('.bl-rshow').hidden = true; r.querySelector('.bl-redit').hidden = false; i.disabled = false;
         suggest(); dirty(); setTimeout(() => { i.focus(); i.select(); }, 30);
     }
     sum.addEventListener('click', (e) => {
         const ed = e.target.closest('[data-edit]'); if (ed) { editMode(ed.dataset.edit); return; }
-        if (e.target.closest('[data-cancel]')) { editMode(null); return; }
         const u = e.target.closest('[data-use]'); if (u && u.dataset.val) { $('blRate' + u.dataset.use).value = u.dataset.val; dirty(); }
     });
+    // ضغطة برا سطر العملة اللي بتتعدّل بتلغي التعديل.
+    document.addEventListener('click', (e) => { if (editing && !e.target.closest('.bl-rx[data-code="' + editing + '"]') && !e.target.closest('[data-edit]')) editMode(null); });
     sum.addEventListener('input', (e) => { if (e.target.classList.contains('bl-rin')) dirty(); });
 
     // السعر العالمي: بينجاب لما تفتح التعديل بس، و«استعمله» بيعبّي الحقل (الحفظ بإيدك).
     let asked = false;
-    const setSrc = (t) => sum.querySelectorAll('.bl-src').forEach((el) => { el.textContent = t; });
-    const noSug = () => { setSrc('ما قدرنا نجيب السعر العالمي هلأ. اكتب السعر بإيدك.'); sum.querySelectorAll('.bl-sug').forEach((b) => { b.hidden = true; }); };
+    const noSug = () => { sum.querySelectorAll('.bl-bank').forEach((b) => { b.querySelector('b').textContent = '—'; b.disabled = true; b.title = 'ما قدرنا نجيب سعر البنك هلأ. اكتب السعر بإيدك.'; }); };
     function suggest() {
         if (asked) return; asked = true;
         fetch(@json(route('cp.balances.rates.suggest')), { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
             .then((r) => r.json())
             .then((d) => {
                 if (!d.ok) { noSug(); return; }
-                sum.querySelectorAll('[data-sug]').forEach((box) => {
-                    const c = box.dataset.sug, v = d.rates[c];
-                    if (!v) { box.hidden = true; return; }
-                    box.querySelector('b').textContent = String(v);
-                    const btn = box.querySelector('button'); btn.dataset.val = v; btn.hidden = false;
-                });
                 const day = d.as_of ? d.as_of.split('-').map(Number) : null;
-                setSrc('المصدر: ' + d.source + (day ? '، ' + day[2] + '/' + day[1] + '/' + day[0] : ''));
-                (d.derived || []).forEach((c) => { const r = rowOf(c); if (r) r.querySelector('.bl-src').textContent += ' (محسوب من الدولار)'; });
+                const src = 'المصدر: ' + d.source + (day ? '، ' + day[2] + '/' + day[1] + '/' + day[0] : '');
+                sum.querySelectorAll('.bl-bank').forEach((btn) => {
+                    const c = btn.dataset.use, v = d.rates[c];
+                    if (!v) { btn.querySelector('b').textContent = '—'; return; }
+                    btn.querySelector('b').textContent = String(v); btn.dataset.val = v; btn.disabled = false;
+                    btn.title = src + ((d.derived || []).includes(c) ? ' (محسوب من الدولار)' : '') + '. اضغط عشان تستعمله.';
+                });
             })
             .catch(() => { noSug(); asked = false; });
     }
