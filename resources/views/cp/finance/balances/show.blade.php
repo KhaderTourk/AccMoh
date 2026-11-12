@@ -98,14 +98,15 @@
             <div class="tw-body">
                 <p class="bl-pnote">للعرض بس، ما بيأثّر على الحركات ولا الأرصدة.</p>
                 <div class="bl-pgrid" id="plGrid" style="--n: {{ $used->count() }}">
-                    <div class="bl-pg bl-pgh"><span>المكان</span>@foreach($used as $card)<span>{{ \App\Support\DrawerPlaces::curName($card['currency']->code, $card['currency']->name) }}</span>@endforeach<span></span></div>
+                    <div class="bl-pg bl-pgh"><span>المكان</span>@foreach($used as $card)<span>{{ \App\Support\DrawerPlaces::curName($card['currency']->code, $card['currency']->name) }}</span>@endforeach<span></span><span></span></div>
                 </div>
                 <button type="button" class="bl-padd" id="plAdd">+ مكان جديد</button>
                 <div class="bl-pgrid bl-psum" style="--n: {{ $used->count() }}">
-                    <div class="bl-pg"><span>رصيد الدرج</span>@foreach($used as $card)<b dir="ltr">{{ $num($card['amount']) }}</b>@endforeach<span></span></div>
-                    <div class="bl-pg bl-pfree"><span>غير موزّع</span>@foreach($used as $card)<b dir="ltr" data-free="{{ $card['currency']->code }}"></b>@endforeach<span></span></div>
+                    <div class="bl-pg"><span>رصيد الدرج</span>@foreach($used as $card)<b dir="ltr">{{ $num($card['amount']) }}</b>@endforeach<span></span><span></span></div>
+                    <div class="bl-pg bl-pfree"><span>غير موزّع</span>@foreach($used as $card)<b dir="ltr" data-free="{{ $card['currency']->code }}"></b>@endforeach<span></span><span></span></div>
                 </div>
                 <small class="bl-perr" id="plErr" hidden>الموزّع أكتر من رصيد الدرج. صلّح الرقم الأحمر.</small>
+                @error('places')<small class="bl-perr bl-perr-srv">{{ $message }}</small>@enderror
             </div>
             <div class="tw-foot">
                 <button type="button" class="tw-back" id="plCancel">إلغاء</button>
@@ -194,8 +195,9 @@
         const i = n++;
         const d = document.createElement('div');
         d.className = 'bl-pg';
-        d.innerHTML = '<input name="places[' + i + '][name]" placeholder="اسم المكان" maxlength="60" aria-label="اسم المكان">'
+        d.innerHTML = '<input name="places[' + i + '][name]" placeholder="اسم المكان *" maxlength="60" aria-label="اسم المكان">'
             + codes.map((c) => '<label class="bl-pin" dir="ltr"><i>' + (SYM[c] || c) + '</i><input name="places[' + i + '][amounts][' + c + ']" inputmode="decimal" dir="ltr" placeholder="0" data-cur="' + c + '" aria-label="' + c + '"></label>').join('')
+            + '<button type="button" class="bl-prest" title="عبّي هالمكان باللي لسا مش موزّع">الباقي</button>'
             + '<button type="button" class="bl-pdel" aria-label="حذف المكان">×</button>';
         d.querySelector('input').value = p ? p.name : '';
         if (p) codes.forEach((c) => { if (p.amounts && p.amounts[c]) d.querySelector('[data-cur="' + c + '"]').value = p.amounts[c]; });
@@ -214,7 +216,18 @@
             if (Math.abs(free) < 0.005) { out.textContent = '✓ كله'; out.className = 'ok'; } else { out.textContent = fmt(free); out.className = free < 0 ? 'due' : ''; }
             bad = bad || over;
         });
-        $('plErr').hidden = !bad; $('plSave').disabled = bad;
+        // اسم المكان إجباري (12/11/2026): سطر فيه مبلغ بدون اسم بيتلوّن وما بينحفظ.
+        let noName = false;
+        grid.querySelectorAll('.bl-pg:not(.bl-pgh)').forEach((r) => {
+            const nm = r.querySelector('input'), has = [...r.querySelectorAll('[data-cur]')].some((el) => num(el.value) > 0);
+            const miss = has && !nm.value.trim();
+            nm.classList.toggle('bad', miss); noName = noName || miss;
+        });
+        // زر «الباقي» بكل سطر (12/11/2026): بيبيّن بس لما يكون في شي غير موزّع.
+        const anyRest = codes.some((c) => restOf(c) > 0.004);
+        grid.querySelectorAll('.bl-prest').forEach((b) => { b.hidden = !anyRest; });
+        $('plErr').textContent = noName ? 'اكتب اسم المكان.' : 'الموزّع أكتر من رصيد الدرج. صلّح الرقم الأحمر.';
+        $('plErr').hidden = !(bad || noName); $('plSave').disabled = bad || noName;
     }
     function open() {
         grid.querySelectorAll('.bl-pg:not(.bl-pgh)').forEach((r) => r.remove()); n = 0;
@@ -223,9 +236,16 @@
         setTimeout(() => grid.querySelector('input').focus(), 30);
     }
     $('plEdit').addEventListener('click', open);
+    @if($errors->has('places')) open(); @endif
     $('plAdd').addEventListener('click', () => { row(null).querySelector('input').focus(); calc(); });
+    function restOf(c) { let sum = 0; grid.querySelectorAll('[data-cur="' + c + '"]').forEach((el) => { sum += num(el.value); }); return Math.round((Math.max(0, have[c]) - sum) * 100) / 100; }
+
     grid.addEventListener('input', calc);
-    grid.addEventListener('click', (e) => { const b = e.target.closest('.bl-pdel'); if (b) { b.parentElement.remove(); calc(); } });
+    grid.addEventListener('click', (e) => {
+        const b = e.target.closest('.bl-pdel'); if (b) { b.parentElement.remove(); calc(); return; }
+        const r = e.target.closest('.bl-prest');
+        if (r) { const pg = r.parentElement; codes.forEach((c) => { const rest = restOf(c); if (rest > 0.004) { const el = pg.querySelector('[data-cur="' + c + '"]'); el.value = String(Math.round((num(el.value) + rest) * 100) / 100); } }); calc(); const nm = pg.querySelector('input'); if (!nm.value.trim()) nm.focus(); }
+    });
     $('plCancel').addEventListener('click', () => { $('plSheet').hidden = true; });
     $('plX').addEventListener('click', () => { $('plSheet').hidden = true; });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('plSheet').hidden) $('plSheet').hidden = true; });

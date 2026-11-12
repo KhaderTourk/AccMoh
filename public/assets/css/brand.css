@@ -658,9 +658,9 @@ html.dark .bl-lamt.in { color: #3DDC97; }
 .bl-lafter em { display: none; font-style: normal; }
 .bl-lafter.due { color: var(--bs-pink); }
 /* نافذة التوزيع */
-.bl-pdialog { width: min(100%, 30rem) !important; }
+.bl-pdialog { width: min(100%, 33rem) !important; }
 .bl-pnote { margin: 0; color: var(--bs-muted); font-size: .8rem; }
-.bl-pdialog .bl-pg { grid-template-columns: 1.3fr repeat(var(--n, 2), minmax(0, 1fr)) 26px; gap: 8px; margin-bottom: 8px; }
+.bl-pdialog .bl-pg { grid-template-columns: 1.3fr repeat(var(--n, 2), minmax(0, 1fr)) 54px 22px; gap: 8px; margin-bottom: 8px; }
 .bl-pdialog .bl-pgh { margin: 6px 0 2px; color: var(--bs-muted); font-size: .76rem; }
 .bl-pin { position: relative; display: block; min-width: 0; }
 .bl-pin i { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--bs-muted); font-style: normal; font-size: .8rem; pointer-events: none; }
@@ -695,3 +695,7 @@ html.dark .bl-pdialog .bl-pfree b.ok { color: #3DDC97; }
 .tw-extra [data-date-wrap] { position: relative; }
 .tw-extra [data-date-picker] { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
 .tw-extra [data-date-wrap] .material-symbols-outlined { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--bs-muted); font-size: 1.2rem; }
+.bl-pdialog .bl-pg input.bad::placeholder { color: var(--bs-pink); }
+.bl-perr-srv { display: block; margin: 0; }
+.bl-prest { height: 30px; padding: 0; border: 0; background: none; color: var(--bs-pink); font: inherit; font-size: .78rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.bl-prest[hidden] { visibility: hidden; display: block; }
