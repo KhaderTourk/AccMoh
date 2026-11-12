@@ -380,7 +380,7 @@ html:not(.bl-show) .bl-money { cursor: pointer; }
 /* زر «تحويل» بقائمته، ونافذة الخطوات. */
 .tw-wrap { position: relative; }
 .tw-btn { display: inline-flex !important; align-items: center; gap: 8px; }
-.tw-menu { left: 0 !important; right: auto; top: calc(100% + 8px) !important; min-width: 270px !important; }
+.tw-menu { left: 0 !important; right: auto !important; top: calc(100% + 8px) !important; min-width: 270px !important; max-width: calc(100vw - 32px); }
 .tw-menu button { display: flex !important; align-items: center; gap: 12px; text-align: right; }
 .tw-menu b { display: block; font-weight: 600; }
 .tw-menu small { display: block; color: var(--bs-muted); font-size: .78rem; }
@@ -439,5 +439,5 @@ html:not(.bl-show) .bl-money { cursor: pointer; }
 @media (max-width: 640px) {
     .tw-sheet { align-items: end; padding: 0; }
     .tw-dialog { width: 100%; max-height: 92vh; border-radius: 18px 18px 0 0; }
-    .tw-menu { left: auto !important; right: 0 !important; }
+    .tw-menu { min-width: 240px !important; }
 }
