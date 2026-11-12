@@ -703,3 +703,19 @@ body.bs .cs-range-menu.lft { right: auto; left: 0; }
 .bl-sec.bl-led { overflow: visible; }
 .bl-led > .bl-lrow:last-child, .bl-led > .cl-empty:last-child { border-radius: 0 0 16px 16px; }
 .bl-led .bl-sh { position: relative; z-index: 5; }
+
+/* ——— صفحات الزبون/الموظف/المورد/الشخص (12/11/2026، أسلوب الأدراج) ——— */
+body.bs .cs-balance { display: block; }
+body.bs .cp-main .cs-balance > .bl-strip { margin: 0 0 16px; }
+.cs-strip .bl-stot { gap: 2px; }
+.cs-strip .cs-v.due { color: var(--bs-pink); }
+.cs-strip .cs-v.credit { color: #1FA971; }
+html.dark .cs-strip .cs-v.credit { color: #3DDC97; }
+.cs-strip .cs-v.zero { color: var(--bs-muted); }
+.cs-day { padding: 9px 16px 6px; border-bottom: 1px solid var(--bs-line); background: var(--bs-field); color: var(--bs-muted); font-size: .76rem; }
+body.bs .cs-row { grid-template-columns: 2.2rem minmax(0, 1fr) auto 8rem 2rem; }
+body.bs .cs-row.no-ic { grid-template-columns: minmax(0, 1fr) auto 8rem 2rem; }
+@media (max-width: 640px) {
+    body.bs .cs-row, body.bs .cs-row.no-ic { grid-template-columns: minmax(0, 1fr) auto 2rem; }
+    .cs-strip .bl-rates { width: 100%; }
+}

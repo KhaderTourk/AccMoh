@@ -137,6 +137,8 @@
     const num = (n) => Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const sym = (code) => (L.currencies.find((c) => c.code === code) || {}).symbol || code;
     const dayLabel = (d) => { if (!d) return ''; const [y, m, dd] = d.split('-').map(Number); return dd + '/' + m + '/' + y; };
+    // عنوان اليوم بالحركات (12/11/2026): «اليوم · 12/11/2026»، «مبارح · …».
+    const dayHead = (d) => { const t = new Date(D.today + 'T00:00:00'), y = new Date(t); y.setDate(t.getDate() - 1); const k = (x) => x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0'); return (d === D.today ? 'اليوم · ' : d === k(y) ? 'مبارح · ' : '') + dayLabel(d); };
     const iso = (dt) => dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
     const MOTION = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     /* اللون من جهة الطرف: «عليه» وردي و«إله» أخضر. عند الموظف والمورد الموجب = إله */
@@ -149,11 +151,17 @@
     function renderBalance() {
         const codes = [...new Set(M.map((m) => m.currency))];
         if (!codes.length) codes.push('ILS');
-        $('csBalance').innerHTML = codes.map((code) => {
+        // شريط الملخص (12/11/2026، أسلوب الأدراج): الرصيد كبير، وعلى اليسار عدد الحركات وآخر حركة.
+        const big = codes.map((code) => {
             const v = balanceBy(code);
-            const cls = tone(v);
-            return `<div class="cs-bal ${cls}"><span>${cls === 'zero' ? 'مسدّد' : ''}</span><b>${cls === 'zero' ? '0.00' : num(v)} ${esc(sym(code))}</b></div>`;
+            const cls = Math.abs(v) < 0.005 ? 'zero' : (v > 0 ? 'due' : 'credit');
+            return `<b class="bl-big cs-v ${cls}" dir="ltr">${cls === 'zero' ? '0.00' : num(v)} ${esc(sym(code))}</b>`;
         }).join('');
+        const settled = codes.every((code) => Math.abs(balanceBy(code)) < 0.005);
+        const last = M.length ? M.reduce((a, m) => (m.date > a ? m.date : a), M[0].date) : null;
+        $('csBalance').innerHTML = `<div class="bl-card bl-strip cs-strip"><div class="bl-stot"><span class="bl-name">${settled ? 'مسدّد' : 'الرصيد'}</span>${big}</div>`
+            + `<div class="bl-rates"><div class="bl-rx bl-cb"><span class="bl-rl">عدد الحركات</span><b dir="ltr">${M.length}</b></div>`
+            + `<div class="bl-rx bl-cb ${last ? '' : 'zero'}"><span class="bl-rl">آخر حركة</span><b dir="ltr">${last ? dayLabel(last) : '—'}</b></div></div></div>`;
     }
 
     /* ——— الفترة ——— */
@@ -253,9 +261,8 @@
 
         if (view === 'list') {
             const ordered = list.slice().reverse();
-            $('csTable').innerHTML = ordered.length ? `<div class="cs-row cs-hrow"><span>التاريخ</span>${cType === 'all' ? '<span></span>' : ''}<span>الحركة</span><span>المبلغ</span><span>${filtered ? '' : 'الرصيد بعدها'}</span><span></span></div>` + ordered.map((m) => `
+            $('csTable').innerHTML = ordered.length ? `<div class="cs-row cs-hrow">${cType === 'all' ? '<span></span>' : ''}<span>الحركة</span><span>المبلغ</span><span>${filtered ? '' : 'الرصيد بعدها'}</span><span></span></div>` + ordered.map((m, i) => `${i === 0 || ordered[i - 1].date !== m.date ? `<div class="cs-day">${dayHead(m.date)}</div>` : ''}
                 <div class="cs-row${cType === 'all' ? '' : ' no-ic'}" data-id="${esc(m.id)}">
-                    <span class="cs-date">${dayLabel(m.date)}</span>
                     ${cType === 'all' ? `<span class="cs-ic ${m.group === 'g1' ? 'svc' : (m.group === 'g2' ? 'pay' : 'other')}"><span class="material-symbols-outlined">${esc(m.icon)}</span></span>` : ''}
                     <span class="cs-t"><b>${esc(m.title)}</b>${m.notes ? `<small>${esc(m.notes)}</small>` : ''}</span>
                     ${amountCell(m)}
@@ -379,7 +386,7 @@
             const t = opt.typeId ? (L.dueTypes || []).find((x) => x.id === opt.typeId) : null;
             title = 'مستحق · ' + (t ? t.name : 'أخرى');
             hid = hidden('vendor_id', D.id) + (t ? hidden('charge_type_id', t.id) : '');
-            const what = t ? '' : `<div class="cl-field"><label for="xWhat">البيان</label><input id="xWhat" name="title" maxlength="255" placeholder="${WORKER ? 'مثلاً: بدل مواصلات' : 'شو استلمنا منه'}"></div>`;
+            const what = t ? '' : `<div class="cl-field"><label for="xWhat">البيان</label><input id="xWhat" name="title" maxlength="255" required placeholder="${WORKER ? 'مثلاً: بدل مواصلات' : 'شو استلمنا منه'}"></div>`;
             fields = billSeg(kind) + what + (kind === 'sub'
                 ? cpMonthlySheet.fields({ amtLabel: K.amtLabel })
                 : moneyFields(K.amtLabel) + dateField(K.date));
@@ -399,7 +406,7 @@
         } else if (kind === 'discount' || kind === 'goods') {
             const [t, id] = pk.split(':');
             hid = hidden('party_key', pk) + hidden('party_type', t) + hidden('party_id', id) + hidden('category', kind === 'goods' ? 'other' : 'discount');
-            fields = (kind === 'goods' ? '<div class="cl-field"><label for="xWhat">شو أخد</label><input id="xWhat" name="title" maxlength="255"></div>' : '')
+            fields = (kind === 'goods' ? '<div class="cl-field"><label for="xWhat">شو أخد</label><input id="xWhat" name="title" maxlength="255" required></div>' : '')
                 + moneyFields(K.amtLabel) + dateField(K.date);
         } else if (kind === 'memo') {
             const [t, id] = pk.split(':');
