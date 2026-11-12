@@ -7,7 +7,7 @@
 --}}
 <div class="tw-wrap">
     <button type="button" class="cp-btn cp-btn-primary tw-btn" id="twBtn" aria-haspopup="menu" aria-expanded="false">
-        @include('cp.partials.bs-icon', ['name' => 'transfer', 'size' => 18]) <span>تحويل</span> @include('cp.partials.bs-icon', ['name' => 'chevron', 'size' => 14])
+        @include('cp.partials.bs-icon', ['name' => 'transfer', 'size' => 18]) <span>{{ isset($wizardFrom) ? 'تحويل من '.$wizardFrom['name'] : 'تحويل' }}</span> @include('cp.partials.bs-icon', ['name' => 'chevron', 'size' => 14])
     </button>
     <div class="cl-menu tw-menu" id="twMenu" role="menu" hidden>
         <button type="button" role="menuitem" data-tw="move">
@@ -37,6 +37,7 @@
             <h2 id="twTitle">تحويل بين الأدراج</h2>
             <button type="button" class="tw-x" id="twClose" aria-label="إغلاق">@include('cp.partials.bs-icon', ['name' => 'close', 'size' => 18])</button>
         </div>
+        <div class="tw-stp" id="twStp"></div>
         <div class="tw-bar" id="twBar"></div>
         <div class="tw-chips" id="twChips"></div>
         <div class="tw-body" id="twBody"></div>
@@ -61,6 +62,7 @@
 <script>
 (function () {
     const W = @json($wizard);
+    const PRESET = @json(isset($wizardFrom) ? (int) $wizardFrom['id'] : null);
     const RATES = @json(\App\Support\Rates::today());
     const ICON_BACK = @json(view('cp.partials.bs-icon', ['name' => 'back', 'size' => 16])->render());
     const ICON_CHECK = @json(view('cp.partials.bs-icon', ['name' => 'check', 'size' => 12])->render());
@@ -72,17 +74,21 @@
     const money = (code, v) => '<span class="bl-money" dir="ltr">' + esc(cur(code).symbol || code) + ' ' + fmt(v) + '</span>';
     const num = (s) => { const t = String(s || '').replace(/[٠-٩]/g, (d) => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[۰-۹]/g, (d) => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/,/g, '').replace('٫', '.').trim(); const v = parseFloat(t); return t !== '' && isFinite(v) ? v : NaN; };
     const r2 = (v) => Math.round(v * 100) / 100;
-    const balLine = (m) => { const parts = W.currencies.filter((c) => Math.abs(m.bal[c.code] || 0) >= 0.005).map((c) => money(c.code, m.bal[c.code])); return parts.length ? parts.join(' · ') : 'فاضي'; };
+    const nz = (m) => W.currencies.filter((c) => Math.abs(m.bal[c.code] || 0) >= 0.005);
+    const balLine = (m) => { const parts = nz(m).map((c) => '<span class="tw-bc">' + money(c.code, m.bal[c.code]) + '</span>'); return parts.length ? parts.join('') : '<span class="tw-bc">فاضي</span>'; };
+    const ICON_CHEV = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>';
 
     let S = null;
     function steps() { return S.mode === 'move' ? ['from', 'to', 'money', 'review'] : ['from', 'money', 'review']; }
     function step() { return steps()[S.i]; }
 
     function start(mode) {
-        S = { mode, i: 0, from: null, to: null, send: null, recv: null, amount: '', rate: '' };
+        S = { mode, i: 0, from: null, to: null, send: null, recv: null, amount: '', rate: '', pair: '' };
+        // من صفحة الدرج: الدرج محدد من أول (12/11/2026)، و«رجوع» بيرجعك لاختياره.
+        if (PRESET && meth(PRESET) && nz(meth(PRESET)).length) { S.from = PRESET; S.i = 1; }
         $('twTitle').textContent = mode === 'move' ? 'تحويل بين الأدراج' : 'تحويل عملات';
-        $('twAskT').textContent = mode === 'move' ? 'بدك تلغي التحويل؟' : 'بدك تلغي الصرف؟';
-        $('twAskYes').textContent = mode === 'move' ? 'إلغاء التحويل' : 'إلغاء الصرف';
+        $('twAskT').textContent = 'بدك تلغي التحويل؟';
+        $('twAskYes').textContent = 'إلغاء التحويل';
         $('twNotes').value = '';
         $('twAsk').hidden = true;
         $('twSheet').hidden = false;
@@ -101,6 +107,10 @@
             if (!S.send) S.send = codes.find((c) => c !== 'ILS' && has(c)) || 'ILS';
             if (!S.recv || S.recv === S.send) S.recv = S.send === 'ILS' ? (codes.find((c) => c !== 'ILS') || 'USD') : 'ILS';
         }
+        // سعر الصرف بيتعبّى بسعر اليوم، وبيرجع لسعر اليوم لما تتغيّر العملتين.
+        const pair = S.send + '>' + S.recv;
+        if (S.send !== S.recv && S.pair !== pair) { const t = rateInfo().today; S.rate = t ? String(+t.toFixed(4)) : ''; }
+        S.pair = pair;
     }
 
     /** سعر الصرف كما بيحكيه الناس: كم شيكل بالدولار/الدينار، أو كم دولار بالدينار. */
@@ -132,6 +142,7 @@
     function bar() {
         const n = steps().length;
         $('twBar').style.gridTemplateColumns = 'repeat(' + n + ', minmax(0, 1fr))';
+        $('twStp').textContent = 'خطوة ' + (S.i + 1) + ' من ' + n;
         $('twBar').innerHTML = Array.from({ length: n }, (_, k) => '<i class="' + (k <= S.i ? 'on' : '') + '"></i>').join('');
     }
     function chips() {
@@ -154,7 +165,8 @@
             const q = s === 'from' ? (S.mode === 'move' ? 'من أي درج؟' : 'بأي درج؟') : 'لأي درج؟';
             const sel = s === 'from' ? S.from : S.to;
             const list = W.methods.filter((m) => s === 'from' || m.id !== S.from);
-            body.innerHTML = '<h3 class="tw-q">' + q + '</h3>' + list.map((m) => '<button type="button" class="tw-opt ' + (m.id === sel ? 'sel' : '') + '" data-pick="' + m.id + '"><span><b>' + esc(m.name) + '</b><small>' + balLine(m) + '</small></span><span class="tw-ck">' + (m.id === sel ? ICON_CHECK : '') + '</span></button>').join('');
+            // الضغطة بتنقلك لحالها، فبدل الدواير سهم. درج فاضي ما بينفع تحوّل منه.
+            body.innerHTML = '<h3 class="tw-q">' + q + '</h3>' + list.map((m) => { const off = s === 'from' && !nz(m).length; return '<button type="button" class="tw-opt ' + (m.id === sel ? 'sel' : '') + '" data-pick="' + m.id + '"' + (off ? ' disabled' : '') + '><span><b>' + esc(m.name) + '</b><span class="tw-bcs">' + balLine(m) + '</span></span><span class="tw-chev">' + (m.id === sel ? ICON_CHECK : ICON_CHEV) + '</span></button>'; }).join('');
             foot.innerHTML = S.i === 0 ? '' : backBtn();
             foot.hidden = S.i === 0;
             return;
@@ -164,12 +176,14 @@
             defaults();
             const seg = (key, val, disabledCode) => '<div class="tw-seg">' + W.currencies.map((c) => '<button type="button" class="' + (c.code === val ? 'on' : '') + '" data-' + key + '="' + c.code + '"' + (c.code === disabledCode ? ' disabled' : '') + '>' + esc(c.name) + '</button>').join('') + '</div>';
             const ri = S.send !== S.recv ? rateInfo() : null;
-            body.innerHTML = '<h3 class="tw-q">' + (S.mode === 'move' ? 'كم وبأي عملة؟' : 'كم بدك تصرّف؟') + '</h3>'
+            const sym = (c) => esc(cur(c).symbol || c);
+            body.innerHTML = '<h3 class="tw-q">' + (S.mode === 'move' ? 'كم وبأي عملة؟' : 'كم بدك تحوّل؟') + '</h3>'
                 + '<span class="tw-l">' + (S.mode === 'move' ? 'بتبعت' : 'من') + '</span>' + seg('send', S.send)
-                + '<input class="tw-big" id="twAmt" inputmode="decimal" dir="ltr" placeholder="0.00" aria-label="المبلغ" value="' + esc(S.amount) + '">'
-                + '<small class="tw-hint" id="twAvail"></small>'
+                + '<label class="tw-amt" dir="ltr"><i>' + sym(S.send) + '</i><input class="tw-big" id="twAmt" inputmode="decimal" dir="ltr" placeholder="0.00" aria-label="المبلغ" value="' + esc(S.amount) + '"></label>'
+                + '<div class="tw-avl"><small class="tw-hint" id="twAvail"></small><button type="button" class="tw-all" data-all>حوّل الكل</button></div>'
+                + (S.mode === 'fx' ? '<button type="button" class="tw-swap" data-swap aria-label="اقلب العملتين" title="اقلب العملتين">⇅</button>' : '')
                 + '<span class="tw-l">' + (S.mode === 'move' ? 'بيوصل' : 'إلى') + '</span>' + seg('recv', S.recv, S.mode === 'fx' ? S.send : null)
-                + (ri ? '<div class="tw-two"><div class="tw-f"><label for="twRate">' + esc(ri.label) + '</label><input class="tw-mid" id="twRate" inputmode="decimal" dir="ltr" placeholder="' + (ri.today ? 'سعر اليوم ' + (+ri.today.toFixed(4)) : '0.00') + '" value="' + esc(S.rate) + '"></div>'
+                + (ri ? '<div class="tw-two"><div class="tw-f"><label for="twRate">' + esc(ri.label) + '</label><label class="tw-amt tw-ami" dir="ltr"><i>' + sym(ri.mul ? S.recv : S.send) + '</i><input class="tw-mid" id="twRate" inputmode="decimal" dir="ltr" placeholder="0.00" value="' + esc(S.rate) + '"></label>' + (ri.today ? '<small class="tw-hint">سعر اليوم، بتقدر تغيّره</small>' : '') + '</div>'
                     + '<div class="tw-f"><label>' + (S.mode === 'move' ? 'بيوصل ' + esc(meth(S.to).name) : 'بتاخد') + '</label><div class="tw-mid tw-out" id="twOut"></div></div></div>' : '')
                 + '<small class="tw-hint tw-err" id="twErr"></small>';
             foot.innerHTML = backBtn() + '<button type="button" class="tw-pri" data-next disabled>التالي</button>';
@@ -180,27 +194,28 @@
         // review
         const c = calc();
         const from = meth(S.from), to = S.mode === 'move' ? meth(S.to) : from;
+        // المراجعة (12/11/2026): اللي طالع واللي واصل بكرتين، وتحتهم الرصيد بعدها كل واحد بسطر.
         const rows = [];
-        if (S.mode === 'move') {
-            rows.push(['من', esc(from.name) + ' · ' + money(S.send, c.amt)]);
-            rows.push(['لـ', esc(to.name) + ' · ' + money(S.recv, c.to)]);
-        } else {
-            rows.push(['الدرج', esc(from.name)]);
-            rows.push(['بيطلع', money(S.send, c.amt)]);
-            rows.push(['بيدخل', money(S.recv, c.to)]);
-        }
+        if (S.mode === 'fx') rows.push(['الدرج', esc(from.name)]);
         if (c.fx) rows.push([esc(rateInfo().label), '<span dir="ltr">' + esc(String(num(S.rate))) + '</span>']);
-        const after = S.mode === 'move'
-            ? esc(from.name) + ' ' + money(S.send, (from.bal[S.send] || 0) - c.amt) + ' · ' + esc(to.name) + ' ' + money(S.recv, (to.bal[S.recv] || 0) + c.to)
-            : money(S.recv, (from.bal[S.recv] || 0) + c.to) + ' · ' + money(S.send, (from.bal[S.send] || 0) - c.amt);
-        rows.push([S.mode === 'move' ? 'بعد التحويل' : esc(from.name) + ' بعد الصرف', after]);
-        body.innerHTML = '<h3 class="tw-q">' + (S.mode === 'move' ? 'ملخص التحويل' : 'ملخص الصرف') + '</h3>' + rows.map(([k, v]) => '<div class="tw-rv"><span>' + k + '</span><span>' + v + '</span></div>').join('');
-        foot.innerHTML = backBtn() + '<button type="submit" class="tw-pri tw-grow">تأكيد</button>';
+        if (S.mode === 'move') {
+            rows.push([esc(from.name) + ' بعدها', money(S.send, (from.bal[S.send] || 0) - c.amt)]);
+            rows.push([esc(to.name) + ' بعدها', money(S.recv, (to.bal[S.recv] || 0) + c.to)]);
+        } else {
+            rows.push([esc(cur(S.send).name) + ' بعدها', money(S.send, (from.bal[S.send] || 0) - c.amt)]);
+            rows.push([esc(cur(S.recv).name) + ' بعدها', money(S.recv, (from.bal[S.recv] || 0) + c.to)]);
+        }
+        const box = (k, v) => '<div class="tw-fb"><small>' + k + '</small><b>' + v + '</b></div>';
+        body.innerHTML = '<h3 class="tw-q">راجع وأكّد</h3>'
+            + '<div class="tw-flow">' + box(S.mode === 'move' ? 'من ' + esc(from.name) : 'بيطلع', money(S.send, c.amt)) + '<span class="tw-arw">←</span>' + box(S.mode === 'move' ? 'ل' + esc(to.name) : 'بيدخل', money(S.recv, c.to)) + '</div>'
+            + rows.map(([k, v]) => '<div class="tw-rv"><span>' + k + '</span><span>' + v + '</span></div>').join('');
+        foot.innerHTML = backBtn() + '<button type="submit" class="tw-pri">تأكيد التحويل</button>';
     }
 
     function update() {
         const c = calc(), ri = c.fx ? rateInfo() : null;
         $('twAvail').innerHTML = 'متوفر ب' + esc(meth(S.from).name) + ' ' + money(S.send, c.avail);
+        const al = $('twBody').querySelector('[data-all]'); if (al) al.hidden = !(c.avail > 0);
         if ($('twOut')) $('twOut').innerHTML = c.to > 0 ? money(S.recv, c.to) : '—';
         $('twErr').textContent = c.err.trim();
         const nb = $('twFoot').querySelector('[data-next]'); if (nb) nb.disabled = !!c.err;
@@ -228,6 +243,8 @@
         if (send) { S.send = send.dataset.send; if (S.mode === 'move' || S.recv === S.send) S.recv = S.mode === 'move' ? S.send : null; render(); return; }
         const recv = t.closest('[data-recv]');
         if (recv && !recv.disabled) { S.recv = recv.dataset.recv; render(); return; }
+        if (t.closest('[data-all]')) { const a = meth(S.from).bal[S.send] || 0; if (a > 0) { S.amount = String(r2(a)); $('twAmt').value = S.amount; update(); } return; }
+        if (t.closest('[data-swap]')) { const a = S.send; S.send = S.recv; S.recv = a; render(); return; }
         if (t.closest('[data-next]')) { if (!calc().err) { S.i++; render(); } return; }
         if (t.closest('[data-back]')) { S.i = Math.max(0, S.i - 1); render(); return; }
         const chip = t.closest('[data-go]'); if (chip) { go(chip.dataset.go === 'to' ? 'to' : 'from'); }

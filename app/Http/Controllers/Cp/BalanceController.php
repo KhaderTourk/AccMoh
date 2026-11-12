@@ -66,15 +66,7 @@ class BalanceController extends Controller
             $cards[] = ['method' => $method, 'ils' => round($ils, 2), 'currencies' => $byCurrency, 'byFund' => $byFund];
         }
 
-        // بيانات نافذة التحويل: رصيد كل درج بكل عملة.
-        $wizard = [
-            'methods' => collect($cards)->map(fn ($c) => [
-                'id' => $c['method']->id,
-                'name' => $c['method']->name,
-                'bal' => collect($c['currencies'])->mapWithKeys(fn ($x) => [$x['code'] => $x['amount']])->all(),
-            ])->values()->all(),
-            'currencies' => $snapshot['currencies']->map(fn ($c) => ['id' => $c->id, 'code' => $c->code, 'name' => DrawerPlaces::curName($c->code, $c->name), 'symbol' => $c->symbol])->values()->all(),
-        ];
+        $wizard = $this->wizardData($cards, $snapshot);
 
         return view('cp.finance.balances.index', [
             'tab' => $tab,
@@ -86,6 +78,59 @@ class BalanceController extends Controller
             'currencies' => $snapshot['currencies'],
             'wizard' => $wizard,
         ]);
+    }
+
+    /** بيانات نافذة التحويل: رصيد كل درج بكل عملة. $cards من index (كل درج بعملاته). */
+    protected function wizardData(array $cards, array $snapshot): array
+    {
+        return [
+            'methods' => collect($cards)->map(fn ($c) => [
+                'id' => $c['method']->id,
+                'name' => $c['method']->name,
+                'bal' => collect($c['currencies'])->mapWithKeys(fn ($x) => [$x['code'] => $x['amount']])->all(),
+            ])->values()->all(),
+            'currencies' => $snapshot['currencies']->map(fn ($c) => ['id' => $c->id, 'code' => $c->code, 'name' => DrawerPlaces::curName($c->code, $c->name), 'symbol' => $c->symbol])->values()->all(),
+        ];
+    }
+
+    /** كروت كل الأدراج بعملاتها (للنافذة بصفحة الدرج). */
+    protected function methodCards(array $snapshot, $funds): array
+    {
+        $out = [];
+        foreach ($snapshot['methods'] as $method) {
+            $cur = [];
+            foreach ($snapshot['currencies'] as $c) {
+                $sum = 0.0;
+                foreach ($funds as $fund) {
+                    $sum += (float) ($snapshot['cells'][$fund->id][$method->id][$c->id] ?? 0);
+                }
+                $cur[] = ['code' => $c->code, 'amount' => round($sum, 2)];
+            }
+            $out[] = ['method' => $method, 'currencies' => $cur];
+        }
+
+        return $out;
+    }
+
+    /** بيان أوضح للتحويلات (12/11/2026): «تحويل لبنك فلسطين»، «تحويل عملات: شيكل ← دولار». */
+    protected function ledgerText(LedgerEntry $e, $methods, $currencies): string
+    {
+        $t = $e->related;
+        if (! $t instanceof \App\Models\FundTransfer) {
+            return (string) $e->description;
+        }
+        $name = fn ($id) => DrawerPlaces::curName(optional($currencies->firstWhere('id', $id))->code ?? '', optional($currencies->firstWhere('id', $id))->name ?? '');
+        $pair = $t->to_currency_id && $t->to_currency_id != $t->currency_id ? $name($t->currency_id).' ← '.$name($t->to_currency_id) : null;
+        if ((int) $t->from_payment_method_id === (int) $t->to_payment_method_id) {
+            return 'تحويل عملات'.($pair ? ': '.$pair : '');
+        }
+        $other = (float) $e->amount < 0 ? $t->to_payment_method_id : $t->from_payment_method_id;
+        $txt = ((float) $e->amount < 0 ? 'تحويل ل' : 'تحويل من ').(optional($methods->get($other))->name ?? 'درج ثاني');
+        if ($e->transaction_type === TransactionType::TransferFee) {
+            return 'رسوم تحويل';
+        }
+
+        return $txt.($pair ? ' ('.$pair.')' : '');
     }
 
     public function show(Request $request, PaymentMethod $method, BalanceService $balances)
@@ -100,7 +145,7 @@ class BalanceController extends Controller
             ->where('payment_method_id', $method->id)
             ->whereIn('fund_id', $funds->pluck('id'))
             ->when($cur, fn ($q) => $q->where('currency_id', $cur->id))
-            ->with(['currency', 'fund'])
+            ->with(['currency', 'fund', 'related'])
             ->orderBy('occurred_on')->orderBy('id')
             ->get();
 
@@ -130,6 +175,12 @@ class BalanceController extends Controller
             $cards[] = ['currency' => $c, 'amount' => round($sum, 2)];
         }
         $places = DrawerPlaces::get($method->id);
+        $methods = PaymentMethod::query()->get()->keyBy('id');
+        foreach ($rows as &$r) {
+            $r['text'] = $this->ledgerText($r['entry'], $methods, $snapshot['currencies']);
+        }
+        unset($r);
+        $wizard = $this->wizardData($this->methodCards($snapshot, $funds), $snapshot);
 
         return view('cp.finance.balances.show', [
             'method' => $method,
@@ -143,6 +194,7 @@ class BalanceController extends Controller
             'cur' => $cur,
             'from' => $from,
             'to' => $to,
+            'wizard' => $wizard,
         ]);
     }
 

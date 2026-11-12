@@ -146,6 +146,15 @@ class HomeAndDrawersTest extends TestCase
         $this->assertSame('380.00', $b->drawerCash($cash->id, $usd->id));
         $this->assertSame('370.00', $b->drawerCash($cash->id, $ils->id));
         $this->assertSame('74.00', $b->drawerCash($other->id, $ils->id));
+
+        // صفحة الدرج (12/11/2026): بيان أوضح للتحويلات، و«تحويل من» الدرج، و«تسوية رصيد» بنفس الصفحة.
+        $page = $this->actingAs($this->user)->get(route('cp.balances.show', ['method' => $cash->id]))->assertOk();
+        $page->assertSee('تحويل عملات: دولار ← شيكل');
+        $page->assertSee('تحويل ل'.$other->name.' (دولار ← شيكل)');
+        $page->assertSee('تحويل من '.$cash->name);
+        $page->assertSee('data-settle="'.$cash->id.'"', false);
+        $page->assertDontSee('صرف عملة (صادر)');
+        $this->actingAs($this->user)->get(route('cp.balances.show', ['method' => $other->id]))->assertOk()->assertSee('تحويل من '.$cash->name.' (دولار ← شيكل)');
     }
 
     public function test_drawers_follow_fixed_order_everywhere(): void

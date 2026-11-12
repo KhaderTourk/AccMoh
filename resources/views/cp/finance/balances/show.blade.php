@@ -6,97 +6,157 @@
     $q = fn (array $over) => route('cp.balances.show', array_filter(array_merge(['method' => $method->id, 'cur' => $cur?->code, 'from' => $from, 'to' => $to], $over), fn ($v) => $v !== null && $v !== ''));
     $fmt = fn ($c, $v) => ((float) $v < 0 ? '−' : '').$c->format(abs((float) $v));
 @endphp
-<div class="cl-page bl-page">
-    <div class="cl-top">
-        <a href="{{ route('cp.balances.index') }}" class="cl-ghost" aria-label="رجوع"><span class="material-symbols-outlined">arrow_forward</span></a>
-        <h1 class="cl-h">{{ $method->name }}</h1>
-    </div>
+@php
+    // العملات اللي إلها عمود بالأماكن: اللي فيها رصيد بالدرج أو بمكان (الدينار الصفر ما بيطلع).
+    $used = collect($cards)->filter(fn ($c) => abs($c['amount']) >= 0.005 || collect($places)->contains(fn ($p) => ($p['amounts'][$c['currency']->code] ?? 0) > 0))->values();
+    if ($used->isEmpty()) { $used = collect($cards)->take(1); }
+    $drawerIls = collect($cards)->sum(fn ($c) => \App\Support\Rates::toIls((float) $c['amount'], $c['currency']->code));
+    $placed = [];
+    foreach ($places as $p) { foreach ($p['amounts'] as $code => $v) { $placed[$code] = ($placed[$code] ?? 0) + $v; } }
+    $num = fn ($v) => abs((float) $v) < 0.005 ? '0.00' : (($v < 0 ? '−' : '').number_format(abs((float) $v), 2));
+    $ilsOf = function (array $amounts) { $t = 0.0; foreach ($amounts as $code => $v) { $t += \App\Support\Rates::toIls((float) $v, $code); } return $t; };
+    $pct = fn ($v) => $drawerIls > 0 ? max(0, min(100, round($v / $drawerIls * 100))) : 0;
+    $free = collect($cards)->mapWithKeys(fn ($c) => [$c['currency']->code => round($c['amount'] - ($placed[$c['currency']->code] ?? 0), 2)])->all();
+    $sym = collect($cards)->mapWithKeys(fn ($c) => [$c['currency']->code => $c['currency']->symbol])->all();
+    $palette = ['#FB005B', '#7C5CFF', '#F5A524', '#22B8CF', '#3DDC97', '#FF7A45'];
+    $dayLabel = function ($d) {
+        $t = now()->startOfDay();
+        $txt = $d->format('j/n/Y');
 
-    {{-- رصيد الدرج (12/11/2026، خيار «أ»): نفس فكرة «المجموع بسعر اليوم»، للعرض بس بدون أقلام ولا مربعات. --}}
-    @php
-        $drawerIls = collect($cards)->sum(fn ($c) => \App\Support\Rates::toIls((float) $c['amount'], $c['currency']->code));
-    @endphp
-    <div class="bl-grid">
-        <div class="bl-card bl-sum bl-dsum">
-            <div class="bl-main">
-                <span class="bl-name">رصيد الدرج بسعر اليوم</span>
-                <b class="bl-money {{ $drawerIls < 0 ? 'due' : '' }}" dir="ltr">{{ $drawerIls < 0 ? '−' : '' }}₪ {{ number_format(abs($drawerIls), 2) }}</b>
-                <span class="bl-rview">
-                    @foreach($cards as $card)
-                        <span class="bl-rv {{ abs($card['amount']) < 0.005 ? 'zero' : '' }}"><span>{{ \App\Support\DrawerPlaces::curName($card['currency']->code, $card['currency']->name) }} {{ $card['currency']->symbol }}</span><b class="bl-money {{ $card['amount'] < 0 ? 'due' : '' }}" dir="ltr">{{ ($card['amount'] < 0 ? '−' : '').number_format(abs($card['amount']), 2) }}</b></span>
-                    @endforeach
-                </span>
+        return $d->isSameDay($t) ? 'اليوم · '.$txt : ($d->isSameDay($t->copy()->subDay()) ? 'مبارح · '.$txt : $txt);
+    };
+@endphp
+<div class="cl-page bl-page bl-dpage">
+    {{-- صفحة الدرج (12/11/2026، صور inner-1/inner-2 المعتمدة): نفس شريط الملخص، «تحويل من الدرج»، و«⋯» فيها تسوية رصيد. --}}
+    <div class="cl-top">
+        <a href="{{ route('cp.balances.index') }}" class="cl-ghost bl-backbtn" aria-label="رجوع">@include('cp.partials.bs-icon', ['name' => 'back', 'size' => 18])</a>
+        <h1 class="cl-h">{{ $method->name }}</h1>
+        <div class="cl-sp"></div>
+        <div class="bl-hmore">
+            <button type="button" class="bl-hdots" id="blDots" aria-label="خيارات {{ $method->name }}" aria-haspopup="menu">⋯</button>
+            <div class="cl-menu" id="blDotsMenu" hidden>
+                <button type="button" data-settle="{{ $method->id }}" data-name="{{ $method->name }}">تسوية رصيد</button>
             </div>
         </div>
+        @include('cp.partials.transfer-wizard', ['wizard' => $wizard, 'wizardFrom' => ['id' => $method->id, 'name' => $method->name]])
     </div>
 
-    @php
-        $placed = [];
-        foreach ($places as $p) { foreach ($p['amounts'] as $code => $v) { $placed[$code] = ($placed[$code] ?? 0) + $v; } }
-        $num = fn ($v) => abs((float) $v) < 0.005 ? '0.00' : (($v < 0 ? '−' : '').number_format(abs((float) $v), 2));
-    @endphp
-    <section class="bl-places">
-        <div class="bl-places-top">
-            <div><h2>الأماكن</h2><small>للعرض بس، ما بيأثر على الأرصدة</small></div>
-            <button type="button" class="bl-outline" id="plEdit">@include('cp.partials.bs-icon', ['name' => 'edit', 'size' => 15]) {{ count($places) ? 'تعديل التوزيع' : 'وزّع على أماكن' }}</button>
+    <div class="bl-card bl-strip">
+        <div class="bl-stot">
+            <span class="bl-name">رصيد الدرج بسعر اليوم</span>
+            <b class="bl-money bl-big {{ $drawerIls < 0 ? 'due' : '' }}" dir="ltr">{{ $drawerIls < 0 ? '−' : '' }}₪ {{ number_format(abs($drawerIls), 2) }}</b>
+        </div>
+        <div class="bl-rates">
+            @foreach($cards as $card)
+                <div class="bl-rx bl-cb {{ abs($card['amount']) < 0.005 ? 'zero' : '' }}">
+                    <span class="bl-rl">{{ \App\Support\DrawerPlaces::curName($card['currency']->code, $card['currency']->name) }} {{ $card['currency']->symbol }}</span>
+                    <b class="bl-money {{ $card['amount'] < 0 ? 'due' : '' }}" dir="ltr">{{ $num($card['amount']) }}</b>
+                </div>
+            @endforeach
+        </div>
+    </div>
+
+    <section class="bl-sec">
+        <div class="bl-sh">
+            <div><h2>الأماكن</h2><small>للعرض بس، ما بيأثّر على الأرصدة</small></div>
+            <button type="button" class="bl-tbtn" id="plEdit">@include('cp.partials.bs-icon', ['name' => 'edit', 'size' => 14]) {{ count($places) ? 'تعديل التوزيع' : 'وزّع على أماكن' }}</button>
         </div>
         @if(count($places))
-            <div class="bl-prow bl-phead"><span>المكان</span>@foreach($cards as $card)<span>{{ \App\Support\DrawerPlaces::curName($card['currency']->code, $card['currency']->name) }} {{ $card['currency']->symbol }}</span>@endforeach</div>
-            @foreach($places as $p)
-                <div class="bl-prow"><span>{{ $p['name'] }}</span>@foreach($cards as $card)@php($v = $p['amounts'][$card['currency']->code] ?? 0)<b class="bl-money {{ $v ? '' : 'zero' }}" dir="ltr">{{ $num($v) }}</b>@endforeach</div>
+            @php
+                $freeIls = $ilsOf(array_filter($free, fn ($v) => $v > 0));
+            @endphp
+            <div class="bl-stk">
+                @foreach($places as $i => $p)<i style="width: {{ $pct($ilsOf($p['amounts'])) }}%; background: {{ $palette[$i % count($palette)] }}"></i>@endforeach
+                <i style="width: {{ $pct($freeIls) }}%" class="free"></i>
+            </div>
+            @foreach($places as $i => $p)
+                <div class="bl-pl">
+                    <span class="bl-pn"><i style="background: {{ $palette[$i % count($palette)] }}"></i>{{ $p['name'] }}</span>
+                    <span class="bl-pa">@foreach($used as $card)@php $v = $p['amounts'][$card['currency']->code] ?? 0; @endphp @if($v > 0)<b class="bl-money" dir="ltr">{{ $card['currency']->symbol }} {{ $num($v) }}</b>@endif @endforeach</span>
+                    <span class="bl-pp" dir="ltr">{{ $pct($ilsOf($p['amounts'])) }}%</span>
+                </div>
             @endforeach
-            <div class="bl-prow bl-pfree"><span>غير موزّع</span>@foreach($cards as $card)@php($free = round($card['amount'] - ($placed[$card['currency']->code] ?? 0), 2))<b class="bl-money {{ abs($free) < 0.005 ? 'zero' : 'due' }}" dir="ltr">{{ $num($free) }}</b>@endforeach</div>
+            <div class="bl-pl free">
+                <span class="bl-pn"><i></i>غير موزّع</span>
+                <span class="bl-pa">
+                    @php $anyFree = false; @endphp
+                    @foreach($used as $card)@php $v = $free[$card['currency']->code] ?? 0; @endphp @if(abs($v) >= 0.005)@php $anyFree = true; @endphp<b class="bl-money {{ $v < 0 ? 'due' : '' }}" dir="ltr">{{ $card['currency']->symbol }} {{ $num($v) }}</b>@endif @endforeach
+                    @if(! $anyFree)<b class="bl-ok">✓ كله موزّع</b>@endif
+                </span>
+                <span class="bl-pp" dir="ltr">{{ $pct($freeIls) }}%</span>
+            </div>
         @endif
     </section>
 
-    <div class="cl-sheet" id="plSheet" hidden>
-        <form class="cl-dialog bl-pdialog" method="post" action="{{ route('cp.balances.places', ['method' => $method->id]) }}" role="dialog" aria-modal="true" aria-labelledby="plT">
+    <div class="cl-sheet tw-sheet" id="plSheet" hidden>
+        <form class="tw-dialog bl-pdialog" method="post" action="{{ route('cp.balances.places', ['method' => $method->id]) }}" role="dialog" aria-modal="true" aria-labelledby="plT">
             @csrf
-            <h2 id="plT">توزيع {{ $method->name }} على الأماكن</h2>
-            <p class="bl-pnote">للعرض بس، ما بيأثر على الحركات ولا الأرصدة.</p>
-            <div class="bl-pgrid" id="plGrid">
-                <div class="bl-pg bl-pgh"><span>المكان</span>@foreach($cards as $card)<span>{{ \App\Support\DrawerPlaces::curName($card['currency']->code, $card['currency']->name) }}</span>@endforeach<span></span></div>
+            <div class="tw-head">
+                <h2 id="plT">توزيع {{ $method->name }} على الأماكن</h2>
+                <button type="button" class="tw-x" id="plX" aria-label="إغلاق">@include('cp.partials.bs-icon', ['name' => 'close', 'size' => 18])</button>
             </div>
-            <button type="button" class="bl-padd" id="plAdd">+ مكان جديد</button>
-            <div class="bl-pgrid bl-psum">
-                <div class="bl-pg"><span>رصيد الدرج</span>@foreach($cards as $card)<b dir="ltr">{{ $num($card['amount']) }}</b>@endforeach<span></span></div>
-                <div class="bl-pg bl-pfree"><span>غير موزّع</span>@foreach($cards as $card)<b dir="ltr" data-free="{{ $card['currency']->code }}"></b>@endforeach<span></span></div>
+            <div class="tw-body">
+                <p class="bl-pnote">للعرض بس، ما بيأثّر على الحركات ولا الأرصدة.</p>
+                <div class="bl-pgrid" id="plGrid" style="--n: {{ $used->count() }}">
+                    <div class="bl-pg bl-pgh"><span>المكان</span>@foreach($used as $card)<span>{{ \App\Support\DrawerPlaces::curName($card['currency']->code, $card['currency']->name) }}</span>@endforeach<span></span></div>
+                </div>
+                <button type="button" class="bl-padd" id="plAdd">+ مكان جديد</button>
+                <div class="bl-pgrid bl-psum" style="--n: {{ $used->count() }}">
+                    <div class="bl-pg"><span>رصيد الدرج</span>@foreach($used as $card)<b dir="ltr">{{ $num($card['amount']) }}</b>@endforeach<span></span></div>
+                    <div class="bl-pg bl-pfree"><span>غير موزّع</span>@foreach($used as $card)<b dir="ltr" data-free="{{ $card['currency']->code }}"></b>@endforeach<span></span></div>
+                </div>
+                <small class="bl-perr" id="plErr" hidden>الموزّع أكتر من رصيد الدرج. صلّح الرقم الأحمر.</small>
             </div>
-            <small class="bl-perr" id="plErr" hidden>الموزّع أكتر من رصيد الدرج. صلّح الرقم الأحمر.</small>
-            <div class="cl-actions">
-                <button type="submit" class="cp-btn cp-btn-primary" id="plSave">حفظ</button>
-                <button type="button" class="cp-btn cp-btn-ghost" id="plCancel">إلغاء</button>
+            <div class="tw-foot">
+                <button type="button" class="tw-back" id="plCancel">إلغاء</button>
+                <button type="submit" class="tw-pri" id="plSave">حفظ</button>
             </div>
         </form>
     </div>
 
-    <div class="cl-tools">
-        <div class="cl-seg">
-            <a href="{{ $q(['cur' => null]) }}" class="{{ $cur ? '' : 'on' }}">كل العملات</a>
-            @foreach($currencies as $c)<a href="{{ $q(['cur' => $c->code]) }}" class="{{ $cur?->id === $c->id ? 'on' : '' }}">{{ $c->code }}</a>@endforeach
-        </div>
-        @include('cp.partials.period-filter')
-    </div>
-
-    @if($from && count($opening))
-        <p class="cs-sum">رصيد سابق: @foreach($opening as $cid => $v)<span dir="ltr">{{ $fmt($currencies->firstWhere('id', $cid), $v) }}</span>@if(!$loop->last)، @endif @endforeach</p>
-    @endif
-
-    <div class="cl-list bl-ledger">
-        <div class="bl-row bl-head"><span>التاريخ</span><span>البيان</span><span>المبلغ</span><span>الرصيد بعدها</span></div>
-        @forelse($rows as $r)
-            @php($e = $r['entry'])
-            <div class="bl-row">
-                <span class="bl-date">{{ format_date($e->occurred_on) }}</span>
-                <span class="bl-desc">{{ $e->description }}@if($e->notes)<small>{{ $e->notes }}</small>@endif</span>
-                <span class="bl-amt {{ (float) $e->amount < 0 ? 'due' : 'credit' }}" dir="ltr">{{ $fmt($e->currency, $e->amount) }}</span>
-                <span class="bl-after {{ (float) $r['after'] < 0 ? 'due' : '' }}" dir="ltr">{{ $fmt($e->currency, $r['after']) }}</span>
+    <section class="bl-sec bl-led">
+        <div class="bl-sh bl-ledh">
+            <h2>الحركات</h2>
+            <div class="bl-ledf">
+                <div class="bl-seg2">
+                    <a href="{{ $q(['cur' => null]) }}" class="{{ $cur ? '' : 'on' }}">الكل</a>
+                    @foreach($currencies as $c)<a href="{{ $q(['cur' => $c->code]) }}" class="{{ $cur?->id === $c->id ? 'on' : '' }}">{{ \App\Support\DrawerPlaces::curName($c->code, $c->name) }}</a>@endforeach
+                </div>
+                @include('cp.partials.period-filter')
             </div>
-        @empty
+        </div>
+
+        @if($from && count($opening))
+            <p class="bl-open">رصيد سابق: @foreach($opening as $cid => $v)<span dir="ltr">{{ $fmt($currencies->firstWhere('id', $cid), $v) }}</span>@if(!$loop->last)، @endif @endforeach</p>
+        @endif
+
+        @if(count($rows))
+            <div class="bl-lrow bl-lhead"><span>البيان</span><span>المبلغ</span><span>الرصيد بعدها</span></div>
+            @php $lastDay = null; @endphp
+            @foreach($rows as $r)
+                @php
+                    $e = $r['entry'];
+                    $day = $e->occurred_on->toDateString();
+                    $in = (float) $e->amount > 0;
+                @endphp
+                @if($day !== $lastDay)
+                    <div class="bl-lday">{{ $dayLabel($e->occurred_on) }}</div>
+                    @php $lastDay = $day; @endphp
+                @endif
+                <div class="bl-lrow">
+                    <span class="bl-ldesc">{{ $r['text'] }}@if($e->notes)<small>{{ $e->notes }}</small>@endif</span>
+                    <span class="bl-lamt {{ $in ? 'in' : '' }}" dir="ltr">{{ $in ? '+' : '−' }}{{ $e->currency->format(abs((float) $e->amount)) }}</span>
+                    <span class="bl-lafter {{ (float) $r['after'] < 0 ? 'due' : '' }}"><em>بعدها </em><span dir="ltr">{{ $fmt($e->currency, $r['after']) }}</span></span>
+                </div>
+            @endforeach
+        @else
             <p class="cl-empty">ما في حركات بهالفترة.</p>
-        @endforelse
-    </div>
+        @endif
+    </section>
 </div>
+
+@include('cp.partials.settle-sheet')
+
 <script>
 (function () {
     const $ = (id) => document.getElementById(id);
@@ -122,7 +182,8 @@
 <script>
 (function () {
     const $ = (id) => document.getElementById(id);
-    const codes = @json(collect($cards)->map(fn ($c) => $c['currency']->code)->values());
+    const codes = @json($used->map(fn ($c) => $c['currency']->code)->values());
+    const SYM = @json($sym);
     const have = @json(collect($cards)->mapWithKeys(fn ($c) => [$c['currency']->code => $c['amount']]));
     const saved = @json($places);
     const grid = $('plGrid');
@@ -133,8 +194,8 @@
         const i = n++;
         const d = document.createElement('div');
         d.className = 'bl-pg';
-        d.innerHTML = '<input name="places[' + i + '][name]" placeholder="الخزنة، المكتب..." maxlength="60" aria-label="اسم المكان">'
-            + codes.map((c) => '<input name="places[' + i + '][amounts][' + c + ']" inputmode="decimal" dir="ltr" placeholder="0" data-cur="' + c + '" aria-label="' + c + '">').join('')
+        d.innerHTML = '<input name="places[' + i + '][name]" placeholder="اسم المكان" maxlength="60" aria-label="اسم المكان">'
+            + codes.map((c) => '<label class="bl-pin" dir="ltr"><i>' + (SYM[c] || c) + '</i><input name="places[' + i + '][amounts][' + c + ']" inputmode="decimal" dir="ltr" placeholder="0" data-cur="' + c + '" aria-label="' + c + '"></label>').join('')
             + '<button type="button" class="bl-pdel" aria-label="حذف المكان">×</button>';
         d.querySelector('input').value = p ? p.name : '';
         if (p) codes.forEach((c) => { if (p.amounts && p.amounts[c]) d.querySelector('[data-cur="' + c + '"]').value = p.amounts[c]; });
@@ -150,7 +211,7 @@
             const over = sum > Math.max(0, have[c]) + 0.004;
             grid.querySelectorAll('[data-cur="' + c + '"]').forEach((el) => el.classList.toggle('bad', over && num(el.value) > 0));
             const out = document.querySelector('[data-free="' + c + '"]');
-            out.textContent = fmt(free); out.className = Math.abs(free) < 0.005 ? 'zero' : 'due';
+            if (Math.abs(free) < 0.005) { out.textContent = '✓ كله'; out.className = 'ok'; } else { out.textContent = fmt(free); out.className = free < 0 ? 'due' : ''; }
             bad = bad || over;
         });
         $('plErr').hidden = !bad; $('plSave').disabled = bad;
@@ -166,6 +227,11 @@
     grid.addEventListener('input', calc);
     grid.addEventListener('click', (e) => { const b = e.target.closest('.bl-pdel'); if (b) { b.parentElement.remove(); calc(); } });
     $('plCancel').addEventListener('click', () => { $('plSheet').hidden = true; });
+    $('plX').addEventListener('click', () => { $('plSheet').hidden = true; });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('plSheet').hidden) $('plSheet').hidden = true; });
+    // «⋯» فوق: فيها «تسوية رصيد».
+    $('blDots').addEventListener('click', (e) => { e.stopPropagation(); $('blDotsMenu').hidden = !$('blDotsMenu').hidden; });
+    document.addEventListener('click', (e) => { if (!e.target.closest('.bl-hmore')) $('blDotsMenu').hidden = true; });
     $('plSheet').addEventListener('click', (e) => { if (e.target.id === 'plSheet') $('plSheet').hidden = true; });
     $('plSheet').querySelector('form').addEventListener('submit', () => {
         grid.querySelectorAll('[data-cur]').forEach((el) => { el.value = String(num(el.value) || ''); });
