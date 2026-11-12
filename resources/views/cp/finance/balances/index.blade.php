@@ -13,25 +13,26 @@
         @include('cp.partials.transfer-wizard', ['wizard' => $wizard])
     </div>
 
-    {{-- المجموع بسعر اليوم (12/11/2026، صورة م. محمد): مربع بعرض الصفحة، جواته بالعمود الأول العنوان والرقم وتحتهم
-         الدولار والدينار بنفس شكل ومكان صفوف العملات بكروت الأدراج (للعرض بس)، وزر التعديل مربع لحاله على اليسار. --}}
-    <section class="bl-panel bl-hero2">
-        <div class="bl-pgrid">
-            <div class="bl-hcell">
+    {{-- المجموع بسعر اليوم (12/11/2026، صورة م. محمد): كرت زي كرت «نقدي» بالضبط، لحاله بسطر فوق الأدراج.
+         الدولار والدينار للعرض بس، والنقاط الثلاث فيها «تعديل سعر الصرف». --}}
+    <div class="bl-grid bl-sumrow">
+        <div class="bl-card bl-sum">
+            <div class="bl-main">
                 <span class="bl-name">المجموع بسعر اليوم</span>
-                <b class="bl-money bl-htotal {{ $total < 0 ? 'due' : '' }}" dir="ltr">{{ $total < 0 ? '−' : '' }}₪ {{ number_format(abs($total), 2) }}</b>
+                <b class="bl-money {{ $total < 0 ? 'due' : '' }}" dir="ltr">{{ $total < 0 ? '−' : '' }}₪ {{ number_format(abs($total), 2) }}</b>
                 <span class="bl-curs">
                     @foreach($currencies->where('code', '!=', 'ILS') as $c)
                         <span class="bl-cur {{ isset($fx[$c->code]) ? '' : 'zero' }}"><span>{{ \App\Support\DrawerPlaces::curName($c->code, $c->name) }} {{ $c->symbol }}</span><b dir="ltr">{{ isset($fx[$c->code]) ? '₪ '.rtrim(rtrim(number_format($fx[$c->code], 4), '0'), '.') : '—' }}</b></span>
                     @endforeach
                 </span>
             </div>
+            <button type="button" class="cl-more" aria-label="خيارات المجموع">⋯</button>
+            <div class="cl-menu" hidden>
+                <button type="button" data-rates-open>تعديل سعر الصرف</button>
+            </div>
         </div>
-        <button type="button" class="bl-hedit" data-rates-open aria-label="تعديل سعر اليوم" title="تعديل سعر اليوم">@include('cp.partials.bs-icon', ['name' => 'edit', 'size' => 18])</button>
-    </section>
+    </div>
 
-    {{-- الأدراج كلها جوا مربع واحد بنفس عرض مربع المجموع، لآخر الشاشة. --}}
-    <section class="bl-panel bl-drawers">
     <div class="bl-grid">
         @foreach($cards as $card)
             <div class="bl-card">
@@ -51,7 +52,6 @@
             </div>
         @endforeach
     </div>
-    </section>
 </div>
 
 {{-- تسوية رصيد (12/11/2026): نفس شكل نافذة التحويل. العملة أزرار مش قائمة، وبيبيّن اللي بالنظام والفرق قبل الحفظ. --}}
@@ -150,7 +150,7 @@
             $('blActual').value = ''; $('blNotes').value = ''; paint();
             open($('blSheet'), $('blActual')); return;
         }
-        if (e.target.closest('[data-rates-open]')) { open($('blRatesSheet')); suggest(); return; }
+        if (e.target.closest('[data-rates-open]')) { closeMenus(); open($('blRatesSheet')); suggest(); return; }
         const x = e.target.closest('.tw-sheet [data-close]');
         if (x) { shut(x.closest('.tw-sheet')); return; }
         if (e.target.classList && e.target.classList.contains('tw-sheet') && e.target.id !== 'twSheet') { shut(e.target); return; }
