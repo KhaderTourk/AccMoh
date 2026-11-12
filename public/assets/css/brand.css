@@ -699,3 +699,7 @@ html.dark .bl-pdialog .bl-pfree b.ok { color: #3DDC97; }
 .bl-perr-srv { display: block; margin: 0; }
 .bl-prest { height: 30px; padding: 0; border: 0; background: none; color: var(--bs-pink); font: inherit; font-size: .78rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
 .bl-prest[hidden] { visibility: hidden; display: block; }
+body.bs .cs-range-menu.lft { right: auto; left: 0; }
+.bl-sec.bl-led { overflow: visible; }
+.bl-led > .bl-lrow:last-child, .bl-led > .cl-empty:last-child { border-radius: 0 0 16px 16px; }
+.bl-led .bl-sh { position: relative; z-index: 5; }

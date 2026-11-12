@@ -39,7 +39,18 @@ window.cpPeriod = window.cpPeriod || (function () {
         var check = function () { apply.disabled = !(iso(from) || iso(to)); };
         [from, to].forEach(function (el) { el.addEventListener('input', check); });
         document.querySelectorAll('#csRangeMenu input[type=date][data-for]').forEach(function (p) {
-            p.addEventListener('change', function () { if (p.value) { document.getElementById(p.dataset.for).value = label(p.value); check(); } });
+            var put = function () { if (p.value) { document.getElementById(p.dataset.for).value = label(p.value); check(); } };
+            p.addEventListener('change', put);
+            p.addEventListener('input', put);
+            // زر التقويم (12/11/2026): بيفتح تقويم الجهاز صراحة (showPicker)، لأن الضغطة على الخانة المخفية ما كانت تفتحه بكل الأجهزة.
+            p.parentElement.addEventListener('click', function (e) {
+                var cur = iso(document.getElementById(p.dataset.for));
+                if (cur) p.value = cur;
+                if (typeof p.showPicker === 'function') {
+                    try { p.showPicker(); e.preventDefault(); return; } catch (err) { /* بيكمّل للطريقة القديمة */ }
+                }
+                if (e.target !== p) { p.focus(); p.click(); }
+            });
         });
         check();
     }
@@ -56,7 +67,9 @@ window.cpPeriod = window.cpPeriod || (function () {
         setTimeout(function () {
             var m = document.getElementById('csRangeMenu');
             if (!m || m.hidden) return;
-            m.classList.remove('up');
+            m.classList.remove('up'); m.classList.remove('lft');
+            // اللوحة ما بتطلع برا الشاشة: إذا ما في مكان لليسار، بتنفتح لليمين.
+            if (window.innerWidth >= 1024 && m.getBoundingClientRect().left < 8) m.classList.add('lft');
             if (window.innerWidth >= 1024 && m.getBoundingClientRect().bottom > window.innerHeight - 8 && m.parentElement.getBoundingClientRect().top > m.offsetHeight + 16) m.classList.add('up');
         }, 0);
     }, true);
