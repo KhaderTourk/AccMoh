@@ -13,23 +13,25 @@
         @include('cp.partials.transfer-wizard', ['wizard' => $wizard])
     </div>
 
-    {{-- المجموع بسعر اليوم (12/11/2026): كرت بستايل الأدراج، المجموع كبير، وتحته سعر الدولار والدينار كبطاقات صغيرة بتفتح نافذة الأسعار. --}}
-    <section class="bl-hero">
-        <div class="bl-hero-main">
-            <span class="bl-hero-l">المجموع بسعر اليوم</span>
-            <b class="bl-money {{ $total < 0 ? 'due' : '' }}" dir="ltr">{{ $total < 0 ? '−' : '' }}₪ {{ number_format(abs($total), 2) }}</b>
+    {{-- المجموع بسعر اليوم (12/11/2026، صورة م. محمد): مربع بعرض الصفحة، جواته بالعمود الأول العنوان والرقم وتحتهم
+         الدولار والدينار بنفس شكل ومكان صفوف العملات بكروت الأدراج (للعرض بس)، وزر التعديل مربع لحاله على اليسار. --}}
+    <section class="bl-panel bl-hero2">
+        <div class="bl-pgrid">
+            <div class="bl-hcell">
+                <span class="bl-name">المجموع بسعر اليوم</span>
+                <b class="bl-money bl-htotal {{ $total < 0 ? 'due' : '' }}" dir="ltr">{{ $total < 0 ? '−' : '' }}₪ {{ number_format(abs($total), 2) }}</b>
+                <span class="bl-curs">
+                    @foreach($currencies->where('code', '!=', 'ILS') as $c)
+                        <span class="bl-cur {{ isset($fx[$c->code]) ? '' : 'zero' }}"><span>{{ \App\Support\DrawerPlaces::curName($c->code, $c->name) }} {{ $c->symbol }}</span><b dir="ltr">{{ isset($fx[$c->code]) ? '₪ '.rtrim(rtrim(number_format($fx[$c->code], 4), '0'), '.') : '—' }}</b></span>
+                    @endforeach
+                </span>
+            </div>
         </div>
-        <div class="bl-hero-rates">
-            @foreach($currencies->where('code', '!=', 'ILS') as $c)
-                <button type="button" class="bl-rate {{ isset($fx[$c->code]) ? '' : 'none' }}" data-rates-open>
-                    <span>{{ \App\Support\DrawerPlaces::curName($c->code, $c->name) }} {{ $c->symbol }}</span>
-                    <b dir="ltr">{{ isset($fx[$c->code]) ? '₪ '.rtrim(rtrim(number_format($fx[$c->code], 4), '0'), '.') : 'حدّده' }}</b>
-                </button>
-            @endforeach
-            <button type="button" class="bl-rate-edit" data-rates-open aria-label="تعديل سعر اليوم" title="تعديل سعر اليوم">@include('cp.partials.bs-icon', ['name' => 'edit', 'size' => 16])</button>
-        </div>
+        <button type="button" class="bl-hedit" data-rates-open aria-label="تعديل سعر اليوم" title="تعديل سعر اليوم">@include('cp.partials.bs-icon', ['name' => 'edit', 'size' => 18])</button>
     </section>
 
+    {{-- الأدراج كلها جوا مربع واحد بنفس عرض مربع المجموع، لآخر الشاشة. --}}
+    <section class="bl-panel bl-drawers">
     <div class="bl-grid">
         @foreach($cards as $card)
             <div class="bl-card">
@@ -49,6 +51,7 @@
             </div>
         @endforeach
     </div>
+    </section>
 </div>
 
 {{-- تسوية رصيد (12/11/2026): نفس شكل نافذة التحويل. العملة أزرار مش قائمة، وبيبيّن اللي بالنظام والفرق قبل الحفظ. --}}

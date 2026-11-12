@@ -481,24 +481,25 @@ body.bs .cs-range-menu #csApply { grid-column: 1 / -1; height: 42px; border-radi
     body.bs .cs-range-menu #csPresets button { padding: 11px 8px; font-size: .9rem; }
 }
 
-/* «المجموع بسعر اليوم» (12/11/2026): كرت بستايل الأدراج. */
-.bl-hero { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px 24px; margin-bottom: 16px; padding: 16px 18px; border: 1px solid var(--bs-line); border-radius: 16px; background: var(--bs-surface); font-family: var(--bs-font); }
-.bl-hero-main { display: grid; gap: 2px; min-width: 0; }
-.bl-hero-l { color: var(--bs-muted); font-size: .85rem; }
-.bl-hero-main b { font-size: 1.85rem; font-weight: 700; line-height: 1.25; color: var(--bs-fg); font-variant-numeric: tabular-nums; text-align: right; }
-.bl-hero-main b.due { color: var(--bs-pink); }
-.bl-hero-rates { display: flex; align-items: stretch; gap: 8px; }
-.bl-rate { display: grid; gap: 1px; min-width: 104px; padding: 8px 12px; border: 1px solid var(--bs-line); border-radius: 12px; background: var(--bs-field); color: var(--bs-fg); font: inherit; text-align: right; cursor: pointer; }
-.bl-rate:hover, .bl-rate-edit:hover { border-color: var(--bs-pink); }
-.bl-rate span { color: var(--bs-muted); font-size: .75rem; }
-.bl-rate b { font-size: .98rem; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
-.bl-rate.none b { color: var(--bs-pink); font-size: .85rem; }
-.bl-rate-edit { display: grid; place-items: center; width: 40px; border: 1px solid var(--bs-line); border-radius: 12px; background: var(--bs-field); color: var(--bs-muted); cursor: pointer; }
+/* صفحة الأدراج (12/11/2026، صورة م. محمد): مربعين بنفس العرض، فوق المجموع وتحت الأدراج كلها.
+   الاثنين بنفس الشبكة، فصفوف الدولار والدينار فوق بتطلع بنفس عرض ومكان صفوف العملات بكرت «نقدي». */
+.bl-panel { position: relative; margin: 0; padding: 14px; border: 1px solid var(--bs-line); border-radius: 20px; background: rgba(120, 140, 165, .07); font-family: var(--bs-font); }
+.bl-panel .bl-grid, .bl-pgrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin: 0; }
+.bl-hcell { display: flex; flex-direction: column; gap: .25rem; padding: .9rem 1rem; border: 1px solid transparent; }
+.bl-hcell .bl-name { color: var(--bs-muted); }
+.bl-htotal { font-size: 1.35rem; font-weight: 800; white-space: nowrap; color: var(--bs-fg); text-align: right; }
+.bl-htotal.due { color: var(--bs-pink); }
+.bl-hcell .bl-curs { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.bl-hcell .bl-cur b { font-size: 1rem; font-weight: 600; color: var(--bs-fg); font-variant-numeric: tabular-nums; }
+.bl-hedit { position: absolute; top: calc(14px + .9rem); left: calc(14px + 1rem); display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 1px solid var(--bs-line); border-radius: 12px; background: var(--bs-field); color: var(--bs-muted); cursor: pointer; }
+.bl-hedit:hover { border-color: var(--bs-pink); color: var(--bs-pink); }
+.bl-drawers { min-height: calc(100dvh - 330px); }
+@media (max-width: 1279px) { .bl-panel .bl-grid, .bl-pgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 640px) {
-    .bl-hero { padding: 14px; }
-    .bl-hero-main b { font-size: 1.55rem; }
-    .bl-hero-rates { width: 100%; }
-    .bl-rate { flex: 1; min-width: 0; }
+    .bl-panel { padding: 10px; border-radius: 18px; }
+    .bl-panel .bl-grid, .bl-pgrid { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+    .bl-hedit { top: calc(10px + .9rem); left: calc(10px + 1rem); width: 40px; height: 40px; }
+    .bl-drawers { min-height: 0; }
 }
 
 /* نوافذ التسوية وسعر اليوم */
