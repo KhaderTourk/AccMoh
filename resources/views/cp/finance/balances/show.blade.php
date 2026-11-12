@@ -10,8 +10,6 @@
     <div class="cl-top">
         <a href="{{ route('cp.balances.index') }}" class="cl-ghost" aria-label="رجوع"><span class="material-symbols-outlined">arrow_forward</span></a>
         <h1 class="cl-h">{{ $method->name }}</h1>
-        <div class="cl-sp"></div>
-        @include('cp.partials.money-eye')
     </div>
 
     <div class="bl-grid bl-curcards">

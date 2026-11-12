@@ -66,7 +66,8 @@
                 set(K, on ? '1' : null);
                 document.querySelectorAll('[data-money-eye]').forEach(function (b) {
                     b.setAttribute('aria-pressed', on ? 'true' : 'false');
-                    var t = b.querySelector('[data-eye-text]'); if (t) t.textContent = on ? 'إخفاء' : 'إظهار الأرقام';
+                    var t = on ? 'إخفاء الأرقام' : 'إظهار الأرقام';
+                    b.setAttribute('aria-label', t); b.setAttribute('title', t);
                 });
             }
             window.cpMoney = { show: function () { apply(true); }, hide: function () { apply(false); }, toggle: function () { apply(!root.classList.contains('bl-show')); } };
@@ -74,7 +75,12 @@
                 if (document.visibilityState === 'hidden') { set(H, String(Date.now())); }
                 else { set(H, null); if (root.classList.contains('bl-show')) apply(false); }
             });
-            document.addEventListener('click', function (e) { if (e.target.closest && e.target.closest('[data-money-eye]')) cpMoney.toggle(); });
+            document.addEventListener('click', function (e) {
+                if (!e.target.closest) return;
+                if (e.target.closest('[data-money-eye]')) { cpMoney.toggle(); return; }
+                // ضغطة على رقم متموّه بتظهر الأرقام بدل ما تفتح الرابط
+                if (!root.classList.contains('bl-show') && e.target.closest('.bl-money')) { e.preventDefault(); e.stopPropagation(); cpMoney.show(); }
+            }, true);
             document.addEventListener('DOMContentLoaded', function () { apply(root.classList.contains('bl-show')); });
         })();
     </script>
@@ -146,6 +152,7 @@
             <div class="bs-user">
                 <span class="bs-av">{{ mb_substr($bsUser->name, 0, 1) }}</span>
                 <span class="bs-who"><b>{{ $bsUser->name }}</b><small data-net><i class="bs-dot"></i><span>متصل</span></small></span>
+                @include('cp.partials.money-eye', ['cls' => 'bs-ubtn'])
                 <button type="button" class="bs-ubtn" data-theme-toggle aria-label="تبديل الوضع الليلي" title="الوضع الليلي">@include('cp.partials.bs-icon', ['name' => 'moon'])</button>
                 <form action="{{ route('cp.logout') }}" method="post">
                     @csrf
@@ -204,6 +211,7 @@
         @include('cp.partials.quick-entry')
     @endif
     {{-- الموبايل (قرار 11/11/2026): الرئيسية، الشغل، الشخصي، الأدراج، المزيد. «الشغل» بيفتح على آخر قائمة استعملتها. --}}
+    @include('cp.partials.money-eye', ['cls' => 'bs-meye'])
     <nav class="bs-tabbar" aria-label="التنقل">
         <a href="{{ route('cp.dashboard') }}" class="{{ $bsOn('cp.dashboard') }}">@include('cp.partials.bs-icon', ['name' => 'home', 'size' => 23])الرئيسية</a>
         @if($bsBiz)

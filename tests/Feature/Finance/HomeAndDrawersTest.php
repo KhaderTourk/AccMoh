@@ -77,7 +77,7 @@ class HomeAndDrawersTest extends TestCase
 
         // كل العملات بكل كرت حتى لو صفر، والأرقام متموّهة (bl-money)، وزر التحويل بقائمته.
         $this->actingAs($this->user)->get(route('cp.balances.index'))->assertOk()->assertSee('المجموع بسعر اليوم')
-            ->assertSee('100.00')->assertSee('دينار د.أ')->assertSee('bl-money')->assertSee('data-money-eye', false)
+            ->assertSee('100.00')->assertSee('دينار د.أ')->assertSee('bl-money')->assertSee('data-money-eye', false)->assertDontSee('إظهار الأرقام</span>', false)
             ->assertSee('تحويل بين الأدراج')->assertSee('تحويل عملات');
         $this->actingAs($this->user)->get(route('cp.balances.show', ['method' => $cash->id, 'cur' => 'USD']))->assertOk()
             ->assertSee('تسوية رصيد')->assertSee('عدّيت الدرج');

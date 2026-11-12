@@ -16,7 +16,6 @@
     <div class="bl-total">
         <span>المجموع بسعر اليوم</span>
         <b class="bl-money {{ $total < 0 ? 'due' : '' }}">{{ $n($total) }}</b>
-        @include('cp.partials.money-eye')
         <button type="button" class="bl-rates" id="blRatesBtn">
             @forelse($fx as $code => $r)
                 <span>{{ $code === 'USD' ? 'الدولار' : ($code === 'JOD' ? 'الدينار' : $code) }} {{ rtrim(rtrim(number_format($r, 4), '0'), '.') }}</span>
