@@ -138,6 +138,19 @@
 
     function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 
+    function fit(m) {
+        m.style.translate = ''; m.style.maxWidth = 'calc(100vw - 16px)';
+        // الحدود: اللوحة الرئيسية (عشان ما تنزل تحت القائمة الجانبية) وإلا الشاشة.
+        var r = m.getBoundingClientRect(), vw = document.documentElement.clientWidth, dx = 0;
+        if (!r.width) return;
+        var box = m.closest('.cp-main'), b = box ? box.getBoundingClientRect() : null;
+        var lo = Math.max(8, b ? b.left + 8 : 8), hi = Math.min(vw - 8, b ? b.right - 8 : vw - 8);
+        if (r.right > hi) dx = hi - r.right;
+        if (r.left + dx < lo) dx = lo - r.left;
+        if (dx) m.style.translate = Math.round(dx) + 'px 0';
+    }
+    window.cpFitMenu = fit;
+
     function scan(root) {
         if (root.tagName === 'SELECT') { enhance(root); return; }
         if (root.querySelectorAll) Array.prototype.forEach.call(root.querySelectorAll('select'), enhance);
@@ -159,6 +172,11 @@
             });
             if (removed) sweep();
         }).observe(document.body, { childList: true, subtree: true });
+        // أي قائمة .cl-menu بتنفتح بتضل جوا الشاشة (12/11/2026: قوائم + خدمة / + دفعة كانت تطلع برا الطرف).
+        new MutationObserver(function (list) {
+            list.forEach(function (m) { if (m.target.classList && m.target.classList.contains('cl-menu') && !m.target.hidden) fit(m.target); });
+        }).observe(document.body, { attributes: true, attributeFilter: ['hidden'], subtree: true });
+        window.addEventListener('resize', function () { Array.prototype.forEach.call(document.querySelectorAll('.cl-menu:not([hidden])'), fit); });
         document.addEventListener('click', close);
         document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && open) { e.stopPropagation(); var b = open.btn; close(); b.focus(); } }, true);
         window.addEventListener('resize', close);
