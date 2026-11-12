@@ -505,11 +505,17 @@ body.bs .cp-main .bl-card.bl-sum { background: none; border-color: transparent; 
 
 /* سعر الصرف بكرت المجموع (12/11/2026): للعرض نص بدون مربعات، والقلم بيفتح التعديل بنفس المكان. */
 .bl-sum .bl-rview { display: grid; margin-top: 8px; }
-.bl-sum .bl-rview[hidden], .bl-sum .bl-redit[hidden] { display: none; }
-.bl-rv { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 7px 2px; border-top: 1px solid var(--bs-line); color: var(--bs-muted); font-size: .82rem; }
+.bl-rv { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 30px; padding: 3px 2px; color: var(--bs-muted); font-size: .82rem; }
+.bl-rv[hidden], .bl-re[hidden] { display: none !important; }
+.bl-rv.zero b { color: var(--bs-muted) !important; font-weight: 400; }
+.bl-rvv { display: flex; align-items: center; gap: 4px; }
+.bl-sum .bl-rates, .bl-sum .bl-rview { display: grid; margin-top: 8px; }
+.bl-pe { display: grid; place-items: center; width: 26px; height: 26px; padding: 0; border: 1px solid transparent; border-radius: 8px; background: none; color: var(--bs-muted); cursor: pointer; }
+.bl-pe:hover { color: var(--bs-fg); background: var(--bs-hover); }
+.bl-pe.on { border-color: var(--bs-line); color: var(--bs-fg); }
+.bl-reh { display: flex; justify-content: space-between; align-items: center; }
 .bl-main .bl-rv b { font-size: .92rem; font-weight: 500; color: var(--bs-fg); font-variant-numeric: tabular-nums; }
-.bl-sum .bl-redit { display: grid; gap: 4px; margin-top: 8px; }
-.bl-re { display: grid; gap: 5px; padding: 8px 0; border-top: 1px solid var(--bs-line); }
+.bl-re { display: grid; gap: 6px; padding: 4px 0 10px; }
 .bl-re label { color: var(--bs-muted); font-size: .8rem; }
 body.bs .cp-main .bl-rin { box-sizing: border-box; width: 100%; min-width: 0; height: 40px; padding: 0 12px; border-radius: 10px; font-size: 1rem; font-weight: 600; text-align: left; font-variant-numeric: tabular-nums; }
 .bl-sum .bl-sug { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 0; background: none; color: var(--bs-muted); font-size: .76rem; }
@@ -521,9 +527,4 @@ body.bs .cp-main .bl-rin { box-sizing: border-box; width: 100%; min-width: 0; he
 .bl-src:empty { display: none; }
 .bl-save { height: 40px; margin-top: 4px; border: 0; border-radius: 10px; background: var(--bs-pink); color: #fff; font: inherit; font-size: .9rem; font-weight: 600; cursor: pointer; }
 .bl-save:disabled { background: var(--bs-chip); color: var(--bs-muted); cursor: not-allowed; }
-.bl-penc { position: absolute; top: .5rem; left: .5rem; display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 1px solid transparent; border-radius: 9px; background: none; color: var(--bs-muted); cursor: pointer; }
-.bl-penc:hover { color: var(--bs-fg); background: var(--bs-hover); }
-.bl-penc .bl-xi, .bl-sum.editing .bl-penc .bl-pi { display: none; }
-.bl-sum.editing .bl-penc .bl-xi { display: grid; }
-.bl-sum.editing .bl-penc { border-color: var(--bs-line); color: var(--bs-fg); }
 .bl-sum .bl-main, .bl-sum .bl-redit, .bl-re { min-width: 0; }

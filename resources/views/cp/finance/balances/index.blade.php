@@ -21,27 +21,23 @@
             <div class="bl-main">
                 <span class="bl-name">المجموع بسعر اليوم</span>
                 <b class="bl-money {{ $total < 0 ? 'due' : '' }}" dir="ltr">{{ $total < 0 ? '−' : '' }}₪ {{ number_format(abs($total), 2) }}</b>
-                <span class="bl-rview">
-                    @foreach($currencies->where('code', '!=', 'ILS') as $c)
-                        <span class="bl-rv"><span>سعر صرف {{ \App\Support\DrawerPlaces::curDef($c->code, $c->name) }}</span><b dir="ltr">{{ isset($fx[$c->code]) ? '₪ '.rtrim(rtrim(number_format($fx[$c->code], 4), '0'), '.') : '—' }}</b></span>
-                    @endforeach
-                </span>
-                <span class="bl-redit" hidden>
+                <span class="bl-rates">
                     @foreach($currencies->where('code', '!=', 'ILS') as $c)
                         @php($v = isset($rates[$c->code]) ? rtrim(rtrim(number_format($rates[$c->code], 4, '.', ''), '0'), '.') : '')
-                        <span class="bl-re">
-                            <label for="blRate{{ $c->code }}">سعر صرف {{ \App\Support\DrawerPlaces::curDef($c->code, $c->name) }}</label>
-                            <input id="blRate{{ $c->code }}" name="rates[{{ $c->code }}]" class="bl-rin" inputmode="decimal" dir="ltr" value="{{ $v }}" data-orig="{{ $v }}" placeholder="مثلاً 3.70" autocomplete="off">
-                            <span class="bl-sug" data-sug="{{ $c->code }}"><span>العالمي اليوم <b dir="ltr">…</b></span><button type="button" class="bl-use" data-use="{{ $c->code }}" hidden>استعمله</button></span>
+                        @php($nm = 'سعر صرف '.\App\Support\DrawerPlaces::curDef($c->code, $c->name))
+                        <span class="bl-rx" data-code="{{ $c->code }}">
+                            <span class="bl-rv"><span>{{ $nm }}</span><span class="bl-rvv"><button type="button" class="bl-pe" data-edit="{{ $c->code }}" aria-label="تعديل {{ $nm }}" title="تعديل {{ $nm }}">@include('cp.partials.bs-icon', ['name' => 'edit', 'size' => 14])</button><b dir="ltr">{{ isset($fx[$c->code]) ? '₪ '.rtrim(rtrim(number_format($fx[$c->code], 4), '0'), '.') : '—' }}</b></span></span>
+                            <span class="bl-re" hidden>
+                                <span class="bl-reh"><label for="blRate{{ $c->code }}">{{ $nm }}</label><button type="button" class="bl-pe on" data-cancel aria-label="إلغاء التعديل" title="إلغاء التعديل">@include('cp.partials.bs-icon', ['name' => 'close', 'size' => 14])</button></span>
+                                <input id="blRate{{ $c->code }}" name="rates[{{ $c->code }}]" class="bl-rin" inputmode="decimal" dir="ltr" value="{{ $v }}" data-orig="{{ $v }}" placeholder="مثلاً 3.70" autocomplete="off" disabled>
+                                <span class="bl-sug" data-sug="{{ $c->code }}"><span>العالمي اليوم <b dir="ltr">…</b></span><button type="button" class="bl-use" data-use="{{ $c->code }}" hidden>استعمله</button></span>
+                                <small class="bl-src"></small>
+                                <button type="submit" class="bl-save" disabled>حفظ</button>
+                            </span>
                         </span>
                     @endforeach
-                    <small class="bl-src" id="blSugSrc"></small>
-                    <button type="submit" class="bl-save" id="blSave" disabled>حفظ</button>
                 </span>
             </div>
-            <button type="button" class="bl-penc" id="blEdit" aria-label="تعديل سعر الصرف" title="تعديل سعر الصرف">
-                <span class="bl-pi">@include('cp.partials.bs-icon', ['name' => 'edit', 'size' => 16])</span><span class="bl-xi">@include('cp.partials.bs-icon', ['name' => 'close', 'size' => 16])</span>
-            </button>
         </form>
     </div>
 
@@ -141,25 +137,37 @@
         if (e.target.classList && e.target.classList.contains('tw-sheet') && e.target.id !== 'twSheet') { shut(e.target); return; }
         if (!e.target.closest('.cl-menu')) closeMenus();
     });
-    document.addEventListener('keydown', (e) => { if (e.key !== 'Escape') return; if (!$('blSheet').hidden) shut($('blSheet')); else if ($('blSum').classList.contains('editing')) editMode(false); });
+    document.addEventListener('keydown', (e) => { if (e.key !== 'Escape') return; if (!$('blSheet').hidden) shut($('blSheet')); else if (editing) editMode(null); });
 
-    // سعر الصرف: القلم بيفتح التعديل بنفس المكان، ✕ بيرجّع الأرقام زي ما كانت.
-    const sum = $('blSum'), ins = () => sum.querySelectorAll('.bl-rin');
-    function dirty() { $('blSave').disabled = ![...ins()].some((i) => i.value.trim() !== i.dataset.orig && !(num(i.value) <= 0)); }
-    function editMode(on) {
-        sum.classList.toggle('editing', on);
-        sum.querySelector('.bl-rview').hidden = on; sum.querySelector('.bl-redit').hidden = !on;
-        $('blEdit').setAttribute('aria-label', on ? 'إلغاء التعديل' : 'تعديل سعر الصرف'); $('blEdit').title = $('blEdit').getAttribute('aria-label');
-        if (on) { suggest(); setTimeout(() => ins()[0] && ins()[0].focus(), 30); } else { ins().forEach((i) => { i.value = i.dataset.orig; }); }
-        dirty();
+    // سعر الصرف (12/11/2026): كل عملة إلها قلم، وبتتعدّل لحالها بمكانها. ✕ بيرجّع الرقم زي ما كان.
+    const sum = $('blSum');
+    let editing = null;
+    function rowOf(code) { return sum.querySelector('.bl-rx[data-code="' + code + '"]'); }
+    function dirty() {
+        if (!editing) return;
+        const r = rowOf(editing), i = r.querySelector('.bl-rin');
+        r.querySelector('.bl-save').disabled = i.value.trim() === i.dataset.orig || !(num(i.value) > 0);
     }
-    $('blEdit').addEventListener('click', () => editMode(!sum.classList.contains('editing')));
+    function editMode(code) {
+        if (editing) { const r = rowOf(editing), i = r.querySelector('.bl-rin'); i.value = i.dataset.orig; i.disabled = true; r.querySelector('.bl-rv').hidden = false; r.querySelector('.bl-re').hidden = true; }
+        editing = code || null;
+        sum.classList.toggle('editing', !!editing);
+        if (!editing) return;
+        const r = rowOf(editing), i = r.querySelector('.bl-rin');
+        r.querySelector('.bl-rv').hidden = true; r.querySelector('.bl-re').hidden = false; i.disabled = false;
+        suggest(); dirty(); setTimeout(() => { i.focus(); i.select(); }, 30);
+    }
+    sum.addEventListener('click', (e) => {
+        const ed = e.target.closest('[data-edit]'); if (ed) { editMode(ed.dataset.edit); return; }
+        if (e.target.closest('[data-cancel]')) { editMode(null); return; }
+        const u = e.target.closest('[data-use]'); if (u && u.dataset.val) { $('blRate' + u.dataset.use).value = u.dataset.val; dirty(); }
+    });
     sum.addEventListener('input', (e) => { if (e.target.classList.contains('bl-rin')) dirty(); });
-    sum.addEventListener('click', (e) => { const u = e.target.closest('[data-use]'); if (!u || !u.dataset.val) return; const i = $('blRate' + u.dataset.use); i.value = u.dataset.val; dirty(); });
 
     // السعر العالمي: بينجاب لما تفتح التعديل بس، و«استعمله» بيعبّي الحقل (الحفظ بإيدك).
     let asked = false;
-    const noSug = () => { $('blSugSrc').textContent = 'ما قدرنا نجيب السعر العالمي هلأ. اكتب السعر بإيدك.'; sum.querySelectorAll('.bl-sug').forEach((b) => { b.hidden = true; }); };
+    const setSrc = (t) => sum.querySelectorAll('.bl-src').forEach((el) => { el.textContent = t; });
+    const noSug = () => { setSrc('ما قدرنا نجيب السعر العالمي هلأ. اكتب السعر بإيدك.'); sum.querySelectorAll('.bl-sug').forEach((b) => { b.hidden = true; }); };
     function suggest() {
         if (asked) return; asked = true;
         fetch(@json(route('cp.balances.rates.suggest')), { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
@@ -173,7 +181,8 @@
                     const btn = box.querySelector('button'); btn.dataset.val = v; btn.hidden = false;
                 });
                 const day = d.as_of ? d.as_of.split('-').map(Number) : null;
-                $('blSugSrc').textContent = 'المصدر: ' + d.source + (day ? '، ' + day[2] + '/' + day[1] + '/' + day[0] : '') + ((d.derived || []).length ? '. الدينار محسوب من الدولار' : '');
+                setSrc('المصدر: ' + d.source + (day ? '، ' + day[2] + '/' + day[1] + '/' + day[0] : ''));
+                (d.derived || []).forEach((c) => { const r = rowOf(c); if (r) r.querySelector('.bl-src').textContent += ' (محسوب من الدولار)'; });
             })
             .catch(() => { noSug(); asked = false; });
     }

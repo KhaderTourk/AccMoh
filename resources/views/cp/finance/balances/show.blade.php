@@ -12,10 +12,22 @@
         <h1 class="cl-h">{{ $method->name }}</h1>
     </div>
 
-    <div class="bl-grid bl-curcards">
-        @foreach($cards as $card)
-            <div class="bl-card {{ abs($card['amount']) < 0.005 ? 'zero' : '' }}"><div class="bl-main"><span class="bl-name">{{ \App\Support\DrawerPlaces::curName($card['currency']->code, $card['currency']->name) }} {{ $card['currency']->symbol }}</span><b class="bl-money {{ $card['amount'] < 0 ? 'due' : '' }}" dir="ltr">{{ ($card['amount'] < 0 ? '−' : '').number_format(abs($card['amount']), 2) }}</b></div></div>
-        @endforeach
+    {{-- رصيد الدرج (12/11/2026، خيار «أ»): نفس فكرة «المجموع بسعر اليوم»، للعرض بس بدون أقلام ولا مربعات. --}}
+    @php
+        $drawerIls = collect($cards)->sum(fn ($c) => \App\Support\Rates::toIls((float) $c['amount'], $c['currency']->code));
+    @endphp
+    <div class="bl-grid">
+        <div class="bl-card bl-sum bl-dsum">
+            <div class="bl-main">
+                <span class="bl-name">رصيد الدرج بسعر اليوم</span>
+                <b class="bl-money {{ $drawerIls < 0 ? 'due' : '' }}" dir="ltr">{{ $drawerIls < 0 ? '−' : '' }}₪ {{ number_format(abs($drawerIls), 2) }}</b>
+                <span class="bl-rview">
+                    @foreach($cards as $card)
+                        <span class="bl-rv {{ abs($card['amount']) < 0.005 ? 'zero' : '' }}"><span>{{ \App\Support\DrawerPlaces::curName($card['currency']->code, $card['currency']->name) }} {{ $card['currency']->symbol }}</span><b class="bl-money {{ $card['amount'] < 0 ? 'due' : '' }}" dir="ltr">{{ ($card['amount'] < 0 ? '−' : '').number_format(abs($card['amount']), 2) }}</b></span>
+                    @endforeach
+                </span>
+            </div>
+        </div>
     </div>
 
     @php
