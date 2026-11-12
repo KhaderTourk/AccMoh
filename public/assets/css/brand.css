@@ -500,3 +500,5 @@ body.bs .cs-range-menu #csApply { grid-column: 1 / -1; height: 42px; border-radi
 .bl-sug small { color: var(--bs-muted); }
 .bl-use { flex: none; height: 32px; padding: 0 14px; border: 1px solid var(--bs-pink); border-radius: 9px; background: var(--bs-surface); color: var(--bs-pink); font: inherit; font-size: .84rem; font-weight: 600; cursor: pointer; }
 .bl-use:hover { background: var(--bs-pink); color: #fff; }
+/* كرت المجموع بدون إطار ولا خلفية (12/11/2026)، بنفس عرض ومكان كرت «نقدي». */
+body.bs .cp-main .bl-card.bl-sum { background: none; border-color: transparent; box-shadow: none; }
