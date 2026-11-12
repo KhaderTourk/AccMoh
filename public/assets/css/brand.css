@@ -547,3 +547,40 @@ body.bs .cp-main .bl-redit .bl-rin { flex: none; width: 84px; height: 40px; padd
 .bl-bank:not(:disabled):hover span { text-decoration: underline; }
 .bl-redit .bl-save { flex: none; height: 40px; margin: 0; padding: 0 14px; }
 .bl-sum .bl-main > b.bl-money { align-self: flex-start; text-align: right; }
+
+/* ——— شريط الملخص بالأدراج (12/11/2026، الصورة المعتمدة summary-strip) ——— */
+body.bs .cp-main .bl-strip { display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; margin: 0 0 14px; padding: 18px 22px; border-radius: 16px; }
+.bl-stot { display: flex; flex-direction: column; min-width: 0; }
+.bl-stot .bl-name { color: var(--bs-muted); font-size: .85rem; font-weight: 500; }
+.bl-strip .bl-big { align-self: flex-start; margin: 2px 0 6px; font-size: 2.1rem; font-weight: 700; line-height: 1.25; color: var(--bs-fg); font-variant-numeric: tabular-nums; }
+.bl-strip .bl-big.due { color: var(--bs-pink); }
+.bl-mix { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: .82rem; }
+.bl-mix > span { display: flex; gap: 5px; align-items: baseline; }
+.bl-mix i { font-style: normal; color: var(--bs-muted); }
+.bl-mix b { font-weight: 600; color: var(--bs-fg); font-variant-numeric: tabular-nums; }
+.bl-mix b.due { color: var(--bs-pink); }
+.bl-strip .bl-rates { display: flex; flex: none; align-items: stretch; width: auto; gap: 10px; margin: 0; font-size: 1rem; color: inherit; cursor: default; }
+.bl-strip .bl-rx { display: block; min-width: 170px; padding: 10px 14px; border: 1px solid var(--bs-line); border-radius: 12px; background: var(--bs-field); }
+.bl-strip .bl-rx.ed { min-width: 310px; border-color: var(--bs-pink); }
+.bl-strip .bl-rl { display: block; color: var(--bs-muted); font-size: .8rem; }
+.bl-strip .bl-rline { display: flex; align-items: center; gap: 10px; min-height: 40px; margin-top: 4px; }
+.bl-strip .bl-rshow b { font-size: 1.12rem; font-weight: 600; color: var(--bs-fg); font-variant-numeric: tabular-nums; }
+.bl-strip .bl-pe { width: 38px; height: 38px; margin-right: auto; border: 1px solid var(--bs-line); border-radius: 10px; color: var(--bs-fg); }
+.bl-strip .bl-pe:hover { border-color: var(--bs-pink); color: var(--bs-pink); background: none; }
+.bl-strip .bl-bank b { color: var(--bs-fg); font-size: .88rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+body.bs .cp-main .bl-strip .bl-rin { flex: none; width: 92px; height: 40px; padding: 0 10px; font-size: 1rem; }
+
+/* كروت الأدراج: أسطر بدون مربعات، وخط الحصة من المجموع. */
+body.bs .cp-main .bl-page .bl-cur { padding: 6px 0; border: 0; border-radius: 0; background: none; }
+.bl-share { display: flex; align-items: center; gap: 10px; margin-top: 10px; color: var(--bs-muted); font-size: .75rem; font-variant-numeric: tabular-nums; }
+.bl-bar { flex: 1; height: 4px; overflow: hidden; border-radius: 4px; background: var(--bs-chip); }
+.bl-bar i { display: block; height: 100%; border-radius: 4px; background: var(--bs-pink); }
+
+@media (max-width: 640px) {
+    body.bs .cp-main .bl-strip { flex-direction: column; align-items: stretch; gap: 14px; padding: 16px; }
+    .bl-strip .bl-big { font-size: 1.85rem; }
+    .bl-strip .bl-rx { flex: 1; min-width: 0; padding: 9px 11px; }
+    .bl-strip.editing .bl-rates { flex-direction: column; }
+    .bl-strip .bl-rx.ed { min-width: 0; }
+}
+.bl-page .bl-main .bl-curs { gap: 0; }

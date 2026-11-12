@@ -13,32 +13,40 @@
         @include('cp.partials.transfer-wizard', ['wizard' => $wizard])
     </div>
 
-    {{-- المجموع بسعر اليوم (12/11/2026، صورة م. محمد): بعرض كرت «نقدي» بدون إطار. سعر صرف الدولار والدينار نص للعرض بس.
-         القلم بيحوّل الأرقام لحقول بنفس المكان (بدون نافذة)، مع السعر العالمي اليوم و«استعمله»، و«حفظ» بيشتغل لما يتغيّر رقم. --}}
-    <div class="bl-grid bl-sumrow">
-        <form class="bl-card bl-sum" id="blSum" method="post" action="{{ route('cp.balances.rates') }}">
-            @csrf
-            <div class="bl-main">
-                <span class="bl-name">المجموع بسعر اليوم</span>
-                <b class="bl-money {{ $total < 0 ? 'due' : '' }}" dir="ltr">{{ $total < 0 ? '−' : '' }}₪ {{ number_format(abs($total), 2) }}</b>
-                <span class="bl-rates">
-                    @foreach($currencies->where('code', '!=', 'ILS') as $c)
-                        @php($v = isset($rates[$c->code]) ? rtrim(rtrim(number_format($rates[$c->code], 4, '.', ''), '0'), '.') : '')
-                        @php($nm = 'سعر صرف '.\App\Support\DrawerPlaces::curDef($c->code, $c->name))
-                        <span class="bl-rx" data-code="{{ $c->code }}">
-                            <label class="bl-rl" for="blRate{{ $c->code }}">{{ $nm }}</label>
-                            <span class="bl-rline bl-rshow"><b dir="ltr">{{ isset($fx[$c->code]) ? '₪ '.rtrim(rtrim(number_format($fx[$c->code], 4), '0'), '.') : '—' }}</b><button type="button" class="bl-pe" data-edit="{{ $c->code }}" aria-label="تعديل {{ $nm }}" title="تعديل {{ $nm }}">@include('cp.partials.bs-icon', ['name' => 'edit', 'size' => 14])</button></span>
-                            <span class="bl-rline bl-redit" hidden>
-                                <input id="blRate{{ $c->code }}" name="rates[{{ $c->code }}]" class="bl-rin" inputmode="decimal" dir="ltr" value="{{ $v }}" data-orig="{{ $v }}" placeholder="3.70" autocomplete="off" disabled>
-                                <button type="button" class="bl-bank" data-use="{{ $c->code }}" disabled><span>سعر البنك</span><b dir="ltr">…</b></button>
-                                <button type="submit" class="bl-save" disabled>حفظ</button>
-                            </span>
-                        </span>
-                    @endforeach
-                </span>
-            </div>
-        </form>
-    </div>
+    {{-- شريط الملخص (12/11/2026، صورة summary-strip المعتمدة): بنفس شكل الكروت. يمين: المجموع كبير وتحته اللي معك فعلياً بكل عملة.
+         يسار: سعر صرف الدولار والدينار جنب بعض، كل واحد بقلم بيعدّله بنفس السطر (الحقل، سعر البنك، حفظ). --}}
+    @php
+        $mix = $currencies->map(fn ($c) => ['name' => \App\Support\DrawerPlaces::curName($c->code, $c->name), 'sum' => collect($cards)->sum(fn ($k) => collect($k['currencies'])->firstWhere('code', $c->code)['amount'] ?? 0)]);
+    @endphp
+    <form class="bl-card bl-strip" id="blSum" method="post" action="{{ route('cp.balances.rates') }}">
+        @csrf
+        <div class="bl-stot">
+            <span class="bl-name">المجموع بسعر اليوم</span>
+            <b class="bl-money bl-big {{ $total < 0 ? 'due' : '' }}" dir="ltr">{{ $total < 0 ? '−' : '' }}₪ {{ number_format(abs($total), 2) }}</b>
+            <span class="bl-mix">
+                @foreach($mix as $m)
+                    <span><i>{{ $m['name'] }}</i><b class="bl-money {{ $m['sum'] < 0 ? 'due' : '' }}" dir="ltr">{{ $m['sum'] < 0 ? '−' : '' }}{{ number_format(abs($m['sum']), 2) }}</b></span>
+                @endforeach
+            </span>
+        </div>
+        <div class="bl-rates">
+            @foreach($currencies->where('code', '!=', 'ILS') as $c)
+                @php
+                    $v = isset($rates[$c->code]) ? rtrim(rtrim(number_format($rates[$c->code], 4, '.', ''), '0'), '.') : '';
+                    $nm = 'سعر صرف '.\App\Support\DrawerPlaces::curDef($c->code, $c->name);
+                @endphp
+                <div class="bl-rx" data-code="{{ $c->code }}">
+                    <label class="bl-rl" for="blRate{{ $c->code }}">{{ $nm }}</label>
+                    <span class="bl-rline bl-rshow"><b dir="ltr">{{ isset($fx[$c->code]) ? '₪ '.number_format($fx[$c->code], 3) : '—' }}</b><button type="button" class="bl-pe" data-edit="{{ $c->code }}" aria-label="تعديل {{ $nm }}" title="تعديل {{ $nm }}">@include('cp.partials.bs-icon', ['name' => 'edit', 'size' => 15])</button></span>
+                    <span class="bl-rline bl-redit" hidden>
+                        <input id="blRate{{ $c->code }}" name="rates[{{ $c->code }}]" class="bl-rin" inputmode="decimal" dir="ltr" value="{{ $v }}" data-orig="{{ $v }}" placeholder="3.70" autocomplete="off" disabled>
+                        <button type="button" class="bl-bank" data-use="{{ $c->code }}" disabled><span>سعر البنك</span><b dir="ltr">…</b></button>
+                        <button type="submit" class="bl-save" disabled>حفظ</button>
+                    </span>
+                </div>
+            @endforeach
+        </div>
+    </form>
 
     <div class="bl-grid">
         @foreach($cards as $card)
@@ -51,6 +59,10 @@
                             <span class="bl-cur {{ $c['zero'] ? 'zero' : '' }}"><span>{{ $c['name'] }} {{ $c['symbol'] }}</span><b class="bl-money {{ $c['negative'] ? 'due' : '' }}" dir="ltr">{{ $c['label'] }}</b></span>
                         @endforeach
                     </span>
+                    @if($total > 0)
+                        @php $pct = max(0, min(100, round($card['ils'] / $total * 100))); @endphp
+                        <span class="bl-share" title="حصته من المجموع"><span class="bl-bar"><i style="width: {{ $pct }}%"></i></span><span dir="ltr">{{ $pct }}%</span></span>
+                    @endif
                 </a>
                 <button type="button" class="cl-more" aria-label="خيارات {{ $card['method']->name }}">⋯</button>
                 <div class="cl-menu" hidden>
@@ -148,12 +160,12 @@
         r.querySelector('.bl-save').disabled = i.value.trim() === i.dataset.orig || !(num(i.value) > 0);
     }
     function editMode(code) {
-        if (editing) { const r = rowOf(editing), i = r.querySelector('.bl-rin'); i.value = i.dataset.orig; i.disabled = true; r.querySelector('.bl-rshow').hidden = false; r.querySelector('.bl-redit').hidden = true; }
+        if (editing) { const r = rowOf(editing), i = r.querySelector('.bl-rin'); r.classList.remove('ed'); i.value = i.dataset.orig; i.disabled = true; r.querySelector('.bl-rshow').hidden = false; r.querySelector('.bl-redit').hidden = true; }
         editing = code || null;
         sum.classList.toggle('editing', !!editing);
         if (!editing) return;
         const r = rowOf(editing), i = r.querySelector('.bl-rin');
-        r.querySelector('.bl-rshow').hidden = true; r.querySelector('.bl-redit').hidden = false; i.disabled = false;
+        r.classList.add('ed'); r.querySelector('.bl-rshow').hidden = true; r.querySelector('.bl-redit').hidden = false; i.disabled = false;
         suggest(); dirty(); setTimeout(() => { i.focus(); i.select(); }, 30);
     }
     sum.addEventListener('click', (e) => {
