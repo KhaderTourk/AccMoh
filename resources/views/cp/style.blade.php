@@ -19,7 +19,7 @@
     ];
     $places = [['الدرج', '#4C8DFF', 59, '18,000.00'], ['الخزانة', '#7C5CFF', 41, '10,435.00']];
     $palette = ['#4C8DFF', '#7C5CFF', '#F5A524', '#22B8CF', '#94A3B8', '#C084FC'];
-    $icons = ['home', 'drawers', 'work', 'person', 'transfer', 'exchange', 'ledger', 'reports', 'gear', 'users', 'ads', 'api', 'offline', 'edit', 'check', 'close', 'back', 'chevron', 'more', 'moon', 'logout'];
+    $icons = ['home', 'drawers', 'work', 'person', 'transfer', 'exchange', 'ledger', 'reports', 'gear', 'users', 'clients', 'workers', 'suppliers', 'ads', 'api', 'offline', 'edit', 'check', 'close', 'back', 'chevron', 'more', 'moon', 'logout'];
 @endphp
 <div class="cl-page bl-page sg-page">
     <div class="cl-top">
@@ -70,6 +70,35 @@
         <div class="bl-sh"><div><h2>الأيقونات</h2><small>خطوط رفيعة من cp.partials.bs-icon. استعملها بالاسم.</small></div></div>
         <div class="sg-icons">
             @foreach($icons as $ic)<span>@include('cp.partials.bs-icon', ['name' => $ic, 'size' => 20])<code dir="ltr">{{ $ic }}</code></span>@endforeach
+        </div>
+    </section>
+
+    {{-- القائمة الجانبية (14/11/2026) --}}
+    <section class="bl-sec" id="sg-sidebar">
+        <div class="bl-sh"><div><h2>القائمة الجانبية</h2><small>الصفحة المفتوحة وردي شفاف مع خط وردي يمين. «الشغل» و«الشخصي» عناوين صغيرة بدون أيقونة، والأيقونات للصفحات. تحت الخط الإعدادات بس. وقّف على أيقونات الكرت يطلع اسمها.</small></div></div>
+        <div class="sg-side-wrap">
+            <nav class="bs-side sg-side" aria-label="مثال القائمة الجانبية">
+                <a href="#sg-sidebar" class="bs-link">@include('cp.partials.bs-icon', ['name' => 'home'])الرئيسية</a>
+                <a href="#sg-sidebar" class="bs-link">@include('cp.partials.bs-icon', ['name' => 'drawers'])الأدراج والأرصدة</a>
+                <a href="#sg-sidebar" class="bs-link">@include('cp.partials.bs-icon', ['name' => 'transfer'])التحويلات</a>
+                <a href="#sg-sidebar" class="bs-link">@include('cp.partials.bs-icon', ['name' => 'more'])المزيد</a>
+                <div class="bs-sec">الشغل</div>
+                <a href="#sg-sidebar" class="bs-link">@include('cp.partials.bs-icon', ['name' => 'clients'])الزبائن</a>
+                <a href="#sg-sidebar" class="bs-link on">@include('cp.partials.bs-icon', ['name' => 'workers'])الموظفين</a>
+                <a href="#sg-sidebar" class="bs-link">@include('cp.partials.bs-icon', ['name' => 'suppliers'])الموردين</a>
+                <a href="#sg-sidebar" class="bs-link">@include('cp.partials.bs-icon', ['name' => 'ads'])الإعلانات الممولة</a>
+                <div class="bs-sec">الشخصي</div>
+                <a href="#sg-sidebar" class="bs-link">@include('cp.partials.bs-icon', ['name' => 'person'])الأشخاص</a>
+                <div class="bs-foot"><a href="#sg-sidebar" class="bs-link">@include('cp.partials.bs-icon', ['name' => 'gear'])الإعدادات</a></div>
+                <div class="bs-user">
+                    <div class="bs-uhead"><span class="bs-av">م</span><span class="bs-who"><b>مدير النظام</b><small><i class="bs-dot"></i><span>متصل</span></small></span></div>
+                    <div class="bs-uacts">
+                        @include('cp.partials.money-eye', ['cls' => 'bs-ubtn'])
+                        <button type="button" class="bs-ubtn" data-tip="الوضع الليلي" aria-label="الوضع الليلي">@include('cp.partials.bs-icon', ['name' => 'moon'])</button>
+                    </div>
+                    <div class="bs-out"><button type="button">@include('cp.partials.bs-icon', ['name' => 'logout', 'size' => 16])تسجيل الخروج</button></div>
+                </div>
+            </nav>
         </div>
     </section>
 
