@@ -72,11 +72,11 @@ html.dark {
 .bs-link.on { background: var(--bs-sidebar-active); color: #fff; font-weight: 600; }
 .bs-link:focus-visible, .bs-ubtn:focus-visible { outline: 2px solid var(--bs-pink); outline-offset: 0; }
 .bs-link .bs-ic { opacity: .85; }
-.bs-sec { display: flex; align-items: center; gap: 10px; padding: 9px 12px; margin-top: 10px; color: #fff; font-weight: 600; font-size: .92rem; }
-.bs-sec .bs-ic { opacity: .85; }
+.bs-sec { padding: 16px 12px 4px; color: rgba(255, 255, 255, .45); font-weight: 700; font-size: .72rem; letter-spacing: .4px; }
 .bs-sub { display: flex; flex-direction: column; gap: 2px; margin-inline-start: 20px; padding-inline-start: 10px; border-inline-start: 1px solid rgba(255, 255, 255, .12); }
 .bs-sub .bs-link { padding-block: 7px; font-size: .88rem; }
 .bs-foot { display: flex; flex-direction: column; gap: 2px; margin-top: 14px; padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, .1); }
+.bs-sub .bs-link { color: #D5DEE6; }
 .bs-extra summary { cursor: pointer; list-style: none; }
 .bs-extra summary::-webkit-details-marker { display: none; }
 .bs-extra[open] summary { color: #fff; }
@@ -96,6 +96,15 @@ html.dark {
 .is-off .bs-dot { background: #F59E0B; }
 .bs-ubtn { flex: none; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 9px; background: none; color: inherit; display: grid; place-items: center; cursor: pointer; }
 .bs-ubtn:hover { background: rgba(255, 255, 255, .08); color: #fff; }
+/* كرت الحساب (14/11/2026): اسم لكل أيقونة لما توقف عليها، والخروج لحاله بسطر تحت */
+.bs-uacts .bs-ubtn { position: relative; }
+.bs-side .bs-ubtn[data-tip]:hover::after, .bs-side .bs-ubtn[data-tip]:focus-visible::after {
+    content: attr(data-tip); position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+    padding: 3px 8px; border-radius: 6px; background: #fff; color: #0B2537; font-size: .72rem; font-weight: 600; white-space: nowrap; pointer-events: none; z-index: 5;
+}
+.bs-out { display: block !important; border-top: 1px solid rgba(255, 255, 255, .08); padding-top: 4px; }
+.bs-out button { display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 4px 2px; border: 0; background: none; color: inherit; font: inherit; font-size: .82rem; cursor: pointer; }
+.bs-out button:hover { color: #FF6B9A; }
 
 /* الصفحة جنب القائمة */
 @media (min-width: 1024px) {
@@ -270,7 +279,10 @@ body.bs .cl-actions .cp-btn[disabled] { background: var(--bs-chip); color: var(-
         box-shadow: 1px 0 0 rgba(255, 255, 255, .06) inset;
     }
 }
-body.bs .bs-link.on { background: var(--bs-pink); color: #fff; box-shadow: 0 6px 16px -6px rgba(251, 0, 91, .6); }
+/* الصفحة المفتوحة (14/11/2026): وردي شفاف مع خط وردي على اليمين، والأيقونة وردية. بدون مستطيل كامل وظل. */
+body.bs .bs-link.on { position: relative; background: var(--bs-sidebar-active); color: #fff; box-shadow: none; }
+body.bs .bs-link.on::before { content: ""; position: absolute; inset-inline-start: 0; top: 8px; bottom: 8px; width: 3px; border-radius: 3px; background: var(--bs-pink); }
+body.bs .bs-link.on .bs-ic { color: var(--bs-pink); opacity: 1; }
 body.bs .bs-link:not(.on):hover { background: rgba(255, 255, 255, .06); }
 
 /* ——— 5. الثيم على كل النظام (11/11/2026) ———
@@ -1008,3 +1020,8 @@ html.cp-soft-busy [data-soft] { opacity: .55; transition: opacity .15s; pointer-
     .sg-rules > div { flex-direction: column; gap: 2px; }
     .sg-rules dd { max-width: none; text-align: right; }
 }
+.bs-more .bs-user-more .bs-out { border-top-color: var(--bs-line); }
+.bs-more .bs-user-more .bs-out button { padding: 10px 4px 4px; color: var(--bs-fg); }
+/* مثال القائمة الجانبية بنظام التصميم */
+.sg-side-wrap { padding: 0 20px 16px; }
+.bs-side.sg-side { position: static; display: flex; width: var(--bs-side-w); max-height: none; border-radius: 16px; }
