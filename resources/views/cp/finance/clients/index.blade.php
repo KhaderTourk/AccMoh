@@ -12,7 +12,7 @@
 
     <div class="cl2-cards" id="clCards"></div>
 
-    <div class="cl2-tools">
+    <div class="cl-tools cl2-tools">
         <div class="cl2-search">
             <label class="cl-search" for="clQ">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
@@ -20,7 +20,7 @@
             </label>
             <div class="cl2-sug" id="clSug" role="listbox" hidden></div>
         </div>
-        <div class="cl2-tabs" id="clTabs" role="tablist" aria-label="عرض"></div>
+        <div class="cl-seg cl2-seg" id="clTabs" role="tablist" aria-label="عرض"></div>
     </div>
 
     <div class="cl2-table">

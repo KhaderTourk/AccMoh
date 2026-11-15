@@ -1230,3 +1230,12 @@ body.bs .cl2-sv .cp-amt input { padding: 7px 10px; }
 .cl2-table th.on .arr { opacity: 1; color: var(--bs-pink); }
 .cl2-table th.on button { color: var(--bs-fg); font-weight: 700; }
 .cl2-table thead th::after { content: none !important; }
+/* فلتر الزبائن بنفس شكل باقي القوائم بالملّي (cl-tools + cl-search + cl-seg)، والعدد جنب الاسم (15/11) */
+body.bs .cl-tools.cl2-tools { display: flex; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+body.bs .cl-tools > .cl2-search { flex: 1 1 260px; min-width: 200px; }
+body.bs .cl2-seg button { display: inline-flex; align-items: baseline; gap: 6px; border: 0; background: none; font: inherit; font-size: .88rem; cursor: pointer; }
+body.bs .cl2-seg button em { font-style: normal; font-size: .8rem; color: var(--bs-muted); font-variant-numeric: tabular-nums; }
+body.bs .cl2-seg button.on em { color: var(--bs-fg); font-weight: 700; }
+body.bs .cl2-seg button.on { background: var(--bs-surface); }
+body.bs .cl2-seg button.dim { opacity: .5; }
+body.bs .cp-main .cl2 .cl-search input[type=search]:not([type=hidden]):not([type=checkbox]) { height: auto !important; min-height: 0 !important; padding: 1px 2px !important; border: 0 !important; background: transparent !important; box-shadow: none !important; }
