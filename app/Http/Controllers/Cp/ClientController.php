@@ -355,7 +355,7 @@ class ClientController extends Controller
 
         if ($request->input('return') === 'list') {
             // Enter بخانة المبلغ بيحفظ وبيضل بنفس النافذة (قرار 15).
-            $q = ['flash' => $client->id] + ($request->boolean('stay') ? ['edit' => $client->id] : []);
+            $q = ['flash' => $client->id] + ($request->boolean('stay') ? ['edit' => $client->id] + ($request->input('panel') === 'subs' ? ['panel' => 'subs'] : []) : []);
 
             return redirect()->route('cp.clients.index', $q)->with('success', 'انحفظ التعديل.');
         }

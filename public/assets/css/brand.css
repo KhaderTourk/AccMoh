@@ -1205,7 +1205,7 @@ body.bs .cl2-sv .cp-amt input { padding: 7px 10px; }
 .cl2-x:hover { background: var(--bs-hover); color: var(--bs-pink); }
 .cl2-addw { position: relative; }
 .cl2-addb { padding: 6px 0; border: 0; background: none; color: var(--bs-pink); font: inherit; font-weight: 600; cursor: pointer; }
-.cl2-amenu { position: absolute; top: 100%; inset-inline-start: 0; z-index: 6; max-height: 260px; overflow: auto; display: flex !important; flex-direction: column; min-width: 220px; }
+.cl2-amenu { position: fixed; z-index: 60; max-height: 260px; overflow: auto; display: flex !important; flex-direction: column; min-width: 220px; }
 .cl2-mg { padding: 6px 10px 2px; font-size: .72rem; color: var(--bs-muted); }
 .cl2-tot { display: flex; justify-content: space-between; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--bs-line); font-size: .88rem; font-weight: 600; }
 .cl2-off { margin-top: 10px; padding: 12px; border: 1px solid var(--bs-line); border-radius: 10px; background: var(--bs-field); font-size: .86rem; }
@@ -1218,3 +1218,9 @@ body.bs .cl2-sv .cp-amt input { padding: 7px 10px; }
     .cl2-search { flex: 1 1 100%; }
     .cl2-sv { grid-template-columns: 1fr 120px 30px; }
 }
+
+/* زبائن v2 تعديلات 15/11: رأس «الاسم» على محاذاة الاسم، القوائم ثابتة، ونافذة «اشتراك شهري» لحالها */
+.cl2-table thead th:first-child { padding-inline-start: 58px; }
+.cl2-table .cl-menu { z-index: 60; }
+.cl-dialog.is-subs .cl-field, .cl-dialog.is-subs .cl-dup { display: none !important; }
+.cl-dialog.is-subs .cl2-subs { margin-top: 0; padding-top: 4px; border-top: 0; }
