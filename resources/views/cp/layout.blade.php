@@ -6,6 +6,8 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="theme-color" content="#FB005B">
     <link rel="manifest" href="{{ asset('manifest.webmanifest') }}">
+    <link rel="apple-touch-icon" href="{{ asset('assets/icons/apple-touch-icon.png') }}">
+    <meta name="apple-mobile-web-app-title" content="حسابات براند">
     <title>@yield('title', 'الرئيسية') — حسابات براند</title>
     <script>
         // القائمة المضمومة (أيقونات بس) بتنحفظ عالجهاز وبتنطبق قبل الرسم
