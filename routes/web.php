@@ -133,6 +133,7 @@ Route::prefix('cp')->name('cp.')->middleware(['cp.auth', 'cp.check'])->group(fun
         Route::post('/subscriptions/confirm', [ClientSubscriptionController::class, 'confirmStore'])->name('subscriptions.confirm.store');
         Route::post('/subscriptions', [ClientSubscriptionController::class, 'store'])->name('subscriptions.store');
         Route::post('/subscriptions/{subscription}/stop', [ClientSubscriptionController::class, 'stop'])->name('subscriptions.stop');
+        Route::post('/subscriptions/{subscription}/month', [ClientSubscriptionController::class, 'addMonth'])->name('subscriptions.month');
         Route::delete('/subscriptions/{subscription}', [ClientSubscriptionController::class, 'destroy'])->name('subscriptions.destroy');
 
         Route::get('/ads', [\App\Http\Controllers\Cp\AdsController::class, 'index'])->name('ads.index');

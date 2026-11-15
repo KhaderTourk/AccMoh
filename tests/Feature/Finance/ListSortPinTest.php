@@ -52,7 +52,8 @@ class ListSortPinTest extends TestCase
             ->assertJson(['pinned' => false]);
 
         $this->actingAs($this->user)->get(route('cp.clients.index'))->assertOk()
-            ->assertSee('"pinned":true', false)->assertSee('cp-list.js', false)->assertSee('عليه رصيد');
+            // شاشة الزبائن v2 (قرار 15، 14/11/2026): بدون تثبيت، وفيها تاب «متابعة».
+            ->assertDontSee('"pinned":true', false)->assertSee('cp-list.js', false)->assertSee('عليه رصيد')->assertSee('متابعة');
         $this->actingAs($this->user)->get(route('cp.workers.index'))->assertOk()
             ->assertSee('"last_move":null', false)->assertDontSee('cl-legend', false);
         $this->actingAs($this->user)->get(route('cp.persons.index'))->assertOk()->assertSee('إله رصيد');

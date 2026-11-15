@@ -2,42 +2,43 @@
 @section('title', 'الزبائن')
 @section('body_class', 'bs')
 @section('content')
-<div class="cl-page" id="clPage">
-    @include('cp.partials.subs-banner')
+{{-- واجهة الزبائن v2 (سجل القرارات 15 و16، 14–15/11/2026): كرتين فوق، بحث بالاقتراحات، تابات، وجدول بأعمدة بيترتّب من راسه. --}}
+<div class="cl-page cl2" id="clPage">
     <div class="cl-top">
         <h1 class="cl-h">الزبائن</h1>
         <div class="cl-sp"></div>
-        {{-- الاستيراد من إكسيل صار من الإعدادات ← الاستيراد بس --}}
         <button type="button" class="bs-btn" id="clNew">＋ زبون جديد</button>
     </div>
 
-    <div class="cl-summary" id="clSummary"></div>
+    <div class="cl2-cards" id="clCards"></div>
 
-    <div class="cl-tools">
-        <label class="cl-search" for="clQ">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-            <input id="clQ" type="search" placeholder="ابحث بالجهة أو الاسم أو الهاتف" autocomplete="off">
-        </label>
-        <div class="cl-seg" role="tablist" aria-label="عرض">
-            <button type="button" class="on" data-f="due" role="tab">عليه رصيد</button>
-            <button type="button" data-f="credit" role="tab">إله رصيد</button>
-            <button type="button" data-f="settled" role="tab">مسدّد</button>
+    <div class="cl2-tools">
+        <div class="cl2-search">
+            <label class="cl-search" for="clQ">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                <input id="clQ" type="search" placeholder="ابحث بالجهة أو الاسم أو الهاتف" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="clSug" aria-autocomplete="list">
+            </label>
+            <div class="cl2-sug" id="clSug" role="listbox" hidden></div>
         </div>
-        <div id="clMonthly"></div>
-        <div id="clSort"></div>
+        <div class="cl2-tabs" id="clTabs" role="tablist" aria-label="عرض"></div>
     </div>
 
-    <div id="clMpHead"></div>
-
-    <div class="cl-list" id="clList"></div>
+    <div class="cl2-table">
+        <table>
+            <thead><tr id="clHead"></tr></thead>
+            <tbody id="clBody"></tbody>
+        </table>
+    </div>
+    <p class="cl2-hint" id="clHint"></p>
 </div>
 
-{{-- نافذة إضافة وتعديل الزبون --}}
+{{-- نافذة إضافة وتعديل الزبون، ومعها «إله اشتراك شهري» (قرار 15) --}}
 <div class="cl-sheet" id="clSheet" hidden>
     <form class="cl-dialog" id="clForm" method="post" action="{{ route('cp.clients.store') }}" role="dialog" aria-modal="true" aria-labelledby="clSheetTitle" novalidate>
         @csrf
         <input type="hidden" name="_method" id="clMethod" value="POST">
-        <input type="hidden" name="return" value="list">
+        <input type="hidden" name="return" id="clReturn" value="list">
+        <input type="hidden" name="stay" id="clStay" value="0">
         <h2 id="clSheetTitle">زبون جديد</h2>
         <div class="cl-field">
             <label for="fOrg">الجهة</label>
@@ -56,6 +57,7 @@
             <label for="fNotes">ملاحظات</label>
             <textarea id="fNotes" name="notes" rows="2" placeholder="اختياري"></textarea>
         </div>
+        <div class="cl2-subs" id="clSubs" hidden></div>
         <p class="cl-dup" id="clDup" hidden><span class="material-symbols-outlined">info</span> في زبون مشابه: <b id="clDupName"></b></p>
         <div class="cl-dup cl-twin" id="clTwin" hidden>
             <p><span class="material-symbols-outlined">inventory_2</span> «<b id="clTwinName"></b>» موجود بالأرشيف.</p>
@@ -65,7 +67,8 @@
             </div>
         </div>
         <div class="cl-actions">
-            <button type="submit" class="cp-btn cp-btn-primary" id="fSave" disabled>حفظ</button>
+            <span class="cl2-saved" id="clSaved"></span>
+            <button type="submit" class="cp-btn cp-btn-primary" id="fSave" disabled>احفظ</button>
             <button type="button" class="cp-btn cp-btn-ghost" id="fCancel">إلغاء</button>
         </div>
     </form>
@@ -74,156 +77,229 @@
 {{-- نموذج الأرشفة والاسترجاع --}}
 <form method="post" id="clArchForm" hidden>@csrf<input type="hidden" name="_method" id="clArchMethod" value="DELETE"></form>
 
-<script type="application/json" id="clData">{!! json_encode(['clients' => $clients, 'flash' => $flash, 'showArchived' => \App\Support\ArchiveVisibility::showing(), 'storeUrl' => route('cp.clients.store'), 'today' => now()->toDateString(), 'month' => now()->format('n/Y')], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) !!}</script>
+<script type="application/json" id="clData">{!! json_encode([
+    'clients' => $clients,
+    'head' => $head,
+    'types' => $serviceTypes,
+    'flash' => $flash,
+    'edit' => (int) request('edit'),
+    'back' => request('back') === 'show' ? 'show' : 'list',
+    'saved' => session('success') && request('edit') ? session('success') : '',
+    'showArchived' => \App\Support\ArchiveVisibility::showing(),
+    'storeUrl' => route('cp.clients.store'),
+    'today' => now()->toDateString(),
+], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) !!}</script>
 <script src="{{ asset('assets/js/cp-list.js') }}?v={{ @filemtime(public_path('assets/js/cp-list.js')) }}"></script>
-<script src="{{ asset('assets/js/cp-monthly.js') }}?v={{ @filemtime(public_path('assets/js/cp-monthly.js')) }}"></script>
 <script>
 (function () {
     const D = JSON.parse(document.getElementById('clData').textContent);
     const clients = D.clients;
+    const H = D.head;
     const $ = (id) => document.getElementById(id);
     const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     const norm = (s) => String(s || '').replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/\s+/g, ' ').trim().toLowerCase();
-    const fmt = (n) => Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    // ترتيب وافتراضي الفلاتر (قرار 9/11/2026). «المؤرشف» بيظهر من الإعدادات بس.
-    // الرصيد لحد 10 شيكل بالاتجاهين بينعرض تحت «مسدّد» (قرار 9/11/2026). عرض بس، الرصيد نفسه ما بيتغيّر.
-    const SMALL = 10;
-    const small = (c) => c.balances.every((b) => Math.abs(b.amount) <= SMALL);
-    const FILTERS = {
-        due: (c) => !small(c) && due(c),
-        credit: (c) => !small(c) && credit(c),
-        settled: (c) => small(c),
-    };
-    const EMPTY = { due: 'ما في زبون عليه رصيد.', credit: 'ما في زبون إله رصيد.', settled: 'ما في زبون مسدّد.' };
-    let filter = 'due';
-    let editing = null, allowNew = 0;
-    // بآخر قائمة الترتيب: «مؤرشف» لما «إظهار المؤرشف» شغّال (قرار 9/11/2026).
-    const sorter = cpList.sortMenu($('clSort'), 'client', () => { if (sorter.extra() && mp.on()) { mp.set(false); return; } paintTabs(); render(); }, D.showArchived ? [['arch', 'مؤرشف']] : []);
-    // فلتر «الخدمات الشهرية» جنب التابات، بيجيب الزباين اللي إلهم اشتراك من التابات الثلاثة (قرار 10/11/2026).
-    const mp = cpMonthly.init($('clMonthly'), { label: 'الخدمات الشهرية', noun: 'اشتراك', rows: clients,
-        onChange: (on) => { if (on && sorter.extra()) sorter.reset(); paintTabs(); render(); } });
-    function paintTabs() { const a = sorter.extra() || mp.on(); document.querySelectorAll('.cl-seg button').forEach((x) => x.classList.toggle('on', !a && x.dataset.f === filter)); }
-
-    const due = (c) => c.balances.some((b) => b.amount > 0);
-    const credit = (c) => c.balances.some((b) => b.amount < 0);
+    const num = (n) => Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const N = (t) => `<bdi class="num" dir="ltr">${t}</bdi>`;
     const title = (c) => c.org || c.name;
+    // الرصيد لحد 10 شيكل بالاتجاهين بينعرض «مسدّد» (قرار 9/11/2026). عرض بس.
+    const SMALL = 10;
 
-    function amountHtml(c) {
-        if (!c.balances.length) return '<div class="cl-amt zero">مسدّد</div>';
-        return '<div class="cl-amt-wrap">' + c.balances.map((b) =>
-            `<div class="cl-amt ${b.amount > 0 ? 'due' : 'credit'}">${esc(b.label)}</div>`
-        ).join('') + '</div>';
+    /* ——— الكروت (قرار 16) ——— */
+    function pctLine(p) { if (p === null || p === undefined) return ''; const up = p >= 0; return `<i class="${up ? 'up' : 'down'}">${up ? '▲' : '▼'} ${Math.abs(p)}%</i> عن الشهر الماضي`; }
+    function renderCards() {
+        const ch = H.debtChange, chUp = ch >= 0;
+        $('clCards').innerHTML = `
+        <article class="cl2-kc"><header><b>إلي</b><span>ناس عليهم رصيد</span></header>
+            <div class="cl2-big due">${N(num(H.owed) + ' ₪')}</div><div class="cl2-cmp">عند ${H.owedCount} زبون</div>
+            <div class="cl2-rows">
+                <div><span>متأخرين أكثر من 30 يوم</span><span><b>${N(num(H.late))}</b><em>${H.lateCount} ${H.lateCount === 1 ? 'زبون' : 'زبائن'}</em></span></div>
+                <div><span>ما دفعوا ولا إشي هالشهر</span><span><b>${H.unpaidMonth} من ${H.owedCount}</b></span></div>
+                <div><span>أكبر رصيد</span><span>${H.top ? `<b>${N(num(H.top.amount))}</b><em>${esc(H.top.name)}</em>` : '<b>—</b>'}</span></div>
+            </div></article>
+        <article class="cl2-kc"><header><b>هالشهر</b><span>${N(H.month)}</span></header>
+            <div class="cl2-big">${N(num(H.services) + ' ₪')}</div><div class="cl2-cmp">قيمة الخدمات${H.servicesPct !== null ? ' · ' + pctLine(H.servicesPct) : ''}</div>
+            <div class="cl2-rows">
+                <div><span>دفعات وصلت</span><span><b>${N(num(H.payments))}</b>${H.paymentsPct !== null ? `<em>${pctLine(H.paymentsPct)}</em>` : ''}</span></div>
+                <div><span>نسبة التحصيل</span><span><b>${H.collect === null ? '—' : N(H.collect + '%')}</b><em>من قيمة الخدمات</em></span></div>
+                <div><span>${chUp ? 'زادت الديون هالشهر' : 'نقصت الديون هالشهر'}</span><span><b>${N(num(ch))}</b><em>أول الشهر كانت ${N(num(H.owedStart))}</em></span></div>
+            </div></article>`;
     }
 
-    function render() {
-        const q = norm($('clQ').value);
-        const view = sorter.extra(), arch = view === 'arch';
-        let rows = clients.filter((c) => (arch ? c.archived : !c.archived || (q && D.showArchived)));
-        // البحث بيدوّر بكل الزباين، مش بس بالفلتر المختار.
-        if (q) rows = rows.filter((c) => norm([c.org, c.name, c.phone, c.notes].join(' ')).includes(q));
-        else if (mp.on()) rows = mp.rows();
-        else if (!arch) rows = rows.filter(FILTERS[filter]);
-        $('clMpHead').innerHTML = mp.on() && !q ? mp.head(D.month) : '';
-        rows = cpList.sort(rows, sorter.get(), title, D.today);
+    /* ——— التابات والجدول (قرار 15) ——— */
+    const TABS = [
+        ['all', 'الكل', (c) => !c.archived],
+        ['owe', 'عليه رصيد', (c) => !c.archived && c.ils > SMALL],
+        ['credit', 'إله رصيد', (c) => !c.archived && c.ils < -SMALL],
+        ['set', 'مسدّد', (c) => !c.archived && Math.abs(c.ils) <= SMALL],
+        // «متابعة»: عليه رصيد وآخر دفعة إله أكثر من 30 يوم (قرار 16، 15/11).
+        ['need', 'متابعة', (c) => !c.archived && c.ils > SMALL && c.payDays !== null && c.payDays > 30],
+    ];
+    if (D.showArchived) TABS.push(['arch', 'مؤرشف', (c) => c.archived]);
+    const COLS = [
+        { k: 'n', t: 'الزبون', v: (c) => norm(title(c)) },
+        { k: 'pay', t: 'آخر دفعة', v: (c) => (c.payDays === null ? -1 : c.payDays) },
+        { k: 'ms', t: 'اشتراك شهري', v: (c) => (c.subs.length ? 1 : 0) },
+        { k: 'bal', t: 'الرصيد', v: (c) => c.ils },
+    ];
+    const LBL = { n: ['من أ لـ ي', 'من ي لـ أ'], pay: ['الأقدم دفعة أول', 'الأحدث دفعة أول'], ms: ['اللي إلهم اشتراك أول', 'اللي ما إلهم أول'], bal: ['اللي عليه الأكثر أول', 'اللي إله الأكثر أول'] };
+    let tab = 'owe', sort = { k: 'bal', dir: 0 };
 
-        const plans = mp.on() && !q;
-        $('clList').innerHTML = rows.length ? rows.map((c) => `${plans ? '<div class="mp-group">' : ''}
-            <div class="cl-row${c.id === D.flash ? ' is-new' : ''}${c.archived ? ' is-arch' : ''}" tabindex="0" data-id="${c.id}">
-                <div class="cl-av">${esc((title(c).trim()[0]) || '؟')}</div>
-                <div class="cl-who"><b>${c.pinned ? '<span class="cl-star">★</span> ' : ''}${esc(title(c))}${c.archived ? ' <em class="cs-arch">مؤرشف</em>' : ''}</b><span>${esc(c.org ? c.name : '')}</span>${cpList.ageLine(c, D.today)}</div>
-                ${amountHtml(c)}
-                <button type="button" class="cl-more" aria-label="خيارات ${esc(title(c))}">⋯</button>
+    function list() {
+        const q = norm($('clQ').value);
+        // البحث بيدوّر بكل الزباين، مش بس بالتاب المختار.
+        let rows = q ? clients.filter((c) => (!c.archived || D.showArchived) && norm([c.org, c.name, c.phone, c.notes].join(' ')).includes(q))
+            : clients.filter(TABS.find((t) => t[0] === tab)[2]);
+        const col = COLS.find((x) => x.k === sort.k);
+        const asc = (sort.k === 'n') !== (sort.dir === 1);
+        rows = rows.slice().sort((a, b) => { const x = col.v(a), y = col.v(b); const r = typeof x === 'string' ? x.localeCompare(y, 'ar') : x - y; return asc ? r : -r; });
+        return rows;
+    }
+    function payCell(c) {
+        if (c.payDays === null) return '<span class="cl2-dash">—</span>';
+        const t = c.payDays === 0 ? 'اليوم' : c.payDays === 1 ? 'مبارح' : `قبل ${c.payDays} يوم`;
+        return `<span class="cl2-age${c.payDays > 30 ? ' late' : ''}">${t}</span>`;
+    }
+    function balCell(c) {
+        const v = c.ils, cls = v > SMALL ? 'due' : v < -SMALL ? 'credit' : 'zero';
+        return `<span class="cl2-amt ${cls}">${N(num(v))}</span>`;
+    }
+    function render() {
+        const q = $('clQ').value.trim();
+        $('clTabs').innerHTML = TABS.map((t) => `<button type="button" role="tab" aria-selected="${!q && tab === t[0]}" class="${!q && tab === t[0] ? 'on' : ''}${q ? ' dim' : ''}" data-t="${t[0]}">${t[1]}<em>${clients.filter(t[2]).length}</em></button>`).join('');
+        $('clHead').innerHTML = COLS.map((c) => `<th class="${sort.k === c.k ? 'on' : ''}" aria-sort="${sort.k === c.k ? (((sort.k === 'n') !== (sort.dir === 1)) ? 'ascending' : 'descending') : 'none'}"><button type="button" data-k="${c.k}">${c.t}<span class="arr">${sort.k === c.k && sort.dir ? '▲' : '▼'}</span></button></th>`).join('') + '<th><span class="sr-only">خيارات</span></th>';
+        const rows = list();
+        $('clBody').innerHTML = rows.length ? rows.map((c) => `<tr data-id="${c.id}" tabindex="0" class="${c.id === D.flash ? 'is-new' : ''}${c.archived ? ' is-arch' : ''}">
+            <td><div class="cl2-who"><span class="cl2-av">${esc((title(c).trim()[0]) || '؟')}</span><div><b>${esc(title(c))}${c.archived ? ' <em class="cs-arch">مؤرشف</em>' : ''}</b><small>${esc(c.org ? c.name : (c.phone || ''))}</small></div></div></td>
+            <td>${payCell(c)}</td>
+            <td>${c.subs.length ? 'نعم' : '<span class="cl2-dash">لا</span>'}</td>
+            <td>${balCell(c)}</td>
+            <td class="cl2-m"><button type="button" class="cl-more" aria-label="خيارات ${esc(title(c))}">⋯</button>
                 <div class="cl-menu" hidden>
-                    <a href="${esc(c.pdf)}" target="_blank" rel="noopener">تصدير كشف حساب</a>
+                    <a href="${esc(c.pdf)}" target="_blank" rel="noopener">كشف حساب</a>
                     <button type="button" data-act="edit">تعديل</button>
-                    <button type="button" data-act="pin">${c.pinned ? 'إلغاء التثبيت' : '★ تثبيت'}</button>
                     <hr>
                     ${c.archived ? '<button type="button" data-act="restore">استرجاع من الأرشيف</button>' : '<button type="button" class="danger" data-act="archive">أرشفة</button>'}
-                </div>
-            </div>${plans ? mp.block(c) + '</div>' : ''}`).join('')
-            : `<p class="cl-empty">${q ? 'ما في زبون بهالاسم.' : (arch ? 'ما في زبائن مؤرشفين.' : (mp.on() ? 'ما في زبون عنده اشتراك شهري. فعّله من صفحة الزبون ← إضافة ← اشتراك شهري.' : EMPTY[filter]))}</p>`;
-
-        $('clSummary').innerHTML = cpList.summary(rows, 'زبون', D.symbols);
-
-        if (D.flash) {
-            const el = document.querySelector('.cl-row.is-new');
-            if (el) el.scrollIntoView({ block: 'center' });
-            D.flash = 0;
-        }
+                </div></td></tr>`).join('')
+            : `<tr><td colspan="5" class="cl-empty">${q ? 'ما لقينا زبون بهالاسم.' : 'ما في زبائن هون.'}</td></tr>`;
+        $('clHint').textContent = (q ? 'البحث بيدوّر بكل التابات · ' : '') + `مرتّب حسب ${COLS.find((x) => x.k === sort.k).t}: ${LBL[sort.k][sort.dir]}`;
+        if (D.flash) { const el = document.querySelector('#clBody tr.is-new'); if (el) el.scrollIntoView({ block: 'center' }); D.flash = 0; }
     }
+    $('clTabs').addEventListener('click', (e) => { const b = e.target.closest('[data-t]'); if (!b) return; tab = b.dataset.t; $('clQ').value = ''; hideSug(); render(); });
+    $('clHead').addEventListener('click', (e) => { const b = e.target.closest('[data-k]'); if (!b) return; const k = b.dataset.k; sort = sort.k === k ? { k, dir: 1 - sort.dir } : { k, dir: 0 }; render(); });
 
     function closeMenus() { document.querySelectorAll('.cl-menu').forEach((m) => { m.hidden = true; }); }
-
-    $('clList').addEventListener('click', (e) => {
-        const more = e.target.closest('.cl-more');
-        const row = e.target.closest('.cl-row');
-        if (!row) return;
+    $('clBody').addEventListener('click', (e) => {
+        const row = e.target.closest('tr[data-id]'); if (!row) return;
         const c = clients.find((x) => x.id === +row.dataset.id);
-        if (more) {
-            e.stopPropagation();
-            const menu = more.nextElementSibling;
-            const open = menu.hidden;
-            closeMenus();
-            menu.hidden = !open;
-            return;
-        }
+        const more = e.target.closest('.cl-more');
+        if (more) { e.stopPropagation(); const m = more.nextElementSibling; const open = m.hidden; closeMenus(); m.hidden = !open; return; }
         const act = e.target.closest('[data-act]');
         if (act) { closeMenus(); action(act.dataset.act, c); return; }
         if (e.target.closest('.cl-menu')) return;
         window.location.href = c.show;
     });
-    $('clList').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && e.target.classList.contains('cl-row')) {
-            window.location.href = clients.find((x) => x.id === +e.target.dataset.id).show;
-        }
-    });
-    document.addEventListener('click', (e) => { if (!e.target.closest('.cl-menu')) closeMenus(); });
+    $('clBody').addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.matches('tr[data-id]')) window.location.href = clients.find((x) => x.id === +e.target.dataset.id).show; });
+    document.addEventListener('click', (e) => { if (!e.target.closest('.cl-menu')) closeMenus(); if (!e.target.closest('.cl2-search')) hideSug(); });
 
-    function submitArch(url, method) {
-        const f = $('clArchForm');
-        f.action = url;
-        $('clArchMethod').value = method;
-        f.submit();
-    }
-
+    function submitArch(url, method) { const f = $('clArchForm'); f.action = url; $('clArchMethod').value = method; f.submit(); }
     function action(act, c) {
         if (act === 'edit') return openSheet(c);
         if (act === 'restore') return submitArch(c.restore, 'POST');
-        if (act === 'pin') return cpList.pin(c).then(render).catch(() => window.alert('ما زبط التثبيت، جرّب كمان مرة.'));
         if (act === 'archive') {
-            const bal = c.balances.length ? ' رصيده مش صفر (' + c.balances.map((b) => (b.amount > 0 ? 'عليه ' : 'إله ') + b.label).join('، ') + ')، وبيضل محفوظ مع كل حركاته.' : '';
+            const bal = Math.abs(c.ils) >= 0.005 ? ` رصيده ${c.ils > 0 ? 'عليه' : 'إله'} ${num(c.ils)} ₪، وبيضل محفوظ مع كل حركاته.` : '';
             const msg = 'أرشفة «' + title(c) + '»؟' + bal + ' بيختفي من القوائم، وبتقدر تشوفه وترجّعه من الإعدادات ← العرض ← «إظهار المؤرشف».';
             const ask = window.cpConfirm ? window.cpConfirm(msg) : Promise.resolve(window.confirm(msg));
             ask.then((ok) => { if (ok) submitArch(c.archive, 'DELETE'); });
         }
     }
 
-    mp.bind($('clList'), title);
-    document.querySelectorAll('.cl-seg button').forEach((b) => b.addEventListener('click', () => {
-        filter = b.dataset.f;
-        sorter.reset();
-        if (mp.on()) mp.set(false); else { paintTabs(); render(); }
-    }));
-    $('clQ').addEventListener('input', render);
+    /* ——— البحث بالاقتراحات (قرار 15) ——— */
+    let sugI = -1, sugRows = [];
+    function hideSug() { $('clSug').hidden = true; $('clQ').setAttribute('aria-expanded', 'false'); sugI = -1; }
+    function paintSug() {
+        const q = norm($('clQ').value);
+        if (!q) { hideSug(); return; }
+        const pool = clients.filter((c) => !c.archived || D.showArchived);
+        const hit = (c) => norm([c.org, c.name, c.phone].join(' '));
+        const starts = (c) => norm(title(c)).startsWith(q) || norm(c.name).startsWith(q);
+        sugRows = pool.filter((c) => hit(c).includes(q)).sort((a, b) => (starts(b) - starts(a)) || title(a).localeCompare(title(b), 'ar')).slice(0, 7);
+        $('clSug').innerHTML = sugRows.map((c, i) => `<button type="button" role="option" id="sug${i}" class="${i === sugI ? 'on' : ''}" data-s="${c.id}"><span><b>${esc(title(c))}</b><small>${esc(c.org ? c.name : (c.phone || ''))}</small></span>${balCell(c)}</button>`).join('')
+            + `<button type="button" role="option" id="sug${sugRows.length}" class="cl2-sug-new${sugI === sugRows.length ? ' on' : ''}" data-s="new">＋ ضيفه زبون جديد «${esc($('clQ').value.trim())}»</button>`;
+        $('clSug').hidden = false;
+        $('clQ').setAttribute('aria-expanded', 'true');
+        $('clQ').setAttribute('aria-activedescendant', sugI >= 0 ? 'sug' + sugI : '');
+    }
+    function pickSug(id) {
+        if (id === 'new') { const v = $('clQ').value.trim(); hideSug(); openSheet(null); $('fOrg').value = v; check(); return; }
+        const c = clients.find((x) => x.id === +id); if (c) window.location.href = c.show;
+    }
+    $('clQ').addEventListener('input', () => { sugI = -1; paintSug(); render(); });
+    $('clQ').addEventListener('keydown', (e) => {
+        if ($('clSug').hidden) return;
+        const n = sugRows.length + 1;
+        if (e.key === 'ArrowDown') { e.preventDefault(); sugI = (sugI + 1) % n; paintSug(); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); sugI = (sugI - 1 + n) % n; paintSug(); }
+        else if (e.key === 'Enter' && sugI >= 0) { e.preventDefault(); pickSug(sugI === sugRows.length ? 'new' : sugRows[sugI].id); }
+        else if (e.key === 'Escape') { hideSug(); }
+    });
+    $('clSug').addEventListener('click', (e) => { const b = e.target.closest('[data-s]'); if (b) pickSug(b.dataset.s); });
 
-    /* نافذة الإضافة والتعديل */
+    /* ——— نافذة الإضافة والتعديل + الاشتراك الشهري ——— */
     const fOrg = $('fOrg'), fName = $('fName'), fPhone = $('fPhone'), fNotes = $('fNotes'), save = $('fSave');
+    let editing = null, allowNew = 0, subs = null, addOpen = false, offAsk = false;
+    function typeName(id) { const t = D.types.find((x) => x.id === +id); return t ? t.name : 'خدمة'; }
+    function paintSubs() {
+        const box = $('clSubs');
+        box.hidden = !editing;
+        if (!editing) { box.innerHTML = ''; return; }
+        const total = subs.rows.reduce((a, r) => a + (parseFloat(r.amount) || 0), 0);
+        const used = new Set(subs.rows.map((r) => +r.type));
+        let menu = '', g = null;
+        D.types.filter((t) => !used.has(t.id)).forEach((t) => { if (t.group !== g) { menu += `<span class="cl2-mg">${esc(t.group || 'بدون مجموعة')}</span>`; g = t.group; } menu += `<button type="button" data-add="${t.id}">${esc(t.name)}</button>`; });
+        box.innerHTML = `<div class="cl2-sw"><span>إله اشتراك شهري</span><button type="button" class="cl2-switch${subs.on ? ' on' : ''}" id="clSw" role="switch" aria-checked="${subs.on}" aria-label="إله اشتراك شهري"></button></div>
+            <input type="hidden" name="subs_sent" value="1"><input type="hidden" name="subs_on" value="${subs.on ? 1 : 0}">
+            ${offAsk ? `<div class="cl2-off"><b>بدك تشيل كل اشتراكاته؟</b><p>الأشهر اللي انضافت قبل بتضل زي ما هي.</p><div><button type="button" class="cp-btn cp-btn-primary" id="clOffOk">شيل الكل</button><button type="button" class="cp-btn cp-btn-ghost" id="clOffNo">إلغاء</button></div></div>` : ''}
+            ${subs.on && !offAsk ? `<div class="cl2-svl">${subs.rows.map((r, i) => `<div class="cl2-sv"><label for="sa${i}">${esc(typeName(r.type))}</label>
+                <input type="hidden" name="subs[${i}][type]" value="${r.type}">
+                <span class="cp-amt"><input id="sa${i}" name="subs[${i}][amount]" data-i="${i}" inputmode="decimal" dir="ltr" placeholder="0.00" value="${esc(r.amount)}" aria-label="مبلغ ${esc(typeName(r.type))} الشهري"><span class="cl2-cur">₪</span></span>
+                <button type="button" class="cl2-x" data-rm="${i}" aria-label="شيل ${esc(typeName(r.type))}">✕</button></div>`).join('')}
+                <div class="cl2-addw"><button type="button" class="cl2-addb" id="clAddB">＋ أضف خدمة</button>
+                ${addOpen ? `<div class="cl-menu cl2-amenu">${menu || '<span class="cl2-mg">كل الخدمات مضافة</span>'}</div>` : ''}</div></div>
+                ${subs.rows.length ? `<div class="cl2-tot"><span>المجموع الشهري</span>${N(num(total) + ' ₪')}</div>` : ''}` : ''}`;
+    }
     function openSheet(c) {
         editing = c || null;
-        allowNew = 0;
+        allowNew = 0; addOpen = false; offAsk = false;
+        subs = { on: !!(c && c.subs.length), had: !!(c && c.subs.length), rows: c ? c.subs.map((s) => ({ type: s.type, amount: String(s.amount) })) : [] };
         $('clSheetTitle').textContent = c ? 'تعديل الزبون' : 'زبون جديد';
-        save.textContent = c ? 'حفظ التعديل' : 'حفظ';
         $('clForm').action = c ? c.update : D.storeUrl;
         $('clMethod').value = c ? 'PUT' : 'POST';
-        fOrg.value = c ? c.org : '';
-        fName.value = c ? c.name : '';
-        fPhone.value = c ? c.phone : '';
-        fNotes.value = c ? c.notes : '';
+        $('clReturn').value = c && D.back === 'show' ? 'show' : 'list';
+        $('clStay').value = '0';
+        fOrg.value = c ? c.org : ''; fName.value = c ? c.name : ''; fPhone.value = c ? c.phone : ''; fNotes.value = c ? c.notes : '';
+        $('clSaved').textContent = '';
+        paintSubs();
         $('clSheet').hidden = false;
         check();
         setTimeout(() => (c ? fName : fOrg).focus(), 30);
     }
-    function closeSheet() { $('clSheet').hidden = true; }
+    function closeSheet() { $('clSheet').hidden = true; if (D.back === 'show' && editing) window.location.href = editing.show; }
+    $('clSubs').addEventListener('click', (e) => {
+        const t = e.target;
+        if (t.id === 'clSw') { addOpen = false; if (subs.on && subs.had) offAsk = true; else { subs.on = !subs.on; if (subs.on && !subs.rows.length) addOpen = true; } paintSubs(); check(); return; }
+        if (t.id === 'clOffOk') { subs.on = false; subs.rows = []; offAsk = false; paintSubs(); check(); return; }
+        if (t.id === 'clOffNo') { offAsk = false; paintSubs(); return; }
+        if (t.id === 'clAddB') { e.stopPropagation(); addOpen = !addOpen; paintSubs(); return; }
+        const a = t.closest('[data-add]');
+        if (a) { subs.rows.push({ type: +a.dataset.add, amount: '' }); addOpen = false; paintSubs(); check(); const i = subs.rows.length - 1; setTimeout(() => $('sa' + i).focus(), 10); return; }
+        const rm = t.closest('[data-rm]');
+        if (rm) { subs.rows.splice(+rm.dataset.rm, 1); paintSubs(); check(); }
+    });
+    $('clSubs').addEventListener('input', (e) => { const i = e.target.dataset.i; if (i !== undefined) { subs.rows[+i].amount = e.target.value.replace(/[^0-9.]/g, ''); const tot = $('clSubs').querySelector('.cl2-tot bdi'); if (tot) tot.textContent = num(subs.rows.reduce((a, r) => a + (parseFloat(r.amount) || 0), 0)) + ' ₪'; check(); } });
+    // Enter بخانة المبلغ بيحفظ وبيضل بنفس النافذة (قرار 15).
+    $('clSubs').addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.dataset.i !== undefined) { e.preventDefault(); if (!save.disabled) { $('clStay').value = '1'; $('clForm').requestSubmit(); } } });
+    document.addEventListener('click', (e) => { if (addOpen && !e.target.closest('.cl2-addw')) { addOpen = false; paintSubs(); } });
+
     function check() {
         const p = fPhone.value.trim();
         const okPhone = !p || /^05\d{8}$/.test(p);
@@ -231,10 +307,8 @@
         const o = norm(fOrg.value), n = norm(fName.value);
         let dup = null;
         if (o.length >= 3 || n.length >= 3) {
-            dup = clients.find((r) => (!editing || r.id !== editing.id) &&
-                ((o.length >= 3 && norm(r.org).includes(o)) || (n.length >= 3 && norm(r.name).includes(n))));
+            dup = clients.find((r) => (!editing || r.id !== editing.id) && ((o.length >= 3 && norm(r.org).includes(o)) || (n.length >= 3 && norm(r.name).includes(n))));
         }
-        // زبون جديد بنفس اسم أو رقم واحد مؤرشف: يا بنرجّعه، يا بنضيفه جديد.
         const twin = editing ? null : cpList.archivedTwin(clients, [o, n], p, (r) => [norm(r.org), norm(r.name)]);
         const ask = twin && allowNew !== twin.id;
         $('clTwin').hidden = !ask;
@@ -243,10 +317,7 @@
         if (dup) $('clDupName').textContent = (dup.org ? dup.org + '، ' : '') + dup.name + (dup.archived ? ' (مؤرشف)' : '');
         save.disabled = !fName.value.trim() || !okPhone || ask;
     }
-    $('clTwinRestore').addEventListener('click', () => {
-        const t = clients.find((x) => x.id === +$('clTwin').dataset.id);
-        if (t) submitArch(t.restore, 'POST');
-    });
+    $('clTwinRestore').addEventListener('click', () => { const t = clients.find((x) => x.id === +$('clTwin').dataset.id); if (t) submitArch(t.restore, 'POST'); });
     $('clTwinNew').addEventListener('click', () => { allowNew = +$('clTwin').dataset.id; check(); });
     [fOrg, fName, fPhone].forEach((el) => el.addEventListener('input', check));
     fNotes.addEventListener('input', () => { fNotes.style.height = ''; fNotes.style.height = fNotes.scrollHeight + 'px'; });
@@ -265,17 +336,20 @@
         check();
     @endif
 
-    D.symbols = @json(collect($currencyFormats)->map(fn ($c) => $c['symbol'])->all());
-
-    /* ——— ضل مكانك بعد الحفظ أو الحذف ——— */
+    /* ——— ضل مكانك ——— */
     const kept = window.cpKeep && cpKeep.take();
     if (kept) {
-        if (FILTERS[kept.filter]) filter = kept.filter; $('clQ').value = kept.q || '';
-        document.querySelectorAll('.cl-seg button').forEach((x) => x.classList.toggle('on', x.dataset.f === filter));
-        if (kept.monthly) mp.set(true);
+        if (TABS.some((t) => t[0] === kept.tab)) tab = kept.tab;
+        if (kept.sort) sort = kept.sort;
+        $('clQ').value = kept.q || '';
     }
-    if (window.cpKeep) cpKeep.track(() => ({ filter, q: $('clQ').value, monthly: mp.on() }));
+    if (window.cpKeep) cpKeep.track(() => ({ tab, sort, q: $('clQ').value }));
+    renderCards();
     render();
+    if (D.edit) {
+        const c = clients.find((x) => x.id === D.edit);
+        if (c) { openSheet(c); if (D.saved) $('clSaved').textContent = 'انحفظ ✓'; history.replaceState(null, '', location.pathname); }
+    }
 })();
 </script>
 @endsection

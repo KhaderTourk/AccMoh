@@ -20,17 +20,23 @@ class ClientController extends Controller
     public function index(Request $request)
     {
         $currencies = Currency::query()->active()->get();
+        $ils = Currency::byCode('ILS');
+        $today = \Carbon\CarbonImmutable::today();
+        $monthStart = $today->startOfMonth()->toDateString();
 
-        // اشتراكات كل زبون لفلتر «الخدمات الشهرية» (قرار 10/11/2026).
-        $monthly = Schema::hasTable('client_subscriptions')
-            ? ClientSubscriptionController::plansByClient()
+        // الاشتراكات الشغّالة لكل زبون (قرار 15، 14/11/2026): بتنعدّل من «تعديل الزبون» بس.
+        $subs = Schema::hasTable('client_subscriptions')
+            ? \App\Models\ClientSubscription::query()
+                ->where(fn ($q) => $q->whereNull('ends_on')->orWhere('ends_on', '>=', $today->toDateString()))
+                ->orderBy('id')->get(['id', 'client_id', 'service_type_id', 'title', 'amount'])
+                ->groupBy('client_id')
             : collect();
 
         // Every client (archived included) in one list; filtering and search happen in the browser.
         $clients = Client::query()
             ->orderByRaw("COALESCE(NULLIF(company_name, ''), name)")
             ->get()
-            ->map(function (Client $client) use ($currencies, $monthly) {
+            ->map(function (Client $client) use ($currencies, $subs, $ils, $monthStart, $today) {
                 $balances = [];
                 foreach ($currencies as $currency) {
                     $due = $client->outstandingAmount($currency->id);
@@ -42,6 +48,10 @@ class ClientController extends Controller
                         ];
                     }
                 }
+                $activity = \App\Support\PartyActivity::forClient($client);
+                // «آخر دفعة»: قبل كم يوم، ولو ما دفع أبداً من أول حركة (قرار 15: بدون «ما دفع إشي»).
+                $since = $activity['last_pay'] ?: $activity['first_move'];
+                $paidThisMonth = $activity['last_pay'] && $activity['last_pay'] >= $monthStart;
 
                 return [
                     'id' => $client->id,
@@ -50,11 +60,15 @@ class ClientController extends Controller
                     'phone' => (string) $client->phone,
                     'notes' => (string) $client->notes,
                     'archived' => ! $client->is_active,
-                    'monthly' => $monthly->get($client->id, collect())->values()->all(),
+                    'subs' => $subs->get($client->id, collect())->map(fn ($s) => [
+                        'id' => $s->id, 'type' => $s->service_type_id, 'title' => $s->title, 'amount' => (float) $s->amount,
+                    ])->values()->all(),
                     'balances' => $balances,
-                    'pinned' => (bool) $client->is_pinned,
-                    'pin' => route('cp.pin.toggle', ['kind' => 'client', 'id' => $client->id]),
-                    ...\App\Support\PartyActivity::forClient($client),
+                    'ils' => (float) $client->outstandingAmount($ils->id),
+                    'open' => (float) $client->openingBalance($ils->id, $monthStart),
+                    'payDays' => $since ? (int) \Carbon\CarbonImmutable::parse($since)->diffInDays($today) : null,
+                    'paidMonth' => $paidThisMonth,
+                    ...$activity,
                     'show' => route('cp.clients.show', $client),
                     'pdf' => route('cp.clients.export-pdf', $client),
                     'update' => route('cp.clients.update', $client),
@@ -66,8 +80,62 @@ class ClientController extends Controller
 
         $currencyFormats = $currencies->mapWithKeys(fn (Currency $c) => [$c->code => ['symbol' => $c->symbol]])->all();
         $flash = (int) $request->query('flash');
+        $head = $this->headStats($clients, $ils, $today);
+        $serviceTypes = \App\Models\ServiceType::query()->where('is_active', true)->with('group')->orderBy('name')
+            ->get(['id', 'name', 'service_group_id', 'default_price'])
+            ->sortBy(fn ($t) => [$t->group ? 0 : 1, $t->group?->sort_order ?? 0, $t->group?->name ?? '', $t->name])
+            ->map(fn ($t) => ['id' => $t->id, 'name' => $t->name, 'group' => $t->group?->name, 'price' => $t->default_price !== null ? (float) $t->default_price : null])
+            ->values();
 
-        return view('cp.finance.clients.index', compact('clients', 'currencyFormats', 'flash'));
+        return view('cp.finance.clients.index', compact('clients', 'currencyFormats', 'flash', 'head', 'serviceTypes'));
+    }
+
+    /**
+     * كروت رأس شاشة الزبائن (قرار 16، 15/11/2026). كل أرقام «هالشهر» حسب تاريخ الحركة نفسها مش تاريخ التسجيل.
+     *
+     * @param  \Illuminate\Support\Collection<int, array<string, mixed>>  $clients
+     * @return array<string, mixed>
+     */
+    protected function headStats($clients, Currency $ils, \Carbon\CarbonImmutable $today): array
+    {
+        $small = 10; // الرصيد لحد 10 شيكل بينحسب مسدّد (قرار 9/11/2026)
+        $live = $clients->where('archived', false);
+        $owed = $live->filter(fn ($c) => $c['ils'] > $small);
+        $late = $owed->filter(fn ($c) => $c['payDays'] !== null && $c['payDays'] > 30);
+        $top = $owed->sortByDesc('ils')->first();
+
+        $m0 = $today->startOfMonth();
+        $p0 = $m0->subMonth();
+        $sumServices = fn ($from, $to) => (float) \App\Models\ClientService::query()->billable()->where('currency_id', $ils->id)
+            ->whereDate('service_date', '>=', $from)->whereDate('service_date', '<=', $to)->sum('amount');
+        $sumPayments = fn ($from, $to) => (float) \App\Models\CashPayment::query()->incoming()->active()
+            ->where('party_type', 'client')->where('currency_id', $ils->id)
+            ->whereDate('occurred_on', '>=', $from)->whereDate('occurred_on', '<=', $to)->sum('amount');
+        $svc = $sumServices($m0->toDateString(), $m0->endOfMonth()->toDateString());
+        $svcPrev = $sumServices($p0->toDateString(), $p0->endOfMonth()->toDateString());
+        $pay = $sumPayments($m0->toDateString(), $m0->endOfMonth()->toDateString());
+        $payPrev = $sumPayments($p0->toDateString(), $p0->endOfMonth()->toDateString());
+        $pct = fn ($now, $prev) => $prev > 0.005 ? (int) round(($now - $prev) / $prev * 100) : null;
+        // زادت/نقصت الديون = اللي عليهم هلأ ناقص اللي كان عليهم أول الشهر (الأدق، اختاره 15/11).
+        $owedNow = $owed->sum('ils');
+        $owedStart = $live->filter(fn ($c) => $c['open'] > $small)->sum('open');
+
+        return [
+            'month' => $today->format('n/Y'),
+            'owed' => $owedNow,
+            'owedCount' => $owed->count(),
+            'late' => $late->sum('ils'),
+            'lateCount' => $late->count(),
+            'unpaidMonth' => $owed->filter(fn ($c) => ! $c['paidMonth'])->count(),
+            'top' => $top ? ['amount' => $top['ils'], 'name' => $top['org'] ?: $top['name']] : null,
+            'services' => $svc,
+            'servicesPct' => $pct($svc, $svcPrev),
+            'payments' => $pay,
+            'paymentsPct' => $pct($pay, $payPrev),
+            'collect' => $svc > 0.005 ? (int) round($pay / $svc * 100) : null,
+            'debtChange' => $owedNow - $owedStart,
+            'owedStart' => $owedStart,
+        ];
     }
 
     public function create()
@@ -182,26 +250,24 @@ class ClientController extends Controller
             'methods' => \App\Models\PaymentMethod::query()->active()->get(['id', 'name']),
             'fundId' => (tenantBusinessEnabled() ? \App\Models\Fund::query()->where('slug', 'business')->value('id') : null)
                 ?: \App\Models\Fund::family()->id,
-            'rates' => \App\Models\CashPayment::query()->whereNotNull('fx_currency_id')->whereNotNull('exchange_rate')
-                ->latest('occurred_on')->get(['fx_currency_id', 'exchange_rate'])->unique('fx_currency_id')
-                ->mapWithKeys(fn ($p) => [$p->fx_currency_id => (float) $p->exchange_rate]),
+            // «السعر العالمي»: سعر الصرف المحفوظ بالنظام (صناديق الأدراج)، قرار 17.
+            'rates' => Currency::query()->active()->get(['id', 'code'])
+                ->mapWithKeys(fn ($c) => [$c->id => \App\Support\Rates::today()[$c->code] ?? null])->filter(),
         ];
 
+        // اشتراكات الزبون الشغّالة لنافذة «+ خدمة» (قرار 18): الأشهر المنضافة وتاريخها.
         $subToday = \Carbon\CarbonImmutable::today();
-        $subscriptions = $client->subscriptions()->with('months:id,subscription_id,period,amount')->withCount('months')->orderByRaw('ends_on IS NOT NULL')->orderByDesc('starts_on')->get()
+        $subscriptions = $client->subscriptions()
+            ->where(fn ($q) => $q->whereNull('ends_on')->orWhere('ends_on', '>=', $subToday->toDateString()))
+            ->with('months:id,subscription_id,period,service_date')->get()
             ->map(fn (\App\Models\ClientSubscription $s) => [
                 'id' => $s->id,
-                'accruing' => $s->accruing($subToday),
-                'due' => collect($s->pendingMonths($subToday->format('Y-m')))->filter(fn ($p) => $s->isBillable($p, $subToday))->count(),
+                'type' => $s->service_type_id,
                 'title' => $s->title,
                 'amount' => (float) $s->amount,
                 'from' => $s->starts_on->toDateString(),
-                'to' => $s->ends_on?->toDateString(),
-                'months' => $s->months_count,
-                'periods' => $s->months->pluck('period')->all(),
-                'added' => $s->months->filter(fn ($m) => $m->period)->mapWithKeys(fn ($m) => [$m->period => (float) $m->amount])->all(),
-                'stop' => route('cp.subscriptions.stop', $s),
-                'delete' => route('cp.subscriptions.destroy', $s),
+                'added' => $s->months->filter(fn ($m) => $m->period)->mapWithKeys(fn ($m) => [$m->period => $m->service_date->toDateString()])->all(),
+                'url' => route('cp.subscriptions.month', $s),
             ])->values();
 
         return view('cp.finance.clients.show', [
@@ -283,9 +349,18 @@ class ClientController extends Controller
     public function update(Request $request, Client $client)
     {
         $client->update($this->validated($request));
+        if ($request->boolean('subs_sent')) {
+            $this->syncSubscriptions($request, $client);
+        }
 
         if ($request->input('return') === 'list') {
-            return redirect()->route('cp.clients.index', ['flash' => $client->id])->with('success', 'انحفظ التعديل.');
+            // Enter بخانة المبلغ بيحفظ وبيضل بنفس النافذة (قرار 15).
+            $q = ['flash' => $client->id] + ($request->boolean('stay') ? ['edit' => $client->id] : []);
+
+            return redirect()->route('cp.clients.index', $q)->with('success', 'انحفظ التعديل.');
+        }
+        if ($request->input('return') === 'show') {
+            return redirect()->route('cp.clients.show', $client)->with('success', 'انحفظ التعديل.');
         }
 
         return redirect()->route('cp.clients.show', $client)->with('success', 'انحفظ التعديل.');
@@ -305,6 +380,54 @@ class ClientController extends Controller
 
         return redirect()->route('cp.clients.index', ['flash' => $client->id])
             ->with('success', 'رجع الزبون لقائمة الزبائن.');
+    }
+
+    /**
+     * «إله اشتراك شهري» بتعديل الزبون (قرار 15، 14/11/2026): كل سطر خدمة ومبلغها الشهري، بدون «بيبلّش من».
+     * الجديد بيبلّش عدّه من شهر التفعيل. اللي انشال بينحذف، والأشهر اللي انضافت قبل بتضل حركات عادية.
+     */
+    protected function syncSubscriptions(Request $request, Client $client): void
+    {
+        $data = $request->validate([
+            'subs_on' => ['nullable', 'boolean'],
+            'subs' => ['nullable', 'array'],
+            'subs.*.type' => ['required', 'exists:service_types,id'],
+            'subs.*.amount' => ['nullable', 'numeric', 'gte:0'],
+        ]);
+        $today = \Carbon\CarbonImmutable::today();
+        $wanted = collect($request->boolean('subs_on') ? ($data['subs'] ?? []) : [])
+            ->filter(fn ($r) => (float) ($r['amount'] ?? 0) > 0)
+            ->keyBy(fn ($r) => (int) $r['type']);
+        $active = $client->subscriptions()
+            ->where(fn ($q) => $q->whereNull('ends_on')->orWhere('ends_on', '>=', $today->toDateString()))
+            ->get()->keyBy('service_type_id');
+        $ilsId = Currency::byCode('ILS')->id;
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($wanted, $active, $client, $today, $ilsId) {
+            foreach ($active as $typeId => $sub) {
+                if (! $wanted->has((int) $typeId)) {
+                    $sub->delete();
+                }
+            }
+            foreach ($wanted as $typeId => $row) {
+                $amount = Money::of($row['amount']);
+                if ($sub = $active->get($typeId)) {
+                    if (Money::cmp($sub->amount, $amount) !== 0) {
+                        $sub->update(['amount' => $amount]);
+                    }
+                    continue;
+                }
+                $type = \App\Models\ServiceType::query()->find($typeId);
+                \App\Models\ClientSubscription::query()->create([
+                    'client_id' => $client->id,
+                    'service_type_id' => $typeId,
+                    'title' => $type?->name ?: 'اشتراك',
+                    'amount' => $amount,
+                    'currency_id' => $ilsId,
+                    'starts_on' => $today->startOfMonth()->toDateString(),
+                ]);
+            }
+        });
     }
 
     protected function validated(Request $request): array

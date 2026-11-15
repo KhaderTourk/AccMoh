@@ -35,7 +35,7 @@
             <div class="cs-add">
                 <button type="button" class="cl-more" data-menu="mClient" aria-label="خيارات الزبون">⋯</button>
                 <div class="cl-menu cs-menu" id="mClient" hidden>
-                    <a href="{{ route('cp.clients.edit', $client) }}">تعديل بيانات الزبون</a>
+                    <a href="{{ route('cp.clients.index', ['edit' => $client->id, 'back' => 'show']) }}">تعديل الزبون</a>
                     <hr>
                     @if($client->is_active)
                         <button type="button" class="danger" id="csArchive">أرشفة الزبون</button>
@@ -51,11 +51,6 @@
 
     <div class="cs-balance" id="csBalance"></div>
 
-    <section class="st-card cs-subs" id="csSubs" hidden>
-        <header class="st-card-h"><h2>الاشتراكات الشهرية</h2><span class="st-count" id="csSubsN"></span>
-            <a href="{{ route('cp.subscriptions.confirm') }}" class="cs-subs-link">خدمات الشهر</a></header>
-        <div id="csSubsList"></div>
-    </section>
 
     <div class="cs-tabs" role="tablist">
         <button type="button" class="on" data-view="list" role="tab">الحركات</button>
@@ -95,7 +90,6 @@
 </div>
 
 <form method="post" id="csDelForm" hidden>@csrf<input type="hidden" name="_method" value="DELETE"></form>
-@include('cp.partials.monthly-stop')
 <form method="post" id="csArchForm" action="{{ $client->is_active ? route('cp.clients.destroy', $client) : route('cp.clients.restore', $client) }}" hidden>@csrf @if($client->is_active)<input type="hidden" name="_method" value="DELETE">@endif</form>
 
 <script type="application/json" id="csData">{!! json_encode([
@@ -110,13 +104,11 @@
         'goods' => route('cp.client-goods-takes.store'),
         'memo' => route('cp.balance-memos.store'),
         'refund' => route('cp.payments.store', ['outgoing']),
-        'sub' => route('cp.subscriptions.store'),
-        'subsConfirm' => route('cp.subscriptions.confirm'),
-        'clientsMonthly' => route('cp.clients.index'),
         'pdf' => route('cp.clients.export-pdf', $client),
     ],
     'today' => now()->toDateString(),
 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) !!}</script>
+<script src="{{ asset('assets/js/cp-date.js') }}?v={{ @filemtime(public_path('assets/js/cp-date.js')) }}"></script>
 <script>
 (function () {
     const D = JSON.parse(document.getElementById('csData').textContent);
@@ -335,183 +327,292 @@
         ask.then((ok) => { if (ok) $('csArchForm').submit(); });
     });
 
-    /* ——— نافذة الحركة ——— */
+    /* ——— نافذة الحركة ———
+       نموذج المبلغ لكل النظام (قرار 17، 15/11/2026): العملة زر صغير جنب المبلغ، سعر الصرف سطر صغير بس مع عملة ثانية
+       وافتراضه «السعر العالمي» من النظام، التلميح رمادي و«استخدمه» لحالها وردي، التاريخ بتقويم بس و«اليوم» لما يتغيّر،
+       «رصيده هلأ» و«بعد…»، و«احفظ» باهت بدون مبلغ. نافذة الاشتراك (قرار 18): «عن شهر» لحاله وبدون خانة تاريخ. */
     const KIND = {
-        service: { title: 'خدمة', url: D.urls.service, sign: 1, date: 'service_date', amtLabel: 'السعر' },
-        payment: { title: 'دفعة واردة', url: D.urls.payment, sign: -1, date: 'occurred_on', amtLabel: 'المبلغ' },
-        discount: { title: 'خصم', url: D.urls.goods, sign: -1, date: 'taken_on', amtLabel: 'قيمة الخصم' },
-        goods: { title: 'دفعة بضاعة', url: D.urls.goods, sign: -1, date: 'taken_on', amtLabel: 'قيمة البضاعة' },
-        memo: { title: 'رصيد سابق', url: D.urls.memo, sign: 0, date: 'memo_date', amtLabel: 'المبلغ' },
-        refund: { title: 'استرداد', url: D.urls.refund, sign: 1, date: 'occurred_on', amtLabel: 'المبلغ المسترد' },
-        sub: { title: 'اشتراك شهري', url: D.urls.sub, sign: 0, date: 'starts_on', amtLabel: 'السعر الشهري' },
+        service: { title: 'خدمة', url: D.urls.service, sign: 1, date: 'service_date', amtLabel: 'المبلغ', after: 'بعد الخدمة' },
+        payment: { title: 'دفعة واردة', url: D.urls.payment, sign: -1, date: 'occurred_on', amtLabel: 'المبلغ', after: 'بعد الدفعة' },
+        discount: { title: 'خصم', url: D.urls.goods, sign: -1, date: 'taken_on', amtLabel: 'قيمة الخصم', after: 'بعد الخصم' },
+        goods: { title: 'دفعة بضاعة', url: D.urls.goods, sign: -1, date: 'taken_on', amtLabel: 'قيمة البضاعة', after: 'بعد البضاعة' },
+        memo: { title: 'رصيد سابق', url: D.urls.memo, sign: 0, date: 'memo_date', amtLabel: 'المبلغ', after: 'بعدها' },
+        refund: { title: 'استرداد', url: D.urls.refund, sign: 1, date: 'occurred_on', amtLabel: 'المبلغ المسترد', after: 'بعد الاسترداد' },
     };
     let tx = null;
     const hidden = (n, v) => `<input type="hidden" name="${n}" value="${esc(v)}">`;
-    function dateField(name, label) {
-        return `<div class="cl-field"><label for="xDate">${label || 'التاريخ'}</label><div class="cs-date-in">
-            <input id="xDate" name="${name}" inputmode="numeric" dir="ltr" placeholder="يوم/شهر/سنة" value="${dayLabel(D.today)}">
-            <button type="button" class="cs-today" id="xToday">اليوم</button>
-            <label class="cs-cal" title="اختار من التقويم"><span class="material-symbols-outlined">calendar_month</span><input type="date" id="xPick" tabindex="-1"></label>
-        </div><small class="cl-err" id="xDateErr" hidden>التاريخ لازم يكون يوم/شهر/سنة</small></div>`;
+    const N = (t) => `<bdi class="num" dir="ltr">${t}</bdi>`;
+    const curOf = (id) => L.currencies.find((c) => +c.id === +id) || L.currencies.find((c) => c.code === 'ILS');
+    const sysRate = (id) => +(L.rates || {})[id] || 0;
+    function dateField(name) {
+        return `<div class="cl-field"><label for="xDate">التاريخ</label>${cpDate.html({ id: 'xDate', name, today: dayLabel(D.today), label: 'التاريخ' })}`
+            + '<small class="cl-err" id="xDateErr" hidden>التاريخ لازم يكون يوم/شهر/سنة</small></div>';
     }
-    function moneyFields(label, ilsOnly) {
-        const cur = L.currencies.filter((c) => !ilsOnly || c.code === 'ILS').map((c) => `<option value="${c.id}" data-code="${esc(c.code)}">${esc(c.code)} ${esc(c.symbol)}</option>`).join('');
-        return `<div class="cs-two"><div class="cl-field"><label for="xAmt">${label}</label><input id="xAmt" inputmode="decimal" dir="ltr" placeholder="0.00"><small class="cs-hint" id="xHint"></small></div>
-            <div class="cl-field"><label for="xCur">العملة</label><select id="xCur" name="currency_id">${cur}</select></div></div>
-            <div class="cl-field" id="xRateWrap" hidden><label for="xRate" id="xRateL">سعر الصرف</label><input id="xRate" name="exchange_rate" inputmode="decimal" dir="ltr"><small class="cs-hint" id="xIls"></small></div>
-            <input type="hidden" name="amount" id="xAmtIls"><input type="hidden" name="source_amount" id="xAmtSrc">`;
+    function moneyFields(label, memo) {
+        const items = L.currencies.map((c) => `<button type="button" role="option" data-cur="${c.id}">${esc(c.name || c.code)} ${esc(c.symbol)}</button>`).join('');
+        return `<div class="cl-field"><label for="xAmt">${label}</label>
+            <div class="cp-amt"><input id="xAmt"${memo ? ' name="amount"' : ''} inputmode="decimal" dir="ltr" placeholder="0.00" autocomplete="off">
+                <div class="cp-cur"><button type="button" class="cp-cur-b" id="xCurB" aria-haspopup="listbox" aria-label="العملة"><span id="xCurS"></span><span class="cp-cur-ar">▾</span></button>
+                <div class="cp-cur-m" id="xCurM" role="listbox" hidden>${items}</div></div></div>
+            <input type="hidden" name="currency_id" id="xCur" value="${L.ilsId}">
+            ${memo ? '' : `<div class="cp-rate" id="xRateWrap" hidden><span>سعر الصرف</span><input id="xRate" name="exchange_rate" inputmode="decimal" dir="ltr" autocomplete="off"><span id="xIls"></span><small class="cp-rate-sys" id="xRateSys"></small></div>`}
+            <small class="cp-hint" id="xHint"></small></div>`
+            + (memo ? '' : '<input type="hidden" name="amount" id="xAmtIls"><input type="hidden" name="source_amount" id="xAmtSrc">');
     }
+    const notesField = () => '<div class="cl-field"><label for="xNotes">ملاحظة</label><input id="xNotes" name="notes" placeholder="اختياري" autocomplete="off"></div>';
+    function subOf(typeId) { return (D.subscriptions || []).find((x) => +x.type === +typeId) || null; }
+
+    /* ——— الاشتراك ——— */
+    const pkey = (p) => p[0] + '-' + String(p[1] + 1).padStart(2, '0');
+    const plabel = (p) => (p[1] + 1) + '/' + p[0];
+    const padd = (p, k) => { const d = new Date(p[0], p[1] + k, 1); return [d.getFullYear(), d.getMonth()]; };
+    const pcmp = (a, b) => a[0] * 12 + a[1] - (b[0] * 12 + b[1]);
+    const pdim = (p) => new Date(p[0], p[1] + 1, 0).getDate();
+    function nowP() { const t = new Date(D.today + 'T00:00:00'); return [t.getFullYear(), t.getMonth()]; }
+    function startP(s) { const [y, m] = s.from.split('-').map(Number); return [y, m - 1]; }
+    function firstMissing(s) { let p = startP(s); const n = nowP(); while (pcmp(p, n) <= 0) { if (!s.added[pkey(p)]) return p; p = padd(p, 1); } return n; }
+    function missedOf(s, cur) { const out = []; let p = startP(s); const n = nowP(); while (pcmp(p, n) < 0) { if (!s.added[pkey(p)] && pcmp(p, cur) !== 0) out.push(p); p = padd(p, 1); } return out; }
+    const isFirst = () => { const s = tx.sub; return !Object.keys(s.added).length && pcmp(tx.p, startP(s)) <= 0; };
+    function subDays() { const n = pdim(tx.p); return (tx.stop ? tx.d2 : n) - (isFirst() ? tx.d1 : 1) + 1; }
+    function subSugg() { const n = pdim(tx.p), d = subDays(); return d >= n ? tx.sub.amount : Math.round(tx.sub.amount / n * d * 100) / 100; }
+    function subNote() {
+        const p = tx.p, f = isFirst(), s = tx.stop;
+        const parts = [(s ? (f ? 'أول وآخر شهر · ' : 'آخر شهر · ') : '') + 'اشتراك ' + plabel(p)];
+        if (f && tx.d1 > 1) parts.push('من ' + tx.d1 + '/' + plabel(p));
+        if (s) parts.push('لغاية ' + tx.d2 + '/' + plabel(p));
+        if (subDays() < pdim(p)) parts.push(subDays() + ' يوم من ' + pdim(p));
+        if (s) parts.push('وقف الاشتراك');
+        return parts.join(' · ');
+    }
+    function subBar() {
+        const s = tx.sub, d = s.added[pkey(tx.p)], ms = missedOf(s, tx.p);
+        return `<div class="cs-sbrow"><b>اشتراك شهري · ${N(num(s.amount) + ' ₪')}</b>${ms.length ? `<span class="cs-miss">فاتك ${ms.map((p) => `<button type="button" data-gm="${pkey(p)}">${N(plabel(p))}</button>`).join('')}</span>` : ''}</div>
+            <div class="cs-sbrow"><span class="cs-mpick"><span>عن شهر</span><button type="button" class="cs-mar" data-mv="-1" aria-label="الشهر اللي قبل">›</button><b>${N(plabel(tx.p))}</b><button type="button" class="cs-mar" data-mv="1" aria-label="الشهر اللي بعد">‹</button></span>
+            <span class="cs-pill${d ? ' ok' : ''}">${d ? 'انضاف ✓ بتاريخ ' + N(dayLabel(d)) : (isFirst() ? 'أول شهر' : 'لسا ما انضاف')}</span></div>`;
+    }
+    function subDayFields() {
+        const p = tx.p, n = pdim(p), lock = pkey(p);
+        if (!isFirst() && !tx.stop) return `<p class="cs-autod">بينسجل بتاريخ ${N(dayLabel(lock + '-' + String(n).padStart(2, '0')))} (آخر يوم بالشهر)</p>`;
+        const f = (id, lab, v, data) => `<div class="cl-field"><label for="${id}">${lab}</label>${cpDate.html({ id, value: v + '/' + plabel(p), today: dayLabel(D.today), data: { lock, ...data }, label: lab })}</div>`;
+        let h = '';
+        if (isFirst()) h += f('xD1', 'بلّشنا معه يوم', tx.d1, { 'min-day': 1, 'max-day': tx.stop ? tx.d2 : n, 'range-to': tx.stop ? tx.d2 : n });
+        if (tx.stop) h += f('xD2', 'آخر يوم استخدم الخدمة', tx.d2, { 'min-day': isFirst() ? tx.d1 : 1, 'max-day': n, 'range-from': isFirst() ? tx.d1 : 1 });
+        const at = tx.stop ? tx.d2 + '/' + plabel(p) + ' (آخر يوم استخدمها)' : n + '/' + plabel(p) + ' (آخر يوم بالشهر)';
+        return (isFirst() && tx.stop ? `<div class="cs-two">${h}</div>` : h) + `<p class="cs-autod">بينسجل بتاريخ ${N(at.split(' ')[0])} ${at.slice(at.indexOf(' ') + 1)} · ${subDays()} يوم من ${n}</p>`;
+    }
+    function subReset(keepAmt) {
+        const n = pdim(tx.p), np = nowP();
+        tx.d1 = 1; tx.d2 = pcmp(tx.p, np) === 0 ? new Date(D.today + 'T00:00:00').getDate() : n;
+        if (tx.d2 < tx.d1) tx.d2 = tx.d1;
+        if (!keepAmt) tx.manual = false;
+    }
+    function subPaint(full) {
+        $('xSubBar').innerHTML = subBar();
+        $('xDays').innerHTML = subDayFields();
+        const d = tx.sub.added[pkey(tx.p)];
+        $('txDup').hidden = !d;
+        if (d) $('txDupTxt').textContent = `شهر ${plabel(tx.p)} انضاف قبل لهالخدمة. متأكد بدك تضيفه مرة ثانية؟`;
+        if (!tx.manual && curOf($('xCur').value).code === 'ILS') $('xAmt').value = String(subSugg());
+        if (tx.noteAuto) $('xNotes').value = subNote();
+        $('xPeriod').value = pkey(tx.p);
+        $('xStartDay').value = isFirst() ? tx.d1 : '';
+        $('xEndDay').value = tx.stop ? tx.d2 : '';
+        $('xStopIn').value = tx.stop ? 1 : 0;
+        $('xAgain').value = d ? 1 : 0;
+        $('xStopNote').hidden = !tx.stop;
+        void full;
+        check();
+    }
+
     function openTx(kind, opt) {
         const K = KIND[kind];
         tx = { kind, opt };
-        let title = K.title, fields = '', hid = '';
+        let title = K.title, fields = '', hid = '', action = K.url;
         const partyKey = 'client:' + D.client.id;
         if (kind === 'service' && opt.free) {
             title = 'خدمة · أخرى';
             hid = hidden('client_id', D.client.id);
             fields = '<div class="cl-field"><label for="xWhat">شو الخدمة</label><input id="xWhat" name="title" maxlength="255" placeholder="عنوان لهالزبون بس"></div>'
-                + moneyFields(K.amtLabel) + dateField(K.date);
+                + moneyFields(K.amtLabel) + dateField(K.date) + notesField();
         } else if (kind === 'service') {
             const t = L.serviceTypes.find((x) => x.id === opt.typeId);
             title = 'خدمة · ' + t.name;
-            hid = hidden('client_id', D.client.id) + hidden('service_type_id', t.id);
-            fields = billSeg('once') + (t.phases ? '<div class="cl-field"><label>نوع الشغل <small>(اختياري)</small></label><div class="cl-seg cs-phase" id="xPhase">'
-                + [['both', 'تصميم وتنفيذ'], ['design', 'تصميم'], ['execution', 'تنفيذ']].map(([v, l]) => `<button type="button" data-p="${v}">${l}</button>`).join('')
-                + '</div><input type="hidden" name="work_phase" id="xPhaseIn" value=""></div>' : '')
-                + moneyFields(K.amtLabel) + dateField(K.date);
-        } else if (kind === 'sub') {
-            const t = L.serviceTypes.find((x) => x.id === opt.typeId);
-            title = 'اشتراك شهري · ' + t.name;
-            hid = hidden('client_id', D.client.id) + hidden('service_type_id', t.id);
-            fields = billSeg('sub') + cpMonthlySheet.fields({ amtLabel: 'الاتفاق الشهري' });
+            tx.type = t;
+            tx.sub = subOf(t.id);
+            if (tx.sub) {
+                action = tx.sub.url;
+                tx.p = firstMissing(tx.sub); tx.stop = false; tx.noteAuto = true; subReset();
+                hid = '<input type="hidden" name="period" id="xPeriod"><input type="hidden" name="start_day" id="xStartDay"><input type="hidden" name="end_day" id="xEndDay"><input type="hidden" name="stop" id="xStopIn" value="0"><input type="hidden" name="again" id="xAgain" value="0">';
+                fields = '<div class="cs-subbar" id="xSubBar"></div>' + moneyFields(K.amtLabel) + '<div id="xDays"></div>' + notesField()
+                    + '<label class="cs-stopt"><input type="checkbox" id="xStop"> هادا آخر شهر، الزبون وقّف الخدمة</label>'
+                    + `<p class="cs-autod" id="xStopNote" hidden>بعد الحفظ بتنشال «${esc(t.name)}» من اشتراكاته، والحركات القديمة بتضل.</p>`;
+            } else {
+                hid = hidden('client_id', D.client.id) + hidden('service_type_id', t.id);
+                fields = (t.phases ? '<div class="cl-field"><label>نوع الشغل <small>(اختياري)</small></label><div class="cl-seg cs-phase" id="xPhase">'
+                    + [['both', 'تصميم وتنفيذ'], ['design', 'تصميم'], ['execution', 'تنفيذ']].map(([v, l]) => `<button type="button" data-p="${v}">${l}</button>`).join('')
+                    + '</div><input type="hidden" name="work_phase" id="xPhaseIn" value=""></div>' : '')
+                    + moneyFields(K.amtLabel) + dateField(K.date) + notesField();
+            }
         } else if (kind === 'refund') {
             const opts = L.methods.map((p) => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
             hid = hidden('party_key', partyKey) + hidden('fund_id', L.fundId) + hidden('name', D.client.title) + hidden('kind', 'refund');
             fields = `<div class="cl-field"><label for="xMethod">طلع من</label><select id="xMethod" name="payment_method_id" class="cs-sel">${opts}</select></div>`
-                + moneyFields(K.amtLabel) + dateField(K.date);
+                + moneyFields(K.amtLabel) + dateField(K.date) + notesField();
         } else if (kind === 'payment') {
             const p = L.methods.find((x) => x.id === opt.methodId);
             title = 'دفعة · ' + p.name;
             hid = hidden('party_key', partyKey) + hidden('fund_id', L.fundId) + hidden('payment_method_id', p.id) + hidden('name', D.client.title);
-            fields = moneyFields(K.amtLabel) + dateField(K.date);
+            fields = moneyFields(K.amtLabel) + dateField(K.date) + notesField();
         } else if (kind === 'discount' || kind === 'goods') {
             hid = hidden('party_key', partyKey) + hidden('party_type', 'client') + hidden('party_id', D.client.id) + hidden('category', kind === 'goods' ? 'other' : 'discount');
             fields = (kind === 'goods' ? '<div class="cl-field"><label for="xWhat">شو أخدنا</label><input id="xWhat" name="title" maxlength="255" placeholder="مثلاً: كرتونة مياه"></div>' : '')
-                + moneyFields(K.amtLabel) + dateField(K.date);
+                + moneyFields(K.amtLabel) + dateField(K.date) + notesField();
         } else if (kind === 'memo') {
             hid = hidden('party_key', partyKey) + hidden('party_type', 'client') + hidden('party_id', D.client.id) + hidden('reason', 'opening');
             fields = `<div class="cl-field"><label>الرصيد</label><div class="cl-seg cs-dir" id="xDir">
                     <button type="button" class="on" data-d="owed_to_us">عليه</button><button type="button" data-d="owed_by_us">إله</button></div>
                     <input type="hidden" name="direction" id="xDirIn" value="owed_to_us"></div>`
-                + `<div class="cs-two"><div class="cl-field"><label for="xAmt">المبلغ</label><input id="xAmt" name="amount" inputmode="decimal" dir="ltr" placeholder="0.00"></div>
-                    <div class="cl-field"><label for="xCur">العملة</label><select id="xCur" name="currency_id">${L.currencies.map((c) => `<option value="${c.id}" data-code="${esc(c.code)}">${esc(c.code)} ${esc(c.symbol)}</option>`).join('')}</select></div></div>`
-                + dateField(K.date);
+                + moneyFields(K.amtLabel, true) + dateField(K.date) + notesField();
         }
-        fields += '<div class="cl-field"><label for="xNotes">ملاحظات</label><textarea id="xNotes" name="notes" rows="2" placeholder="اختياري"></textarea></div>';
         $('txTitle').textContent = title;
         $('txHidden').innerHTML = hid;
         $('txFields').innerHTML = fields;
-        $('txForm').action = K.url;
+        $('txForm').action = action;
         $('txSave').disabled = true;
+        $('txSave').textContent = 'احفظ';
         $('txSheet').hidden = false;
-        if (kind === 'sub') {
-            // الشهري (صورة نسخة 5، 11/11/2026): أول شهر من قائمة + يوم البداية + مبلغ أول شهر قابل للتعديل
-            const t = L.serviceTypes.find((x) => x.id === opt.typeId);
-            let m = null;
-            m = cpMonthlySheet.wire({ today: D.today, amount: t && (t.price || t.last) ? String(t.price || t.last) : '', amtLabel: 'الاتفاق الشهري', fromLabel: 'بلّشنا يوم', listName: 'الخدمات الشهرية',
-                onChange: () => { $('txSave').disabled = !(m && m.valid()); } });
-            $('txFields').addEventListener('input', () => { $('txSave').disabled = !m.valid(); });
-            $('txSave').disabled = !m.valid();
-            $('txAfter').innerHTML = ''; $('txDup').hidden = true;
-            const bill = $('xBill');
-            if (bill) bill.addEventListener('click', (e) => { const b = e.target.closest('[data-b]'); if (b && !b.classList.contains('on')) openTx('service', { typeId: tx.opt.typeId }); });
-            setTimeout(() => $('mAmt').focus(), 30);
-            return;
-        }
         wireTx();
-        setTimeout(() => ($('xWhat') || $('xAmt')).focus(), 30);
+        if (tx.sub) subPaint(true);
+        setTimeout(() => { const f = $('xWhat') || $('xAmt'); f.focus(); if (tx && tx.sub) f.select(); }, 30);
+    }
+    function setCur(id) {
+        const c = curOf(id);
+        $('xCur').value = c.id;
+        $('xCurS').textContent = c.symbol;
+        $('xCurM').querySelectorAll('[data-cur]').forEach((b) => b.classList.toggle('on', +b.dataset.cur === +c.id));
+        const w = $('xRateWrap');
+        if (w) {
+            const fx = c.code !== 'ILS';
+            w.hidden = !fx;
+            if (fx) { $('xRate').value = sysRate(c.id) || ''; $('xRate').previousElementSibling.textContent = 'سعر صرف ' + ({ USD: 'الدولار', JOD: 'الدينار' }[c.code] || c.code); }
+        }
+    }
+    function paintHint() {
+        const h = $('xHint');
+        if (!h || !tx) return;
+        const ils = curOf($('xCur').value).code === 'ILS';
+        const a = parseFloat($('xAmt').value) || 0;
+        let html = '';
+        if (tx.sub) {
+            const s = subSugg(), n = pdim(tx.p), d = subDays(), part = d < n;
+            const same = ils && Math.abs(a - s) < 0.005;
+            const calc = part ? `${N(num(tx.sub.amount))} ÷ ${n} يوم × ${d} يوم = ${N(num(s) + ' ₪')}` : `مبلغ الاشتراك: ${N(num(tx.sub.amount) + ' ₪')}`;
+            html = same ? (part ? 'الشهر مش كامل: ' + calc : '') : `${part ? 'المقترح: ' : ''}${calc} · <button type="button" class="cp-use" data-use="${s}">استخدمه</button>`;
+        } else if (tx.type) {
+            const v = tx.type.last ?? tx.type.price;
+            if (v != null && !(ils && Math.abs(a - v) < 0.005)) html = `${tx.type.last != null ? 'آخر مرة لهالزبون' : 'السعر المعتاد'}: ${N(num(v) + ' ₪')} · <button type="button" class="cp-use" data-use="${v}">استخدمه</button>`;
+        } else if (tx.kind === 'payment') {
+            const v = balanceBy('ILS');
+            if (v > 0.005 && !(ils && Math.abs(a - v) < 0.005)) html = `عليه ${N(num(v) + ' ₪')} · <button type="button" class="cp-use" data-use="${v.toFixed(2)}">عبّي الكل</button>`;
+        }
+        h.innerHTML = html;
     }
     function wireTx() {
-        const cur = $('xCur');
-        const curCode = () => cur.selectedOptions[0].dataset.code;
-        if ((tx.kind === 'service' || tx.kind === 'sub') && tx.opt.typeId) {
-            const t = L.serviceTypes.find((x) => x.id === tx.opt.typeId);
-            if (t.last) $('xHint').textContent = 'آخر سعر لهالزبون: ' + num(t.last);
-            else if (t.price) $('xHint').textContent = 'السعر المعتاد: ' + num(t.price);
-            if (tx.kind === 'sub' && !$('xAmt').value && (t.price || t.last)) $('xAmt').value = String(t.price || t.last);
-        }
-        if (tx.kind === 'payment') {
-            const v = balanceBy('ILS');
-            if (v > 0.005) $('xHint').innerHTML = `عليه ${num(v)} ₪ · <button type="button" class="cs-fill" id="xFill">عبّي الكل</button>`;
-        }
+        setCur(L.ilsId);
         const ph = $('xPhase');
         if (ph) ph.addEventListener('click', (e) => { const b = e.target.closest('[data-p]'); if (!b) return; const off = b.classList.contains('on'); ph.querySelectorAll('button').forEach((x) => x.classList.toggle('on', !off && x === b)); $('xPhaseIn').value = off ? '' : b.dataset.p; });
         const dir = $('xDir');
         if (dir) dir.addEventListener('click', (e) => { const b = e.target.closest('[data-d]'); if (!b) return; dir.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); $('xDirIn').value = b.dataset.d; check(); });
-        cur.addEventListener('change', () => {
-            const fx = curCode() !== 'ILS';
-            if ($('xRateWrap')) { $('xRateL').textContent = 'سعر صرف ' + ({ USD: 'الدولار', JOD: 'الدينار', ILS: 'الشيكل' }[(cur.selectedOptions[0] && cur.selectedOptions[0].dataset.code) || ''] || 'العملة'); $('xRateWrap').hidden = !fx; if (fx && !$('xRate').value) { const r = L.rates[cur.value]; if (r) $('xRate').value = r; } }
+        const F = $('txFields');
+        F.addEventListener('click', (e) => {
+            if (e.target.closest('#xCurB')) { e.stopPropagation(); $('xCurM').hidden = !$('xCurM').hidden; return; }
+            const c = e.target.closest('[data-cur]');
+            if (c) { $('xCurM').hidden = true; setCur(c.dataset.cur); if (tx.sub) tx.manual = true; check(); $('xAmt').focus(); return; }
+            const u = e.target.closest('[data-use]');
+            if (u) { setCur(L.ilsId); $('xAmt').value = u.dataset.use; if (tx.sub) tx.manual = false; check(); $('xAmt').focus(); return; }
+            if (e.target.closest('[data-rate-sys]')) { $('xRate').value = sysRate($('xCur').value); check(); return; }
+            if (!tx.sub) return;
+            const mv = e.target.closest('[data-mv]');
+            if (mv) { tx.p = padd(tx.p, +mv.dataset.mv); subReset(); subPaint(); return; }
+            const gm = e.target.closest('[data-gm]');
+            if (gm) { const [y, m] = gm.dataset.gm.split('-').map(Number); tx.p = [y, m - 1]; subReset(); subPaint(); }
+        });
+        F.addEventListener('change', (e) => { if (e.target.id === 'xStop') { tx.stop = e.target.checked; const d1 = tx.d1; subReset(); tx.d1 = d1; if (tx.d2 < tx.d1) tx.d2 = tx.d1; subPaint(); } });
+        F.addEventListener('input', (e) => {
+            const id = e.target.id;
+            if (tx.sub && (id === 'xD1' || id === 'xD2')) {
+                const p = cpDate.parse(e.target.value);
+                if (p && p[0] === tx.p[0] && p[1] === tx.p[1]) {
+                    if (id === 'xD1') tx.d1 = Math.min(tx.stop ? tx.d2 : pdim(tx.p), p[2]); else tx.d2 = Math.max(isFirst() ? tx.d1 : 1, p[2]);
+                    const keep = document.activeElement && document.activeElement.id;
+                    const sel = keep === id ? [e.target.selectionStart, e.target.selectionEnd] : null;
+                    subPaint();
+                    if (sel) { const el = $(id); el.focus(); el.setSelectionRange(sel[0], sel[1]); }
+                }
+                return;
+            }
+            if (tx.sub && id === 'xAmt') tx.manual = true;
+            if (tx.sub && id === 'xNotes') tx.noteAuto = false;
             check();
         });
-        if ($('xToday')) $('xToday').addEventListener('click', () => { $('xDate').value = dayLabel(D.today); check(); });
-        if ($('xPick')) $('xPick').addEventListener('change', () => { if ($('xPick').value) $('xDate').value = dayLabel($('xPick').value); check(); });
-        const bill = $('xBill');
-        if (bill) bill.addEventListener('click', (e) => { const b = e.target.closest('[data-b]'); if (b && !b.classList.contains('on')) openTx(b.dataset.b === 'sub' ? 'sub' : 'service', { typeId: tx.opt.typeId }); });
-        ['xMonth', 'xMode', 'xDay'].forEach((id) => { if ($(id)) $(id).addEventListener('change', () => { if (id === 'xMode') $('xDayWrap').hidden = $('xMode').value !== 'mid'; check(); }); });
-        $('txFields').addEventListener('input', check);
-        const fill = $('xFill'); if (fill) fill.addEventListener('click', () => { $('xAmt').value = balanceBy('ILS').toFixed(2); check(); });
-        check();
+        F.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && ['xAmt', 'xRate', 'xDate', 'xD1', 'xD2'].includes(e.target.id)) { e.preventDefault(); if (!$('txSave').disabled) $('txForm').requestSubmit(); }
+        });
     }
+    document.addEventListener('click', (e) => { const m = $('xCurM'); if (m && !m.hidden && !e.target.closest('.cp-cur')) m.hidden = true; });
     function parseDay(v) {
-        const m = String(v).trim().replace(/[٠-٩]/g, (d) => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
-        if (!m) return null;
-        const dt = new Date(+m[3], +m[2] - 1, +m[1]);
-        return dt.getMonth() === +m[2] - 1 ? iso(dt) : null;
+        const p = cpDate.parse(v);
+        return p ? iso(new Date(p[0], p[1], p[2])) : null;
     }
     function ilsAmount() {
         const a = parseFloat($('xAmt').value);
         if (!(a > 0)) return 0;
-        const code = $('xCur').selectedOptions[0].dataset.code;
+        const code = curOf($('xCur').value).code;
         if (code === 'ILS' || tx.kind === 'memo') return a;
         return a * (parseFloat(($('xRate') || {}).value) || 0);
     }
     function check() {
         if (!tx || !$('xCur')) return;
-        const code = $('xCur').selectedOptions[0].dataset.code;
-        const fx = code !== 'ILS' && tx.kind !== 'memo';
+        const c = curOf($('xCur').value);
+        const fx = c.code !== 'ILS' && tx.kind !== 'memo';
         const a = parseFloat($('xAmt').value);
         const ils = ilsAmount();
-        const day = parseDay($('xDate').value);
+        const day = tx.sub ? true : parseDay($('xDate').value);
         if ($('xDateErr')) $('xDateErr').hidden = !!day || $('xDate').value.length < 6;
         if (tx.kind !== 'memo') {
             $('xAmtIls').value = fx ? '' : ($('xAmt').value || '');
             $('xAmtSrc').value = fx ? ($('xAmt').value || '') : '';
-            if (fx && ils) $('xIls').textContent = '= ' + num(ils) + ' ₪';
+            if ($('xIls')) $('xIls').innerHTML = fx && ils ? '= <b>' + N(num(ils) + ' ₪') + '</b>' : '';
+            if ($('xRateSys')) {
+                const sr = sysRate(c.id), cur = parseFloat($('xRate').value);
+                $('xRateSys').innerHTML = !sr || Math.abs(cur - sr) < 1e-9 ? 'السعر العالمي' : '<button type="button" class="cp-use" data-rate-sys="1" title="رجّع السعر العالمي">↺ السعر العالمي</button>';
+            }
         }
         let sign = KIND[tx.kind].sign;
         if (tx.kind === 'memo') sign = $('xDirIn').value === 'owed_to_us' ? 1 : -1;
-        const cur = tx.kind === 'memo' ? code : 'ILS';
-        const after = balanceBy(cur) + sign * ils;
-        $('txAfter').innerHTML = ils && tx.kind !== 'sub' ? 'الرصيد بعدها: ' + balCell(after, cur) : '';
-        // تنبيه التكرار: نفس النوع ونفس المبلغ خلال ±3 أيام
-        let dup = null;
-        if (ils && day && tx.kind !== 'sub') {
-            const group = { service: 'svc', payment: 'pay' }[tx.kind] || 'other';
-            const dd = new Date(day + 'T00:00:00');
-            dup = M.find((m) => m.group === group && Math.abs(Math.abs(m.delta) - ils) < 0.005
-                && Math.abs((new Date(m.date + 'T00:00:00') - dd) / 864e5) <= 3);
+        const cur = tx.kind === 'memo' ? c.code : 'ILS';
+        const nowV = balanceBy(cur), after = nowV + sign * ils;
+        const box = (lab, v) => { const cls = Math.abs(v) < 0.005 ? 'zero' : (v > 0 ? 'due' : 'credit'); return `<span class="cs-bl"><span>${lab}</span><b class="${cls}">${cls === 'zero' ? 'مسدّد' : N(num(v) + ' ' + esc(sym(cur)))}</b></span>`; };
+        $('txAfter').innerHTML = box('رصيده هلأ', nowV) + (ils ? box(KIND[tx.kind].after, after) : '');
+        paintHint();
+        // تنبيه التكرار: نفس النوع ونفس المبلغ خلال ±3 أيام (الاشتراك إله تنبيه الشهر بداله).
+        if (!tx.sub) {
+            let dup = null;
+            if (ils && day) {
+                const group = { service: 'svc', payment: 'pay' }[tx.kind] || 'other';
+                const dd = new Date(day + 'T00:00:00');
+                dup = M.find((m) => m.group === group && Math.abs(Math.abs(m.delta) - ils) < 0.005
+                    && Math.abs((new Date(m.date + 'T00:00:00') - dd) / 864e5) <= 3);
+            }
+            $('txDup').hidden = !dup;
+            if (dup) $('txDupTxt').textContent = `في حركة بنفس المبلغ بتاريخ ${dayLabel(dup.date)}: ${dup.title}. تأكد إنها مش مكررة.`;
+        } else {
+            const d = tx.sub.added[pkey(tx.p)];
+            $('txSave').textContent = tx.stop ? 'أضف آخر شهر ووقّف' : (d ? 'أضيفه مرة ثانية' : 'أضف شهر ' + plabel(tx.p));
         }
-        $('txDup').hidden = !dup;
-        if (dup) $('txDupTxt').textContent = `في حركة بنفس المبلغ بتاريخ ${dayLabel(dup.date)}: ${dup.title}. تأكد إنها مش مكررة.`;
         const okWhat = !$('xWhat') || $('xWhat').value.trim().length > 0;
         const okRate = !fx || parseFloat(($('xRate') || {}).value) > 0;
         $('txSave').disabled = !(a > 0 && day && okWhat && okRate);
-    }
-    // طريقة الفوترة أول اختيار بنافذة الخدمة، والافتراضي «لمرة وحدة»
-    function billSeg(on) {
-        return `<div class="cl-field"><label>طريقة الفوترة</label><div class="cl-seg" id="xBill">
-            <button type="button" data-b="once"${on === 'once' ? ' class="on"' : ''}>لمرة وحدة</button>
-            <button type="button" data-b="sub"${on === 'sub' ? ' class="on"' : ''}>اشتراك شهري</button></div></div>`;
     }
     function closeTx() { $('txSheet').hidden = true; tx = null; }
     $('txCancel').addEventListener('click', closeTx);
@@ -519,46 +620,9 @@
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('txSheet').hidden) closeTx(); });
     $('txForm').addEventListener('submit', (e) => {
         if ($('txSave').disabled) { e.preventDefault(); return; }
-        if (tx && tx.kind === 'sub') return;
+        if (tx && tx.sub) return;
         const day = parseDay($('xDate').value);
         $('xDate').value = dayLabel(day);
-    });
-
-    function renderSubs() {
-        const S = D.subscriptions || [];
-        $('csSubs').hidden = !S.length;
-        if (S.length && location.hash === '#csSubs') setTimeout(() => $('csSubs').scrollIntoView({ block: 'start' }), 50);
-        if (!S.length) return;
-        // الموقوف (إله آخر يوم شغل) ما بينعدّ فعّال، وبينعرض باهت تحت الفعّالين.
-        const active = S.filter((x) => !x.to).length;
-        $('csSubsN').textContent = active ? active + ' فعّال' : 'ما في اشتراك فعّال';
-        $('csSubsList').innerHTML = S.map((x) => {
-            const acts = (x.to ? '' : `<button type="button" data-sub-stop="${x.id}">وقّف</button>`)
-                + (x.months ? '' : `<button type="button" class="danger" data-sub-del="${x.id}">حذف</button>`);
-            return `<div class="st-row${x.to ? ' is-off' : ''}">
-            <div class="st-name"><b>${esc(x.title)} · ${num(x.amount)} ₪ شهرياً</b>
-            <span>من ${dayLabel(x.from)}${x.to ? ' · انوقف بآخر يوم شغل ' + dayLabel(x.to) : ''} · ${x.months} شهر مسجّل</span>
-            ${x.due ? `<a class="cs-sub-due" href="${esc(D.urls.clientsMonthly)}">${x.due === 1 ? 'في شهر' : 'في ' + x.due + ' شهور'} لسا ما انضاف ←</a>` : ''}</div>
-            ${acts ? `<div class="st-act"><button type="button" class="cl-more" aria-label="خيارات الاشتراك">⋯</button>
-            <div class="cl-menu" hidden>${acts}</div></div>` : ''}</div>`;
-        }).join('');
-    }
-    $('csSubsList').addEventListener('click', (e) => {
-        const more = e.target.closest('.cl-more');
-        if (more) { e.stopPropagation(); const m = more.nextElementSibling; const open = m.hidden; closeMenus(); m.hidden = !open; return; }
-        const st = e.target.closest('[data-sub-stop]');
-        if (st) {
-            closeMenus();
-            cpMonthlySheet.openStop(D.subscriptions.find((y) => y.id === +st.dataset.subStop), { today: D.today, noun: 'الاشتراك' });
-            return;
-        }
-        const dl = e.target.closest('[data-sub-del]');
-        if (dl) {
-            closeMenus();
-            const x = D.subscriptions.find((y) => y.id === +dl.dataset.subDel);
-            const ask = window.cpConfirm ? window.cpConfirm(`حذف الاشتراك «${x.title}»؟`) : Promise.resolve(window.confirm('حذف الاشتراك؟'));
-            ask.then((ok) => { if (ok) { const f = $('csDelForm'); f.action = x.delete; f.submit(); } });
-        }
     });
 
 
@@ -572,7 +636,6 @@
         if (range && preset === 'custom') { $('csFrom').value = dayLabel(range.from); $('csTo').value = dayLabel(range.to); }
     }
     if (window.cpKeep) cpKeep.track(() => ({ view, cType, sub: [...sub], preset, range }));
-    renderSubs();
     renderBalance();
     render();
     /* ——— التسجيل السريع: فتح نفس نافذة الحركة (§11) ——— */

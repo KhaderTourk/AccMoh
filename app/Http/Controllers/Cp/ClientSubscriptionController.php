@@ -57,6 +57,85 @@ class ClientSubscriptionController extends Controller
             ->with('success', 'انضاف الاشتراك. أول شهر'.($days < $inMonth ? " ({$days} يوم من {$inMonth})" : '').' بيطلع بفلتر «الخدمات الشهرية» عشان تضيفه.');
     }
 
+    /**
+     * إضافة شهر من نافذة «+ خدمة» لما الخدمة اشتراك عند الزبون (قرار 18، 15/11/2026):
+     * «عن شهر» لحاله، والحركة بآخر يوم بالشهر (حتى أول شهر)، إلا آخر شهر فبيوم ما وقف.
+     * أول شهر: «بلّشنا معه يوم» بيصير بداية الاشتراك. آخر شهر: «آخر يوم استخدم الخدمة» بيوقّف الاشتراك.
+     * «أضيفه مرة ثانية» لشهر انضاف قبل بتنسجل خدمة عادية مش مربوطة بالشهر.
+     */
+    public function addMonth(Request $request, ClientSubscription $subscription, ClientWorkService $work)
+    {
+        $currency = Currency::query()->find($request->input('currency_id'));
+        $isFx = $currency && $currency->code !== 'ILS';
+        $data = $request->validate([
+            'period' => ['required', 'regex:/^\d{4}-\d{2}$/'],
+            'amount' => [$isFx ? 'nullable' : 'required', 'numeric', 'gt:0'],
+            'source_amount' => [$isFx ? 'required' : 'nullable', 'numeric', 'gt:0'],
+            'exchange_rate' => [$isFx ? 'required' : 'nullable', 'numeric', 'gt:0'],
+            'currency_id' => ['required', 'exists:currencies,id'],
+            'start_day' => ['nullable', 'integer', 'between:1,31'],
+            'stop' => ['nullable', 'boolean'],
+            'end_day' => ['nullable', 'required_if:stop,1', 'integer', 'between:1,31'],
+            'again' => ['nullable', 'boolean'],
+            'notes' => ['nullable', 'string'],
+        ]);
+        $period = $data['period'];
+        $first = CarbonImmutable::createFromFormat('Y-m-d', $period.'-01')->startOfDay();
+        $last = $first->endOfMonth()->startOfDay();
+        $inMonth = (int) $last->format('j');
+        $startDay = filled($data['start_day'] ?? null) ? min($inMonth, (int) $data['start_day']) : null;
+        $stop = $request->boolean('stop');
+        $endDay = $stop ? min($inMonth, max($startDay ?? 1, (int) $data['end_day'])) : null;
+
+        $linked = $subscription->months()->where('period', $period)->exists();
+        if ($linked && ! $request->boolean('again')) {
+            throw ValidationException::withMessages(['period' => 'شهر '.ClientSubscription::periodLabel($period).' انضاف قبل لهالخدمة.']);
+        }
+
+        $hydrated = \App\Support\PaymentFx::hydrate([
+            'currency_id' => $data['currency_id'],
+            'amount' => $data['amount'] ?? null,
+            'source_amount' => $isFx ? ($data['source_amount'] ?? $data['amount'] ?? null) : null,
+            'exchange_rate' => $data['exchange_rate'] ?? null,
+        ]);
+
+        DB::transaction(function () use ($subscription, $work, $data, $hydrated, $period, $first, $last, $startDay, $stop, $endDay, $linked) {
+            // أول شهر (أو شهر قبل بداية الاشتراك): بداية الاشتراك بتصير يوم البداية بهالشهر.
+            if ($startDay !== null || $first->toDateString() < $subscription->starts_on->toDateString()) {
+                $subscription->update(['starts_on' => $first->day($startDay ?? 1)->toDateString()]);
+            }
+            $date = $last;
+            if ($stop) {
+                $date = $first->day($endDay);
+                $subscription->update(['ends_on' => $date->toDateString()]);
+                foreach ($subscription->months()->where('period', '>', $period)->get() as $later) {
+                    $work->delete($later);
+                }
+            }
+            $service = $work->create([
+                'client_id' => $subscription->client_id,
+                'service_type_id' => $subscription->service_type_id,
+                'title' => $subscription->title,
+                'amount' => $hydrated['amount'] ?? ($data['amount'] ?? null),
+                'currency_id' => $hydrated['currency_id'],
+                'fx_currency_id' => $hydrated['fx_currency_id'] ?? null,
+                'source_amount' => $hydrated['source_amount'] ?? null,
+                'exchange_rate' => $hydrated['exchange_rate'] ?? null,
+                'service_date' => $date->toDateString(),
+                'notes' => $data['notes'] ?? null,
+                'status' => \App\Enums\ClientServiceStatus::Completed->value,
+            ]);
+            if (! $linked) {
+                $service->forceFill(['subscription_id' => $subscription->id, 'period' => $period])->save();
+            }
+        });
+
+        $label = ClientSubscription::periodLabel($period);
+
+        return redirect()->route('cp.clients.show', $subscription->client_id)
+            ->with('success', $stop ? "انضاف آخر شهر ({$label}) وانوقف الاشتراك." : "انضاف شهر {$label}.");
+    }
+
     /** بيسجّل خدمة شهر من الاشتراك على كشف الزبون، إذا مش مسجّلة. */
     protected function recordMonth(ClientSubscription $sub, string $period, string $amount, ClientWorkService $work): bool
     {
