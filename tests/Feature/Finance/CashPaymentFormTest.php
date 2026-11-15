@@ -34,8 +34,14 @@ class CashPaymentFormTest extends TestCase
 
     public function test_roles_nav_item_is_hidden(): void
     {
+        // «المستخدمون» صار تاب بالإعدادات (15/11/2026)، مش بالقائمة الجانبية.
         $this->actingAs($this->user)
             ->get(route('cp.dashboard'))
+            ->assertOk()
+            ->assertDontSee('الأدوار والصلاحيات');
+
+        $this->actingAs($this->user)
+            ->get(route('cp.settings.index'))
             ->assertOk()
             ->assertSee('المستخدمون')
             ->assertDontSee('الأدوار والصلاحيات');

@@ -8,6 +8,10 @@
     <link rel="manifest" href="{{ asset('manifest.webmanifest') }}">
     <title>@yield('title', 'الرئيسية') — حسابات براند</title>
     <script>
+        // القائمة المضمومة (أيقونات بس) بتنحفظ عالجهاز وبتنطبق قبل الرسم
+        try { if (localStorage.getItem('cp-side-mini') === '1') document.documentElement.classList.add('bs-mini'); } catch (e) {}
+    </script>
+    <script>
         // الثيم يُطبق قبل الرسم حتى لا يظهر وميض أبيض في الوضع الليلي
         (function () {
             try {
@@ -100,59 +104,48 @@
             $bsOn = fn (...$r) => request()->routeIs(...$r) ? 'on' : '';
             $bsBiz = cpCan('finance') && tenantBusinessEnabled();
             $bsUser = auth()->user();
-            // آخر القائمة زي الصورة المعتمدة: التحويلات والإعدادات. باقي الصفحات تحت «صفحات ثانية» عشان تضل موجودة.
-            $bsApiPending = cpCan('finance') ? \App\Models\ApiOperation::query()->pending()->where('created_at', '>=', now()->subDay())->count() : 0;
+            // الجوال: سجل الحركات والتقارير بشاشة «المزيد». عمليات الـ API ووضع عدم الاتصال والمستخدمين انشالوا من القوائم (15/11/2026):
+            // عدم الاتصال صار غيمة بكرت الحساب، والمستخدمين تاب بالإعدادات، والـAPI صفحتها باقية بالكود للتطبيق.
             $bsExtra = [];
             if (cpCan('finance')) {
                 $bsExtra[] = ['ledger', 'سجل الحركات', route('cp.ledger.index'), $bsOn('cp.ledger.*')];
                 $bsExtra[] = ['reports', 'التقارير', route('cp.reports.index'), $bsOn('cp.reports.*')];
-                $bsExtra[] = ['api', 'عمليات الـ API', route('cp.api-operations.index'), $bsOn('cp.api-operations.*')];
             }
-            $bsExtra[] = ['offline', 'وضع عدم الاتصال', route('cp.offline'), $bsOn('cp.offline')];
-            if (cpCan('users')) {
-                $bsExtra[] = ['users', 'المستخدمون', route('cp.users.index'), $bsOn('cp.users.*')];
-            }
-            $bsExtraOpen = request()->routeIs('cp.ledger.*', 'cp.reports.*', 'cp.api-operations.*', 'cp.offline', 'cp.users.*');
+            $bsLink = function (string $url, string $icon, string $label, string $on) {
+                return '<a href="'.e($url).'" class="bs-link '.$on.'" data-tip="'.e($label).'">'
+                    .view('cp.partials.bs-icon', ['name' => $icon])->render()
+                    .'<span class="bs-lbl">'.e($label).'</span></a>';
+            };
         @endphp
+        {{-- القائمة الجانبية (معتمدة 15/11/2026): بطول الشاشة، وكرت الحساب ثابت بآخرها.
+             الرئيسية، ثم «الحسابات» (الأدراج، التحويلات، سجل الحركات، التقارير)، «الشغل»، «الشخصي». الإعدادات صارت ترس بكرت الحساب.
+             زر جنب الشعار بيضمّها لأيقونات بس، والاختيار بينحفظ عالجهاز. --}}
         <aside id="cp-sidebar" class="bs-side" aria-label="القائمة الجانبية">
-            <a href="{{ route('cp.dashboard') }}" class="bs-logo">
-                <img src="{{ asset('assets/icons/brand-logo.png') }}" alt="براند" width="34" height="34">
-                <span>براند<small>نظام الإدارة المالية</small></span>
-            </a>
-            {{-- القائمة الجانبية (14/11/2026): التحويلات و«المزيد» فوق جنب الأدراج، «الشغل» و«الشخصي» عناوين صغيرة بدون أيقونة والأيقونات للصفحات، وتحت الخط الإعدادات بس. --}}
-            <a href="{{ route('cp.dashboard') }}" class="bs-link {{ $bsOn('cp.dashboard') }}">@include('cp.partials.bs-icon', ['name' => 'home'])الرئيسية</a>
+            <div class="bs-top">
+                <a href="{{ route('cp.dashboard') }}" class="bs-logo">
+                    <img src="{{ asset('assets/icons/brand-logo.png') }}" alt="براند" width="34" height="34">
+                    <span>براند<small>نظام الإدارة المالية</small></span>
+                </a>
+                <button type="button" class="bs-fold" data-side-fold aria-label="ضمّ القائمة" title="ضمّ القائمة">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M15 4v16"/></svg>
+                </button>
+            </div>
+            {!! $bsLink(route('cp.dashboard'), 'home', 'الرئيسية', $bsOn('cp.dashboard')) !!}
             @if(cpCan('finance'))
-            <a href="{{ route('cp.balances.index') }}" class="bs-link {{ $bsOn('cp.balances.*') }}">@include('cp.partials.bs-icon', ['name' => 'drawers'])الأدراج والأرصدة</a>
-            <a href="{{ route('cp.transfers.index') }}" class="bs-link {{ $bsOn('cp.transfers.*') }}">@include('cp.partials.bs-icon', ['name' => 'transfer'])التحويلات</a>
-            @endif
-            <details class="bs-extra" {{ $bsExtraOpen ? 'open' : '' }}>
-                <summary class="bs-link">@include('cp.partials.bs-icon', ['name' => 'more'])المزيد<span id="cp-offline-badge" class="bs-badge hidden">0</span></summary>
-                <div class="bs-sub">
-                    @foreach($bsExtra as [$ic, $label, $url, $on])
-                    <a href="{{ $url }}" class="bs-link {{ $on }}">
-                        {{ $label }}
-                        @if($ic === 'api' && $bsApiPending)
-                        <span class="bs-badge" title="عمليات آخر 24 ساعة">{{ $bsApiPending }}</span>
-                        @endif
-                    </a>
-                    @endforeach
-                </div>
-            </details>
-            @if(cpCan('finance'))
+            <div class="bs-sec">الحسابات</div>
+            {!! $bsLink(route('cp.balances.index'), 'drawers', 'الأدراج والأرصدة', $bsOn('cp.balances.*')) !!}
+            {!! $bsLink(route('cp.transfers.index'), 'transfer', 'التحويلات', $bsOn('cp.transfers.*')) !!}
+            {!! $bsLink(route('cp.ledger.index'), 'ledger', 'سجل الحركات', $bsOn('cp.ledger.*')) !!}
+            {!! $bsLink(route('cp.reports.index'), 'reports', 'التقارير', $bsOn('cp.reports.*')) !!}
             @if($bsBiz)
             <div class="bs-sec">الشغل</div>
-            <a href="{{ route('cp.clients.index') }}" class="bs-link {{ $bsOn('cp.clients.*', 'cp.client-services.*') }}">@include('cp.partials.bs-icon', ['name' => 'clients'])الزبائن</a>
-            <a href="{{ route('cp.workers.index') }}" class="bs-link {{ $bsOn('cp.workers.*') }}">@include('cp.partials.bs-icon', ['name' => 'workers'])الموظفين</a>
-            <a href="{{ route('cp.suppliers.index') }}" class="bs-link {{ $bsOn('cp.suppliers.*') }}">@include('cp.partials.bs-icon', ['name' => 'suppliers'])الموردين</a>
-            <a href="{{ route('cp.ads.index') }}" class="bs-link {{ $bsOn('cp.ads.*') }}">@include('cp.partials.bs-icon', ['name' => 'ads'])الإعلانات الممولة</a>
+            {!! $bsLink(route('cp.clients.index'), 'clients', 'الزبائن', $bsOn('cp.clients.*', 'cp.client-services.*')) !!}
+            {!! $bsLink(route('cp.workers.index'), 'workers', 'الموظفين', $bsOn('cp.workers.*')) !!}
+            {!! $bsLink(route('cp.suppliers.index'), 'suppliers', 'الموردين', $bsOn('cp.suppliers.*')) !!}
+            {!! $bsLink(route('cp.ads.index'), 'ads', 'الإعلانات الممولة', $bsOn('cp.ads.*')) !!}
             @endif
             <div class="bs-sec">الشخصي</div>
-            <a href="{{ route('cp.persons.index') }}" class="bs-link {{ $bsOn('cp.persons.*') }}">@include('cp.partials.bs-icon', ['name' => 'person'])الأشخاص</a>
-            @endif
-            @if($bsBiz)
-            <div class="bs-foot">
-                <a href="{{ route('cp.settings.index') }}" class="bs-link {{ $bsOn('cp.settings.*') }}">@include('cp.partials.bs-icon', ['name' => 'gear'])الإعدادات</a>
-            </div>
+            {!! $bsLink(route('cp.persons.index'), 'person', 'الأشخاص', $bsOn('cp.persons.*')) !!}
             @endif
             @if($bsUser)
             @include('cp.partials.account-card')
@@ -298,13 +291,26 @@
             else if (localStorage.getItem('cp-theme') === 'light') document.documentElement.classList.remove('dark');
         })();
 
+        // ضمّ القائمة الجانبية لأيقونات بس
+        document.addEventListener('click', function (e) {
+            const b = e.target.closest && e.target.closest('[data-side-fold]');
+            if (!b) return;
+            const on = document.documentElement.classList.toggle('bs-mini');
+            try { localStorage.setItem('cp-side-mini', on ? '1' : '0'); } catch (err) {}
+            const t = on ? 'افتح القائمة' : 'ضمّ القائمة';
+            b.setAttribute('aria-label', t); b.setAttribute('title', t);
+        });
+
         // Offline status + Service Worker
         (function() {
+            // الغيمة بكرت الحساب (15/11/2026): مخفية وإنت متصل، بتطلع وردية لما ينقطع النت أو في حركات مستنية تترفع.
             function paintNet() {
                 const online = navigator.onLine;
-                document.querySelectorAll('[data-net]').forEach(function (el) {
-                    el.classList.toggle('is-off', !online);
-                    el.querySelector('span').textContent = online ? 'متصل' : 'بدون نت';
+                document.documentElement.classList.toggle('cp-net-off', !online);
+                document.querySelectorAll('[data-net-btn]').forEach(function (el) {
+                    const n = +(el.getAttribute('data-pending') || 0);
+                    const t = (online ? 'متصل' : 'النت مقطوع') + (n ? ' · ' + n + ' حركات مستنية' : '');
+                    el.setAttribute('data-tip', t); el.setAttribute('aria-label', 'وضع عدم الاتصال: ' + t);
                 });
                 document.querySelectorAll('[data-net-line] span').forEach(function (el) { el.textContent = online ? 'متصل' : 'بدون نت'; });
             }
@@ -317,8 +323,8 @@
             }
 
             // Pending outbox badge (best-effort) — must use same DB version + upgrade as cp-offline.js
-            const badge = document.getElementById('cp-offline-badge');
-            if (badge && window.indexedDB) {
+            const badges = document.querySelectorAll('[data-offline-count]');
+            if (badges.length && window.indexedDB) {
                 try {
                     const req = indexedDB.open('accma_offline', 2);
                     req.onupgradeneeded = function() {
@@ -341,8 +347,9 @@
                                 return i.status === 'pending' || i.status === 'failed';
                             }).length;
                             if (n > 0) {
-                                badge.textContent = String(n);
-                                badge.classList.remove('hidden');
+                                badges.forEach(function (b) { b.textContent = String(n); b.closest('[data-net-btn]')?.setAttribute('data-pending', String(n)); });
+                                document.documentElement.classList.add('cp-net-pending');
+                                paintNet();
                             }
                         };
                     };

@@ -73,32 +73,38 @@
         </div>
     </section>
 
-    {{-- القائمة الجانبية (14/11/2026) --}}
+    {{-- القائمة الجانبية (معتمدة 15/11/2026) --}}
     <section class="bl-sec" id="sg-sidebar">
-        <div class="bl-sh"><div><h2>القائمة الجانبية</h2><small>الصفحة المفتوحة وردي شفاف مع خط وردي يمين. «الشغل» و«الشخصي» عناوين صغيرة بدون أيقونة، والأيقونات للصفحات. تحت الخط الإعدادات بس. وقّف على أيقونات الكرت يطلع اسمها.</small></div></div>
+        <div class="bl-sh"><div><h2>القائمة الجانبية</h2><small>بطول الشاشة. الصفحة المفتوحة وردي شفاف مع خط وردي يمين. «الحسابات» و«الشغل» و«الشخصي» عناوين صغيرة بدون أيقونة، والأيقونات للصفحات. كرت الحساب ثابت تحت: الصورة والاسم بيفتحوا الإعدادات، والعين والهلال والترس تحت الاسم، والغيمة بتطلع بس بدون نت، والخروج مربع لحاله. زر جنب الشعار بيضمّها لأيقونات بس.</small></div></div>
         <div class="sg-side-wrap">
             <nav class="bs-side sg-side" aria-label="مثال القائمة الجانبية">
-                <a href="#sg-sidebar" class="bs-link">@include('cp.partials.bs-icon', ['name' => 'home'])الرئيسية</a>
-                <a href="#sg-sidebar" class="bs-link">@include('cp.partials.bs-icon', ['name' => 'drawers'])الأدراج والأرصدة</a>
-                <a href="#sg-sidebar" class="bs-link">@include('cp.partials.bs-icon', ['name' => 'transfer'])التحويلات</a>
-                <a href="#sg-sidebar" class="bs-link">@include('cp.partials.bs-icon', ['name' => 'more'])المزيد</a>
+                <a href="#sg-sidebar" class="bs-link " data-tip="الرئيسية">@include('cp.partials.bs-icon', ['name' => 'home'])<span class="bs-lbl">الرئيسية</span></a>
+                <div class="bs-sec">الحسابات</div>
+                <a href="#sg-sidebar" class="bs-link " data-tip="الأدراج والأرصدة">@include('cp.partials.bs-icon', ['name' => 'drawers'])<span class="bs-lbl">الأدراج والأرصدة</span></a>
+                <a href="#sg-sidebar" class="bs-link " data-tip="التحويلات">@include('cp.partials.bs-icon', ['name' => 'transfer'])<span class="bs-lbl">التحويلات</span></a>
+                <a href="#sg-sidebar" class="bs-link " data-tip="سجل الحركات">@include('cp.partials.bs-icon', ['name' => 'ledger'])<span class="bs-lbl">سجل الحركات</span></a>
+                <a href="#sg-sidebar" class="bs-link " data-tip="التقارير">@include('cp.partials.bs-icon', ['name' => 'reports'])<span class="bs-lbl">التقارير</span></a>
                 <div class="bs-sec">الشغل</div>
-                <a href="#sg-sidebar" class="bs-link">@include('cp.partials.bs-icon', ['name' => 'clients'])الزبائن</a>
-                <a href="#sg-sidebar" class="bs-link on">@include('cp.partials.bs-icon', ['name' => 'workers'])الموظفين</a>
-                <a href="#sg-sidebar" class="bs-link">@include('cp.partials.bs-icon', ['name' => 'suppliers'])الموردين</a>
-                <a href="#sg-sidebar" class="bs-link">@include('cp.partials.bs-icon', ['name' => 'ads'])الإعلانات الممولة</a>
+                <a href="#sg-sidebar" class="bs-link " data-tip="الزبائن">@include('cp.partials.bs-icon', ['name' => 'clients'])<span class="bs-lbl">الزبائن</span></a>
+                <a href="#sg-sidebar" class="bs-link on" data-tip="الموظفين">@include('cp.partials.bs-icon', ['name' => 'workers'])<span class="bs-lbl">الموظفين</span></a>
+                <a href="#sg-sidebar" class="bs-link " data-tip="الموردين">@include('cp.partials.bs-icon', ['name' => 'suppliers'])<span class="bs-lbl">الموردين</span></a>
+                <a href="#sg-sidebar" class="bs-link " data-tip="الإعلانات الممولة">@include('cp.partials.bs-icon', ['name' => 'ads'])<span class="bs-lbl">الإعلانات الممولة</span></a>
                 <div class="bs-sec">الشخصي</div>
-                <a href="#sg-sidebar" class="bs-link">@include('cp.partials.bs-icon', ['name' => 'person'])الأشخاص</a>
-                <div class="bs-foot"><a href="#sg-sidebar" class="bs-link">@include('cp.partials.bs-icon', ['name' => 'gear'])الإعدادات</a></div>
+                <a href="#sg-sidebar" class="bs-link " data-tip="الأشخاص">@include('cp.partials.bs-icon', ['name' => 'person'])<span class="bs-lbl">الأشخاص</span></a>
                 <div class="bs-user">
-                    <div class="bs-uhead"><span class="bs-av">م</span><span class="bs-who"><b>مدير النظام</b><small><i class="bs-dot"></i><span>متصل</span></small></span></div>
-                    <div class="bs-uacts">
-                        @include('cp.partials.money-eye', ['cls' => 'bs-ubtn'])
-                        <button type="button" class="bs-ubtn" data-tip="الوضع الليلي" aria-label="الوضع الليلي">@include('cp.partials.bs-icon', ['name' => 'moon'])</button>
+                    <span class="bs-av">م</span>
+                    <div class="bs-umeta"><b class="bs-uname">مدير النظام</b>
+                        <div class="bs-uacts">
+                            @include('cp.partials.money-eye', ['cls' => 'bs-ubtn'])
+                            <button type="button" class="bs-ubtn" data-tip="الوضع الليلي" aria-label="الوضع الليلي">@include('cp.partials.bs-icon', ['name' => 'moon'])</button>
+                            <button type="button" class="bs-ubtn" data-tip="الإعدادات" aria-label="الإعدادات">@include('cp.partials.bs-icon', ['name' => 'gear'])</button>
+                            <button type="button" class="bs-ubtn sg-net-demo" data-tip="النت مقطوع · 3 حركات مستنية" aria-label="وضع عدم الاتصال">@include('cp.partials.bs-icon', ['name' => 'offline'])<i class="bs-net-n">3</i></button>
+                        </div>
                     </div>
-                    <div class="bs-out"><button type="button">@include('cp.partials.bs-icon', ['name' => 'logout', 'size' => 16])تسجيل الخروج</button></div>
+                    <span class="bs-out"><button type="button" class="bs-outbtn" data-tip="تسجيل الخروج" aria-label="تسجيل الخروج">@include('cp.partials.bs-icon', ['name' => 'logout'])</button></span>
                 </div>
             </nav>
+            <small class="sg-note">الغيمة الوردية ظاهرة هون للمثال بس. بالنظام ما بتطلع إلا لما ينقطع النت أو في حركات مستنية.</small>
         </div>
     </section>
 
