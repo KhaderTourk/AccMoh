@@ -87,6 +87,83 @@ class VendorSubscriptionController extends Controller
             : $back->with('error', 'الشهر '.MonthlyPlan::label($data['period']).' انضاف قبل، أو مش ضمن '.$subscription->noun().'.');
     }
 
+    /**
+     * نافذة «مستحق ← راتب» بصفحة الموظف (شاشة الموظفين، المرحلة 3، 15/11/2026)، بنفس آلية اشتراك الزبون (قرار 18):
+     * «عن شهر» لحاله، والحركة بآخر يوم بالشهر (حتى أول شهر)، إلا آخر شهر فبيوم ما وقف.
+     * أول شهر: «بلّش شغل يوم» بيصير بداية الراتب. آخر شهر: «آخر يوم شغل» بيوقّفه وبيشيل الشهور المنضافة بعده.
+     * «أضيفه مرة ثانية» لشهر انضاف قبل بيتسجّل مستحق عادي مش مربوط بالشهر.
+     */
+    public function addFromPage(Request $request, VendorSubscription $subscription, VendorChargeService $charges)
+    {
+        $currency = Currency::query()->find($request->input('currency_id'));
+        $isFx = $currency && $currency->code !== 'ILS';
+        $data = $request->validate([
+            'period' => ['required', 'regex:/^\d{4}-(0[1-9]|1[0-2])$/'],
+            'amount' => [$isFx ? 'nullable' : 'required', 'numeric', 'gt:0'],
+            'source_amount' => [$isFx ? 'required' : 'nullable', 'numeric', 'gt:0'],
+            'exchange_rate' => [$isFx ? 'required' : 'nullable', 'numeric', 'gt:0'],
+            'currency_id' => ['required', 'exists:currencies,id'],
+            'start_day' => ['nullable', 'integer', 'between:1,31'],
+            'stop' => ['nullable', 'boolean'],
+            'end_day' => ['nullable', 'required_if:stop,1', 'integer', 'between:1,31'],
+            'again' => ['nullable', 'boolean'],
+            'notes' => ['nullable', 'string'],
+        ]);
+        $period = $data['period'];
+        $first = CarbonImmutable::createFromFormat('Y-m-d', $period.'-01')->startOfDay();
+        $last = $first->endOfMonth()->startOfDay();
+        $inMonth = (int) $last->format('j');
+        $startDay = filled($data['start_day'] ?? null) ? min($inMonth, (int) $data['start_day']) : null;
+        $stop = $request->boolean('stop');
+        $endDay = $stop ? min($inMonth, max($startDay ?? 1, (int) $data['end_day'])) : null;
+
+        $linked = $subscription->months()->where('period', $period)->exists();
+        if ($linked && ! $request->boolean('again')) {
+            throw ValidationException::withMessages(['period' => 'شهر '.MonthlyPlan::label($period).' انضاف قبل لهالموظف.']);
+        }
+
+        $money = \App\Support\PaymentFx::hydrate([
+            'currency_id' => $data['currency_id'],
+            'amount' => $data['amount'] ?? null,
+            'source_amount' => $isFx ? ($data['source_amount'] ?? $data['amount'] ?? null) : null,
+            'exchange_rate' => $data['exchange_rate'] ?? null,
+        ]);
+
+        DB::transaction(function () use ($subscription, $charges, $data, $money, $period, $first, $last, $startDay, $stop, $endDay, $linked) {
+            if ($startDay !== null || $first->toDateString() < $subscription->starts_on->toDateString()) {
+                $subscription->update(['starts_on' => $first->day($startDay ?? 1)->toDateString()]);
+            }
+            $date = $last;
+            if ($stop) {
+                $date = $first->day($endDay);
+                $subscription->update(['ends_on' => $date->toDateString()]);
+                foreach ($subscription->months()->where('period', '>', $period)->get() as $later) {
+                    $charges->delete($later);
+                }
+            }
+            $charges->create([
+                'vendor_id' => $subscription->vendor_id,
+                'charge_type_id' => $subscription->charge_type_id,
+                'subscription_id' => $linked ? null : $subscription->id,
+                'period' => $linked ? null : $period,
+                'title' => $subscription->title,
+                'amount' => $money['amount'] ?? ($data['amount'] ?? null),
+                'source_amount' => $money['source_amount'] ?? null,
+                'exchange_rate' => $money['exchange_rate'] ?? null,
+                'fx_currency_id' => $money['fx_currency_id'] ?? null,
+                'currency_id' => $money['currency_id'],
+                'charge_date' => $date->toDateString(),
+                'notes' => $data['notes'] ?? null,
+            ]);
+        });
+
+        $vendor = $subscription->vendor;
+        $label = MonthlyPlan::label($period);
+
+        return redirect()->route('cp.'.$vendor->type->routePrefix().'.show', $vendor)
+            ->with('success', $stop ? "انضاف آخر شهر ({$label}) ووقف {$subscription->title}." : "انضاف {$subscription->title} شهر {$label}.");
+    }
+
     protected function recordMonth(VendorSubscription $sub, string $period, string $amount, VendorChargeService $charges): bool
     {
         if (Money::isZero($amount) || ! in_array($period, $sub->pendingMonths(now()->format('Y-m')), true)) {
@@ -210,7 +287,7 @@ class VendorSubscriptionController extends Controller
     {
         $current = now()->format('Y-m');
 
-        return $vendor->subscriptions()->with('months:id,subscription_id,period,amount')->orderBy('starts_on')->get()
+        return $vendor->subscriptions()->with('months:id,subscription_id,period,amount,charge_date')->orderBy('starts_on')->get()
             ->map(fn (VendorSubscription $s) => [
                 'id' => $s->id,
                 'title' => $s->title,
@@ -220,6 +297,9 @@ class VendorSubscriptionController extends Controller
                 'first' => $s->first_amount !== null ? (float) $s->first_amount : null,
                 'months' => $s->months->count(),
                 'added' => $s->months->filter(fn ($m) => $m->period)->mapWithKeys(fn ($m) => [$m->period => (float) $m->amount])->all(),
+                'type' => $s->charge_type_id,
+                'dates' => $s->months->filter(fn ($m) => $m->period)->mapWithKeys(fn ($m) => [$m->period => $m->charge_date?->toDateString()])->all(),
+                'url' => route('cp.vendor-subscriptions.month', $s),
                 'due' => collect($s->pendingMonths($current))->filter(fn ($p) => $s->isBillable($p))->count(),
                 'stop' => route('cp.vendor-subscriptions.stop', $s),
                 'delete' => route('cp.vendor-subscriptions.destroy', $s),

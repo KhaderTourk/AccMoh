@@ -148,6 +148,7 @@ Route::prefix('cp')->name('cp.')->middleware(['cp.auth', 'cp.check'])->group(fun
         // الرواتب والاشتراكات الشهرية للموظفين والموردين، وأنواع المستحقات (قرار 11/11/2026)
         Route::post('/vendor-subscriptions', [\App\Http\Controllers\Cp\VendorSubscriptionController::class, 'store'])->name('vendor-subscriptions.store');
         Route::post('/vendor-subscriptions/{subscription}/add', [\App\Http\Controllers\Cp\VendorSubscriptionController::class, 'addMonth'])->name('vendor-subscriptions.add');
+        Route::post('/vendor-subscriptions/{subscription}/month', [\App\Http\Controllers\Cp\VendorSubscriptionController::class, 'addFromPage'])->name('vendor-subscriptions.month');
         Route::post('/vendor-subscriptions/{subscription}/stop', [\App\Http\Controllers\Cp\VendorSubscriptionController::class, 'stop'])->name('vendor-subscriptions.stop');
         Route::delete('/vendor-subscriptions/{subscription}', [\App\Http\Controllers\Cp\VendorSubscriptionController::class, 'destroy'])->name('vendor-subscriptions.destroy');
 

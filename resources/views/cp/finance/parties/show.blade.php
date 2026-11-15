@@ -69,13 +69,13 @@
 
     <div class="cs-balance" id="csBalance"></div>
 
-    @unless($isPerson)
+    @if($kind === 'supplier')
         <section class="st-card cs-subs" id="csSubs" hidden>
             <header class="st-card-h"><h2>{{ $kind === 'worker' ? 'الرواتب الشهرية' : 'الاشتراكات الشهرية' }}</h2><span class="st-count" id="csSubsN"></span>
                 <a href="{{ $urls['index'] }}" class="cs-subs-link">{{ $kind === 'worker' ? 'الرواتب الشهرية' : 'الخدمات الشهرية' }}</a></header>
             <div id="csSubsList"></div>
         </section>
-    @endunless
+    @endif
 
     <div class="cs-tabs" role="tablist">
         <button type="button" class="on" data-view="list" role="tab">الحركات</button>
@@ -127,6 +127,7 @@
     'urls' => $urls,
     'today' => now()->toDateString(),
 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) !!}</script>
+@if($kind === 'worker')<script src="{{ asset('assets/js/cp-date.js') }}?v={{ @filemtime(public_path('assets/js/cp-date.js')) }}"></script>@endif
 <script>
 (function () {
     const D = JSON.parse(document.getElementById('csData').textContent);
@@ -274,15 +275,15 @@
         } else {
             const run = {};
             beforeCodes.forEach((c) => { run[c] = before[c]; });
-            const head = `<div class="cs-st cs-hrow"><span>التاريخ</span><span>البيان</span><span>مدين<small>${esc(P.pos)}</small></span><span>دائن<small>${esc(P.neg)}</small></span><span>${filtered ? 'المجموع' : 'الرصيد'}</span></div>`;
+            const head = `<div class="cs-st cs-hrow"><span>التاريخ</span><span>البيان</span>${WORKER ? '<span>مدين<small>دفعات</small></span><span>دائن<small>مستحقات</small></span>' : `<span>مدين<small>${esc(P.pos)}</small></span><span>دائن<small>${esc(P.neg)}</small></span>`}<span>${filtered ? 'المجموع' : 'الرصيد'}</span></div>`;
             const opening = range ? `<div class="cs-st cs-open"><span>${dayLabel(range.from)}</span><span>رصيد سابق</span><span></span><span></span><span>${beforeCodes.length ? beforeCodes.map((c) => num(before[c]) + ' ' + esc(sym(c))).join('<br>') : '0.00'}</span></div>` : '';
             let dr = 0, cr = 0;
             const body = list.map((m) => {
                 run[m.currency] = (run[m.currency] || 0) + m.delta;
                 if (m.delta > 0) dr += m.delta; else cr -= m.delta;
-                return `<div class="cs-st"><span>${dayLabel(m.date)}</span><span>${esc(m.title)}${m.notes ? `<small>${esc(m.notes)}</small>` : ''}</span><span>${m.delta > 0 ? num(m.delta) : ''}</span><span>${m.delta < 0 ? num(-m.delta) : ''}</span><span>${num(run[m.currency])} ${esc(sym(m.currency))}</span></div>`;
+                return `<div class="cs-st"><span>${dayLabel(m.date)}</span><span>${esc(m.title)}${m.notes ? `<small>${esc(m.notes)}</small>` : ''}</span>${WORKER ? `<span>${m.delta < 0 ? num(-m.delta) : ''}</span><span>${m.delta > 0 ? num(m.delta) : ''}</span>` : `<span>${m.delta > 0 ? num(m.delta) : ''}</span><span>${m.delta < 0 ? num(-m.delta) : ''}</span>`}<span>${num(run[m.currency])} ${esc(sym(m.currency))}</span></div>`;
             }).join('');
-            const foot = `<div class="cs-st cs-foot"><span></span><span>المجموع</span><span>${num(dr)}</span><span>${num(cr)}</span><span>${Object.keys(run).map((c) => num(run[c]) + ' ' + esc(sym(c))).join('<br>') || '0.00'}</span></div>`;
+            const foot = `<div class="cs-st cs-foot"><span></span><span>المجموع</span><span>${num(WORKER ? cr : dr)}</span><span>${num(WORKER ? dr : cr)}</span><span>${Object.keys(run).map((c) => num(run[c]) + ' ' + esc(sym(c))).join('<br>') || '0.00'}</span></div>`;
             $('csTable').innerHTML = list.length || range ? head + opening + body + foot : '<p class="cl-empty">ما في حركات لسا.</p>';
         }
         if (MOTION) { $('csTable').classList.remove('cs-anim'); void $('csTable').offsetWidth; $('csTable').classList.add('cs-anim'); }
@@ -315,6 +316,8 @@
             closeMenus();
             const typeId = b.dataset.due === 'free' ? null : +b.dataset.due;
             const t = types.find((x) => x.id === typeId);
+            // الموظف (المرحلة 3، 15/11/2026): النوع اللي هو راتب شهري عنده بيفتح نافذة الشهر، والباقي النافذة العادية.
+            if (WORKER) { const s = t ? (D.subscriptions || []).find((x) => +x.type === t.id && !x.to) : null; openW(s ? 'wsub' : 'wcharge', { type: t, sub: s }); return; }
             openTx(WORKER && t && t.name === 'راتب' ? 'sub' : 'charge', { typeId });
         });
     }
@@ -496,7 +499,7 @@
         return a * (parseFloat(($('xRate') || {}).value) || 0);
     }
     function check() {
-        if (!tx || !$('xCur')) return;
+        if (!tx || !$('xCur') || tx.w) return;
         const code = $('xCur').selectedOptions[0].dataset.code;
         const fx = code !== 'ILS' && !tx.plain;
         const a = parseFloat($('xAmt').value);
@@ -549,6 +552,212 @@
         if ($('txSave').disabled) { e.preventDefault(); return; }
         if ($('xDate')) $('xDate').value = dayLabel(parseDay($('xDate').value));
     });
+
+    /* ——— «مستحق» للموظف (المرحلة 3، 15/11/2026): نفس نوافذ خدمة الزبون واشتراكه بالملّي (قرار 17 و18) ———
+       المبلغ وجنبه زر عملة صغير، سعر الصرف بس مع عملة ثانية و«السعر العالمي»، التاريخ بالتقويم و«اليوم» لما يتغيّر،
+       «رصيده هلأ» و«بعد المستحق» بالأخضر لأنه بيزيد اللي إله، و«احفظ» باهت بدون مبلغ. الراتب: «عن شهر» وبآخر يوم بالشهر. */
+    const NB = (t) => `<bdi class="num" dir="ltr">${t}</bdi>`;
+    const curOf = (id) => L.currencies.find((c) => +c.id === +id) || L.currencies.find((c) => c.code === 'ILS');
+    const sysRate = (id) => +(L.rates || {})[id] || 0;
+    function wMoney() {
+        const items = L.currencies.map((c) => `<button type="button" role="option" data-cur="${c.id}">${esc(c.name || c.code)} ${esc(c.symbol)}</button>`).join('');
+        return `<div class="cl-field"><label for="xAmt">المبلغ</label>
+            <div class="cp-amt"><input id="xAmt" inputmode="decimal" dir="ltr" placeholder="0.00" autocomplete="off">
+                <div class="cp-cur"><button type="button" class="cp-cur-b" id="xCurB" aria-haspopup="listbox" aria-label="العملة"><span id="xCurS"></span><span class="cp-cur-ar">▾</span></button>
+                <div class="cp-cur-m" id="xCurM" role="listbox" hidden>${items}</div></div></div>
+            <input type="hidden" name="currency_id" id="xCur" value="${L.ilsId}">
+            <div class="cp-rate" id="xRateWrap" hidden><span>سعر الصرف</span><input id="xRate" name="exchange_rate" inputmode="decimal" dir="ltr" autocomplete="off"><span id="xIls"></span><small class="cp-rate-sys" id="xRateSys"></small></div>
+            <small class="cp-hint" id="xHint"></small></div>
+            <input type="hidden" name="amount" id="xAmtIls"><input type="hidden" name="source_amount" id="xAmtSrc">`;
+    }
+    const wNotes = () => '<div class="cl-field"><label for="xNotes">ملاحظة</label><input id="xNotes" name="notes" placeholder="اختياري" autocomplete="off"></div>';
+    const pkey = (p) => p[0] + '-' + String(p[1] + 1).padStart(2, '0');
+    const plabel = (p) => (p[1] + 1) + '/' + p[0];
+    const padd = (p, k) => { const d = new Date(p[0], p[1] + k, 1); return [d.getFullYear(), d.getMonth()]; };
+    const pcmp = (a, b) => a[0] * 12 + a[1] - (b[0] * 12 + b[1]);
+    const pdim = (p) => new Date(p[0], p[1] + 1, 0).getDate();
+    function nowP() { const t = new Date(D.today + 'T00:00:00'); return [t.getFullYear(), t.getMonth()]; }
+    function startP(s) { const [y, m] = s.from.split('-').map(Number); return [y, m - 1]; }
+    function firstMissing(s) { let p = startP(s); const n = nowP(); while (pcmp(p, n) <= 0) { if (!s.dates[pkey(p)]) return p; p = padd(p, 1); } return n; }
+    function missedOf(s, cur) { const out = []; let p = startP(s); const n = nowP(); while (pcmp(p, n) < 0) { if (!s.dates[pkey(p)] && pcmp(p, cur) !== 0) out.push(p); p = padd(p, 1); } return out; }
+    const isFirst = () => !Object.keys(tx.sub.dates).length && pcmp(tx.p, startP(tx.sub)) <= 0;
+    function subDays() { const n = pdim(tx.p); return (tx.stop ? tx.d2 : n) - (isFirst() ? tx.d1 : 1) + 1; }
+    function subSugg() { const n = pdim(tx.p), d = subDays(); return d >= n ? tx.sub.amount : Math.round(tx.sub.amount / n * d * 100) / 100; }
+    function subNote() {
+        const p = tx.p, f = isFirst(), st = tx.stop;
+        const parts = [(st ? (f ? 'أول وآخر شهر · ' : 'آخر شهر · ') : '') + tx.sub.title + ' ' + plabel(p)];
+        if (f && tx.d1 > 1) parts.push('من ' + tx.d1 + '/' + plabel(p));
+        if (st) parts.push('لغاية ' + tx.d2 + '/' + plabel(p));
+        if (subDays() < pdim(p)) parts.push(subDays() + ' يوم من ' + pdim(p));
+        if (st) parts.push('وقف ' + tx.sub.title);
+        return parts.join(' · ');
+    }
+    function subBar() {
+        const s = tx.sub, d = s.dates[pkey(tx.p)], ms = missedOf(s, tx.p);
+        return `<div class="cs-sbrow"><b>${esc(s.title)} شهري · ${NB(num(s.amount) + ' ₪')}</b>${ms.length ? `<span class="cs-miss">فاتك ${ms.map((p) => `<button type="button" data-gm="${pkey(p)}">${NB(plabel(p))}</button>`).join('')}</span>` : ''}</div>
+            <div class="cs-sbrow"><span class="cs-mpick"><span>عن شهر</span><button type="button" class="cs-mar" data-mv="-1" aria-label="الشهر اللي قبل">›</button><b>${NB(plabel(tx.p))}</b><button type="button" class="cs-mar" data-mv="1" aria-label="الشهر اللي بعد">‹</button></span>
+            <span class="cs-pill${d ? ' ok' : ''}">${d ? 'انضاف ✓ بتاريخ ' + NB(dayLabel(d)) : (isFirst() ? 'أول شهر' : 'لسا ما انضاف')}</span></div>`;
+    }
+    function subDayFields() {
+        const p = tx.p, n = pdim(p), lock = pkey(p);
+        if (!isFirst() && !tx.stop) return `<p class="cs-autod">بينسجل بتاريخ ${NB(dayLabel(lock + '-' + String(n).padStart(2, '0')))} (آخر يوم بالشهر)</p>`;
+        const f = (id, lab, v, data) => `<div class="cl-field"><label for="${id}">${lab}</label>${cpDate.html({ id, value: v + '/' + plabel(p), today: dayLabel(D.today), data: { lock, ...data }, label: lab })}</div>`;
+        let h = '';
+        if (isFirst()) h += f('xD1', 'بلّش شغل يوم', tx.d1, { 'min-day': 1, 'max-day': tx.stop ? tx.d2 : n, 'range-to': tx.stop ? tx.d2 : n });
+        if (tx.stop) h += f('xD2', 'آخر يوم شغل', tx.d2, { 'min-day': isFirst() ? tx.d1 : 1, 'max-day': n, 'range-from': isFirst() ? tx.d1 : 1 });
+        const at = tx.stop ? tx.d2 + '/' + plabel(p) : n + '/' + plabel(p);
+        return (isFirst() && tx.stop ? `<div class="cs-two">${h}</div>` : h) + `<p class="cs-autod">بينسجل بتاريخ ${NB(at)} ${tx.stop ? '(آخر يوم شغل)' : '(آخر يوم بالشهر)'} · ${subDays()} يوم من ${n}</p>`;
+    }
+    function subReset() {
+        const n = pdim(tx.p);
+        tx.d1 = 1; tx.d2 = pcmp(tx.p, nowP()) === 0 ? new Date(D.today + 'T00:00:00').getDate() : n;
+        if (tx.d2 < tx.d1) tx.d2 = tx.d1;
+        tx.manual = false;
+    }
+    function subPaint() {
+        $('xSubBar').innerHTML = subBar();
+        $('xDays').innerHTML = subDayFields();
+        const d = tx.sub.dates[pkey(tx.p)];
+        $('txDup').hidden = !d;
+        if (d) $('txDupTxt').textContent = `${tx.sub.title} شهر ${plabel(tx.p)} انضاف قبل لهالموظف. متأكد بدك تضيفه مرة ثانية؟`;
+        if (!tx.manual && curOf($('xCur').value).code === 'ILS') $('xAmt').value = String(subSugg());
+        if (tx.noteAuto) $('xNotes').value = subNote();
+        $('xPeriod').value = pkey(tx.p);
+        $('xStartDay').value = isFirst() ? tx.d1 : '';
+        $('xEndDay').value = tx.stop ? tx.d2 : '';
+        $('xStopIn').value = tx.stop ? 1 : 0;
+        $('xAgain').value = d ? 1 : 0;
+        $('xStopNote').hidden = !tx.stop;
+        wCheck();
+    }
+    function openW(kind, opt) {
+        const t = opt.type;
+        tx = { kind, w: true, type: t, sub: opt.sub || null };
+        let hid, fields, action;
+        if (tx.sub) {
+            action = tx.sub.url;
+            tx.p = firstMissing(tx.sub); tx.stop = false; tx.noteAuto = true; subReset();
+            hid = '<input type="hidden" name="period" id="xPeriod"><input type="hidden" name="start_day" id="xStartDay"><input type="hidden" name="end_day" id="xEndDay"><input type="hidden" name="stop" id="xStopIn" value="0"><input type="hidden" name="again" id="xAgain" value="0">';
+            fields = '<div class="cs-subbar" id="xSubBar"></div>' + wMoney() + '<div id="xDays"></div>' + wNotes()
+                + '<label class="cs-stopt"><input type="checkbox" id="xStop"> هادا آخر شهر، الموظف وقّف شغل</label>'
+                + `<p class="cs-autod" id="xStopNote" hidden>بعد الحفظ بينشال «${esc(tx.sub.title)}» من رواتبه الشهرية، والحركات القديمة بتضل.</p>`;
+        } else {
+            action = D.urls.charge;
+            hid = hidden('vendor_id', D.id) + (t ? hidden('charge_type_id', t.id) : '');
+            fields = (t ? '' : '<div class="cl-field"><label for="xWhat">البيان</label><input id="xWhat" name="title" maxlength="255" placeholder="مثلاً: بدل مواصلات"></div>')
+                + wMoney()
+                + `<div class="cl-field"><label for="xDate">التاريخ</label>${cpDate.html({ id: 'xDate', name: 'charge_date', today: dayLabel(D.today), label: 'التاريخ' })}<small class="cl-err" id="xDateErr" hidden>التاريخ لازم يكون يوم/شهر/سنة</small></div>`
+                + wNotes();
+        }
+        $('txTitle').textContent = 'مستحق · ' + (t ? t.name : 'أخرى');
+        $('txHidden').innerHTML = hid;
+        $('txFields').innerHTML = fields;
+        $('txForm').action = action;
+        $('txSave').disabled = true;
+        $('txSave').textContent = 'احفظ';
+        $('txSheet').hidden = false;
+        wSetCur(L.ilsId);
+        if (tx.sub) subPaint(); else wCheck();
+        setTimeout(() => { const f = $('xWhat') || $('xAmt'); f.focus(); if (tx && tx.sub) f.select(); }, 30);
+    }
+    function wSetCur(id) {
+        const c = curOf(id);
+        $('xCur').value = c.id;
+        $('xCurS').textContent = c.symbol;
+        $('xCurM').querySelectorAll('[data-cur]').forEach((b) => b.classList.toggle('on', +b.dataset.cur === +c.id));
+        const fx = c.code !== 'ILS';
+        $('xRateWrap').hidden = !fx;
+        if (fx) { $('xRate').value = sysRate(c.id) || ''; $('xRate').previousElementSibling.textContent = 'سعر صرف ' + ({ USD: 'الدولار', JOD: 'الدينار' }[c.code] || c.code); }
+    }
+    function wIls() {
+        const a = parseFloat($('xAmt').value);
+        if (!(a > 0)) return 0;
+        return curOf($('xCur').value).code === 'ILS' ? a : a * (parseFloat($('xRate').value) || 0);
+    }
+    function wHint() {
+        const ils = curOf($('xCur').value).code === 'ILS', a = parseFloat($('xAmt').value) || 0;
+        let html = '';
+        if (tx.sub) {
+            const sg = subSugg(), n = pdim(tx.p), d = subDays(), part = d < n;
+            const same = ils && Math.abs(a - sg) < 0.005;
+            const calc = part ? `${NB(num(tx.sub.amount))} ÷ ${n} يوم × ${d} يوم = ${NB(num(sg) + ' ₪')}` : `${esc(tx.sub.title)} الشهري: ${NB(num(tx.sub.amount) + ' ₪')}`;
+            html = same ? (part ? 'الشهر مش كامل: ' + calc : '') : `${part ? 'المقترح: ' : ''}${calc} · <button type="button" class="cp-use" data-use="${sg}">استخدمه</button>`;
+        } else if (tx.type && tx.type.last != null && !(ils && Math.abs(a - tx.type.last) < 0.005)) {
+            html = `آخر مرة لهالموظف: ${NB(num(tx.type.last) + ' ₪')} · <button type="button" class="cp-use" data-use="${tx.type.last}">استخدمه</button>`;
+        }
+        $('xHint').innerHTML = html;
+    }
+    function wCheck() {
+        if (!tx || !tx.w) return;
+        const c = curOf($('xCur').value), fx = c.code !== 'ILS';
+        const a = parseFloat($('xAmt').value), ils = wIls();
+        const day = tx.sub ? true : parseDay($('xDate').value);
+        if ($('xDateErr')) $('xDateErr').hidden = !!day || $('xDate').value.length < 6;
+        $('xAmtIls').value = fx ? '' : ($('xAmt').value || '');
+        $('xAmtSrc').value = fx ? ($('xAmt').value || '') : '';
+        $('xIls').innerHTML = fx && ils ? '= <b>' + NB(num(ils) + ' ₪') + '</b>' : '';
+        const sr = sysRate(c.id), cur = parseFloat($('xRate').value);
+        $('xRateSys').innerHTML = !fx ? '' : (!sr || Math.abs(cur - sr) < 1e-9 ? 'السعر العالمي' : '<button type="button" class="cp-use" data-rate-sys="1" title="رجّع السعر العالمي">↺ السعر العالمي</button>');
+        const nowV = balanceBy('ILS'), after = nowV + ils;
+        const box = (lab, v) => { const cls = tone(v); return `<span class="cs-bl"><span>${lab}</span><b class="${cls}">${cls === 'zero' ? 'مسدّد' : NB(num(v) + ' ₪')}</b></span>`; };
+        $('txAfter').innerHTML = box('رصيده هلأ', nowV) + (ils ? box('بعد المستحق', after) : '');
+        wHint();
+        if (tx.sub) {
+            const d = tx.sub.dates[pkey(tx.p)];
+            $('txSave').textContent = tx.stop ? 'أضف آخر شهر ووقّف' : (d ? 'أضيفه مرة ثانية' : 'أضف شهر ' + plabel(tx.p));
+        } else {
+            let dup = null;
+            if (ils && day) {
+                const dd = new Date(day + 'T00:00:00');
+                dup = M.find((m) => m.group === 'g1' && Math.abs(Math.abs(m.delta) - ils) < 0.005 && Math.abs((new Date(m.date + 'T00:00:00') - dd) / 864e5) <= 3);
+            }
+            $('txDup').hidden = !dup;
+            if (dup) $('txDupTxt').textContent = `في حركة بنفس المبلغ بتاريخ ${dayLabel(dup.date)}: ${dup.title}. تأكد إنها مش مكررة.`;
+        }
+        const okWhat = !$('xWhat') || $('xWhat').value.trim().length > 0;
+        const okRate = !fx || parseFloat($('xRate').value) > 0;
+        $('txSave').disabled = !(a > 0 && day && okWhat && okRate);
+    }
+    if (WORKER) {
+        const F = $('txFields');
+        F.addEventListener('click', (e) => {
+            if (!tx || !tx.w) return;
+            if (e.target.closest('#xCurB')) { e.stopPropagation(); $('xCurM').hidden = !$('xCurM').hidden; return; }
+            const c = e.target.closest('[data-cur]');
+            if (c) { $('xCurM').hidden = true; wSetCur(c.dataset.cur); if (tx.sub) tx.manual = true; wCheck(); $('xAmt').focus(); return; }
+            const u = e.target.closest('[data-use]');
+            if (u) { wSetCur(L.ilsId); $('xAmt').value = u.dataset.use; if (tx.sub) tx.manual = false; wCheck(); $('xAmt').focus(); return; }
+            if (e.target.closest('[data-rate-sys]')) { $('xRate').value = sysRate($('xCur').value); wCheck(); return; }
+            if (!tx.sub) return;
+            const mv = e.target.closest('[data-mv]');
+            if (mv) { tx.p = padd(tx.p, +mv.dataset.mv); subReset(); subPaint(); return; }
+            const gm = e.target.closest('[data-gm]');
+            if (gm) { const [y, m] = gm.dataset.gm.split('-').map(Number); tx.p = [y, m - 1]; subReset(); subPaint(); }
+        });
+        F.addEventListener('change', (e) => { if (tx && tx.w && tx.sub && e.target.id === 'xStop') { tx.stop = e.target.checked; const d1 = tx.d1; subReset(); tx.d1 = d1; if (tx.d2 < tx.d1) tx.d2 = tx.d1; subPaint(); } });
+        F.addEventListener('input', (e) => {
+            if (!tx || !tx.w) return;
+            const id = e.target.id;
+            if (tx.sub && (id === 'xD1' || id === 'xD2')) {
+                const pp = cpDate.parse(e.target.value);
+                if (pp && pp[0] === tx.p[0] && pp[1] === tx.p[1]) {
+                    if (id === 'xD1') tx.d1 = Math.min(tx.stop ? tx.d2 : pdim(tx.p), pp[2]); else tx.d2 = Math.max(isFirst() ? tx.d1 : 1, pp[2]);
+                    const keep = document.activeElement && document.activeElement.id;
+                    const sel = keep === id ? [e.target.selectionStart, e.target.selectionEnd] : null;
+                    const man = tx.manual; subPaint(); tx.manual = man;
+                    if (sel) { const el = $(id); el.focus(); el.setSelectionRange(sel[0], sel[1]); }
+                }
+                return;
+            }
+            if (tx.sub && id === 'xAmt') tx.manual = true;
+            if (tx.sub && id === 'xNotes') tx.noteAuto = false;
+            wCheck();
+        });
+        F.addEventListener('keydown', (e) => {
+            if (tx && tx.w && e.key === 'Enter' && ['xAmt', 'xRate', 'xDate', 'xD1', 'xD2'].includes(e.target.id)) { e.preventDefault(); if (!$('txSave').disabled) $('txForm').requestSubmit(); }
+        });
+        document.addEventListener('click', (e) => { const m = $('xCurM'); if (m && !m.hidden && !e.target.closest('.cp-cur')) m.hidden = true; });
+    }
 
     /* ——— الرواتب والاشتراكات الشهرية ——— */
     function renderSubs() {

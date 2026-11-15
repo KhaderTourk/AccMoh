@@ -23,6 +23,8 @@
     $negW = str_replace('إله', 'له', $profile['neg']);
     $posCls = $posW === 'عليه' ? 'dr' : 'cr';
     $negCls = $posCls === 'dr' ? 'cr' : 'dr';
+    // كشف الموظف (المرحلة 4، 15/11/2026): «مدين» = الدفعات أول، و«دائن» = المستحقات.
+    $isWorker = ($profile['kind'] ?? '') === 'worker';
     $word = fn ($v) => abs($v) < 0.005 ? '' : ' ('.($v > 0 ? $posW : $negW).')';
     $tone = fn ($v) => abs($v) < 0.005 ? '' : (($v > 0) === ($posCls === 'dr') ? 'is-due' : 'is-cr');
     $logo = public_path('assets/icons/brand-logo.png');
@@ -75,8 +77,13 @@
                 <th class="w-n">م</th>
                 <th class="w-d">التاريخ</th>
                 <th>البيان</th>
-                <th class="w-a">{{ $posW }}</th>
-                <th class="w-a">{{ $negW }}</th>
+                @if($isWorker)
+                    <th class="w-a">مدين</th>
+                    <th class="w-a">دائن</th>
+                @else
+                    <th class="w-a">{{ $posW }}</th>
+                    <th class="w-a">{{ $negW }}</th>
+                @endif
                 <th class="w-b">{{ $filtered ? 'المجموع' : 'الرصيد' }}</th>
             </tr>
         </thead>
@@ -98,15 +105,25 @@
                     <div class="t">{{ $m['kind'] }}@if(!empty($m['fx'])) · سعر الصرف: {{ $m['fx'] }}@endif</div>
                     @if(filled($m['notes']))<div class="t" style="white-space:pre-line;">{{ $m['notes'] }}</div>@endif
                 </td>
-                <td class="{{ $posCls }}">{{ $d > 0 ? $fmt($d, $code) : '' }}</td>
-                <td class="{{ $negCls }}">{{ $d < 0 ? $fmt($d, $code) : '' }}</td>
+                @if($isWorker)
+                    <td class="{{ $negCls }}">{{ $d < 0 ? $fmt($d, $code) : '' }}</td>
+                    <td class="{{ $posCls }}">{{ $d > 0 ? $fmt($d, $code) : '' }}</td>
+                @else
+                    <td class="{{ $posCls }}">{{ $d > 0 ? $fmt($d, $code) : '' }}</td>
+                    <td class="{{ $negCls }}">{{ $d < 0 ? $fmt($d, $code) : '' }}</td>
+                @endif
                 <td class="bal {{ $tone($run) }}">{{ $fmt($run, $code) }}{{ $word($run) }}</td>
             </tr>
         @endforeach
             <tr class="tot">
                 <td></td><td></td><td class="desc">المجموع</td>
-                <td class="{{ $posCls }}">{{ $fmt($dr, $code) }}</td>
-                <td class="{{ $negCls }}">{{ $fmt($cr, $code) }}</td>
+                @if($isWorker)
+                    <td class="{{ $negCls }}">{{ $fmt($cr, $code) }}</td>
+                    <td class="{{ $posCls }}">{{ $fmt($dr, $code) }}</td>
+                @else
+                    <td class="{{ $posCls }}">{{ $fmt($dr, $code) }}</td>
+                    <td class="{{ $negCls }}">{{ $fmt($cr, $code) }}</td>
+                @endif
                 <td class="bal {{ $tone($run) }}">{{ $fmt($run, $code) }}{{ $word($run) }}</td>
             </tr>
         </tbody>
