@@ -133,8 +133,8 @@
         ['owe', 'عليه رصيد', (c) => !c.archived && c.ils > SMALL],
         ['credit', 'إله رصيد', (c) => !c.archived && c.ils < -SMALL],
         ['set', 'مسدّد', (c) => !c.archived && Math.abs(c.ils) <= SMALL],
-        // «متابعة»: عليه رصيد وآخر دفعة إله أكثر من 30 يوم (قرار 16، 15/11).
-        ['need', 'متابعة', (c) => !c.archived && c.ils > SMALL && c.payDays !== null && c.payDays > 30],
+        // «متابعة»: عليه رصيد وآخر دفعة إله أكثر من 30 يوم (قرار 16)، أو عليه أكثر من 2000 ₪ مهما كانت آخر دفعة (م. محمد 15/11).
+        ['need', 'متابعة', (c) => !c.archived && c.ils > SMALL && ((c.payDays !== null && c.payDays > 30) || c.ils > 2000)],
     ];
     if (D.showArchived) TABS.push(['arch', 'مؤرشف', (c) => c.archived]);
     const COLS = [
