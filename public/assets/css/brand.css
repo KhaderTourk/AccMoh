@@ -1239,3 +1239,5 @@ body.bs .cl2-seg button.on em { color: var(--bs-fg); font-weight: 700; }
 body.bs .cl2-seg button.on { background: var(--bs-surface); }
 body.bs .cl2-seg button.dim { opacity: .5; }
 body.bs .cp-main .cl2 .cl-search input[type=search]:not([type=hidden]):not([type=checkbox]) { height: auto !important; min-height: 0 !important; padding: 1px 2px !important; border: 0 !important; background: transparent !important; box-shadow: none !important; }
+/* كروت الزبائن: كل الأسطر بنفس الارتفاع، فيها سطر صغير تحت الرقم أو لا (15/11) */
+.cl2-rows > div, .cl2-rows > div:last-child { min-height: 58px; padding: 6px 0; box-sizing: border-box; }
