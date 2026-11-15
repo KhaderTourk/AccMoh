@@ -1224,3 +1224,9 @@ body.bs .cl2-sv .cp-amt input { padding: 7px 10px; }
 .cl2-table .cl-menu { z-index: 60; }
 .cl-dialog.is-subs .cl-field, .cl-dialog.is-subs .cl-dup { display: none !important; }
 .cl-dialog.is-subs .cl2-subs { margin-top: 0; padding-top: 4px; border-top: 0; }
+/* الترتيب (15/11): مثلث واحد بس، بيطلع على العمود الشغّال بالوردي، والباقي باهت لما تمرّ عليه */
+.cl2-table th .arr { opacity: 0; transition: opacity .15s; }
+.cl2-table th button:hover .arr { opacity: .35; }
+.cl2-table th.on .arr { opacity: 1; color: var(--bs-pink); }
+.cl2-table th.on button { color: var(--bs-fg); font-weight: 700; }
+.cl2-table thead th::after { content: none !important; }

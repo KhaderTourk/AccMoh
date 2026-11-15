@@ -24,7 +24,7 @@
     </div>
 
     <div class="cl2-table">
-        <table>
+        <table data-sortable="off">
             <thead><tr id="clHead"></tr></thead>
             <tbody id="clBody"></tbody>
         </table>
@@ -183,7 +183,7 @@
     function render() {
         const q = $('clQ').value.trim();
         $('clTabs').innerHTML = TABS.map((t) => `<button type="button" role="tab" aria-selected="${!q && tab === t[0]}" class="${!q && tab === t[0] ? 'on' : ''}${q ? ' dim' : ''}" data-t="${t[0]}">${t[1]}<em>${clients.filter(t[2]).length}</em></button>`).join('');
-        $('clHead').innerHTML = COLS.map((c) => `<th class="${sort.k === c.k ? 'on' : ''}" aria-sort="${sort.k === c.k ? (((sort.k === 'n') !== (sort.dir === 1)) ? 'ascending' : 'descending') : 'none'}"><button type="button" data-k="${c.k}">${c.t}<span class="arr">${sort.k === c.k && sort.dir ? '▲' : '▼'}</span></button></th>`).join('') + '<th><span class="sr-only">خيارات</span></th>';
+        $('clHead').innerHTML = COLS.map((c) => `<th class="${sort.k === c.k ? 'on' : ''}" aria-sort="${sort.k === c.k ? (((sort.k === 'n') !== (sort.dir === 1)) ? 'ascending' : 'descending') : 'none'}"><button type="button" data-k="${c.k}">${c.t}<span class="arr" aria-hidden="true">${sort.k === c.k ? (((sort.k === 'n') !== (sort.dir === 1)) ? '▲' : '▼') : '▼'}</span></button></th>`).join('') + '<th><span class="sr-only">خيارات</span></th>';
         const rows = list();
         $('clBody').innerHTML = rows.length ? rows.map((c) => `<tr data-id="${c.id}" tabindex="0" class="${c.id === D.flash ? 'is-new' : ''}${c.archived ? ' is-arch' : ''}">
             <td><div class="cl2-who"><span class="cl2-av">${esc((title(c).trim()[0]) || '؟')}</span><div><b>${esc(title(c))}${c.archived ? ' <em class="cs-arch">مؤرشف</em>' : ''}</b><small>${esc(c.org ? c.name : (c.phone || ''))}</small></div></div></td>
