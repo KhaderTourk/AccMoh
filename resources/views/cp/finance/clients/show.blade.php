@@ -35,10 +35,13 @@
             <div class="cs-add">
                 <button type="button" class="cl-more" data-menu="mClient" aria-label="خيارات الزبون">⋯</button>
                 <div class="cl-menu cs-menu" id="mClient" hidden>
-                    <a href="{{ route('cp.clients.index', ['edit' => $client->id, 'back' => 'show']) }}">تعديل الزبون</a>
+                    {{-- نفس خيارات ⋯ بالقائمة (15/11/2026) --}}
+                    <a href="{{ route('cp.clients.export-pdf', $client) }}" target="_blank" rel="noopener">كشف حساب</a>
+                    <a href="{{ route('cp.clients.index', ['edit' => $client->id, 'back' => 'show']) }}">تعديل</a>
+                    <a href="{{ route('cp.clients.index', ['edit' => $client->id, 'panel' => 'subs', 'back' => 'show']) }}">اشتراك شهري</a>
                     <hr>
                     @if($client->is_active)
-                        <button type="button" class="danger" id="csArchive">أرشفة الزبون</button>
+                        <button type="button" class="danger" id="csArchive">أرشفة</button>
                     @else
                         <button type="button" id="csRestore">استرجاع من الأرشيف</button>
                     @endif

@@ -113,14 +113,15 @@
     function pctLine(p) { if (p === null || p === undefined) return ''; const up = p >= 0; return `<i class="${up ? 'up' : 'down'}">${up ? '▲' : '▼'} ${Math.abs(p)}%</i> عن الشهر الماضي`; }
     function renderCards() {
         const ch = H.change, chUp = ch >= 0;
-        const who = (n, name) => (n === 1 && name ? esc(name) : n + ' ' + (n === 1 ? 'موظف' : 'موظفين'));
+        const link = (name, url) => (url ? `<a class="cl2-hlink" href="${esc(url)}">${esc(name)}</a>` : esc(name));
+        const who = (n, name, url) => (n === 1 && name ? link(name, url) : n + ' ' + (n === 1 ? 'موظف' : 'موظفين'));
         $('clCards').innerHTML = `
         <article class="cl2-kc"><header><b>علي</b><span>موظفين إلهم رصيد</span></header>
             <div class="cl2-big credit">${N(num(H.owed) + ' ₪')}</div><div class="cl2-cmp">لـ ${H.owedCount} ${H.owedCount === 1 ? 'موظف' : 'موظفين'}</div>
             <div class="cl2-rows">
-                <div><span>آخر دفعة أكثر من 30 يوم</span><span><b>${N(num(H.late))}</b><em>${who(H.lateCount, H.lateName)}</em></span></div>
-                <div><span>راتب ${N(D.lastLabel)} لسا ما انضاف</span><span><b>${N(num(H.miss))}</b><em>${who(H.missCount, H.missName)}</em></span></div>
-                <div><span>أكبر رصيد</span><span>${H.top ? `<b>${N(num(H.top.amount))}</b><em>${esc(H.top.name)}</em>` : '<b>—</b>'}</span></div>
+                <div><span>آخر دفعة أكثر من 30 يوم</span><span><b>${N(num(H.late))}</b><em>${who(H.lateCount, H.lateName, H.lateShow)}</em></span></div>
+                <div><span>راتب ${N(D.lastLabel)} لسا ما انضاف</span><span><b>${N(num(H.miss))}</b><em>${who(H.missCount, H.missName, H.missShow)}</em></span></div>
+                <div><span>أكبر رصيد</span><span>${H.top ? `<b>${N(num(H.top.amount))}</b><em>${link(H.top.name, H.top.show)}</em>` : '<b>—</b>'}</span></div>
             </div></article>
         <article class="cl2-kc"><header><b>هالشهر</b><span>${N(H.month)}</span></header>
             <div class="cl2-big">${N(num(H.dues) + ' ₪')}</div><div class="cl2-cmp">مستحقات انضافت${H.duesPct !== null ? ' · ' + pctLine(H.duesPct) : ''}</div>

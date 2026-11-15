@@ -1246,3 +1246,6 @@ body.bs .cp-main .cl2 .cl-search input[type=search]:not([type=hidden]):not([type
 .cl2-why { display: block; margin-top: 2px; font-size: .72rem; color: var(--bs-muted); font-weight: 400; }
 .cl2-sal { font-variant-numeric: tabular-nums; }
 .cl2-sal small { display: block; font-size: .72rem; color: var(--bs-muted); }
+/* اسم بكروت الرأس = رابط لملفه (15/11/2026) */
+body.bs .cl2-hlink { color: inherit; text-decoration: none; border-bottom: 1px dashed currentColor; }
+body.bs .cl2-hlink:hover { color: var(--bs-pink, #FB005B); border-bottom-style: solid; }

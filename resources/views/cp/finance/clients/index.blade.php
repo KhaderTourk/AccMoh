@@ -116,7 +116,7 @@
             <div class="cl2-rows">
                 <div><span>متأخرين أكثر من 30 يوم</span><span><b>${N(num(H.late))}</b><em>${H.lateCount} ${H.lateCount === 1 ? 'زبون' : 'زبائن'}</em></span></div>
                 <div><span>ما دفعوا ولا إشي هالشهر</span><span><b>${H.unpaidMonth} من ${H.owedCount}</b></span></div>
-                <div><span>أكبر رصيد</span><span>${H.top ? `<b>${N(num(H.top.amount))}</b><em>${esc(H.top.name)}</em>` : '<b>—</b>'}</span></div>
+                <div><span>أكبر رصيد</span><span>${H.top ? `<b>${N(num(H.top.amount))}</b><em><a class="cl2-hlink" href="${esc(H.top.show)}">${esc(H.top.name)}</a></em>` : '<b>—</b>'}</span></div>
             </div></article>
         <article class="cl2-kc"><header><b>هالشهر</b><span>${N(H.month)}</span></header>
             <div class="cl2-big">${N(num(H.services) + ' ₪')}</div><div class="cl2-cmp">قيمة الخدمات${H.servicesPct !== null ? ' · ' + pctLine(H.servicesPct) : ''}</div>

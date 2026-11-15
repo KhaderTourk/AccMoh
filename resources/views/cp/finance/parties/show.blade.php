@@ -53,7 +53,12 @@
             <div class="cs-add">
                 <button type="button" class="cl-more" data-menu="mParty" aria-label="خيارات">⋯</button>
                 <div class="cl-menu cs-menu" id="mParty" hidden>
-                    <a href="{{ $urls['edit'] }}">تعديل البيانات</a>
+                    {{-- نفس خيارات ⋯ بالقائمة (15/11/2026) --}}
+                    <a href="{{ $urls['pdf'] }}" target="_blank" rel="noopener">كشف حساب</a>
+                    <a href="{{ $urls['edit'] }}">تعديل</a>
+                    @if($kind === 'worker')
+                        <a href="{{ route('cp.workers.index', ['edit' => $model->id, 'panel' => 'subs', 'back' => 'show']) }}">راتب شهري</a>
+                    @endif
                     <hr>
                     @if($model->is_active)
                         <button type="button" class="danger" id="csArchive">أرشفة</button>
@@ -155,7 +160,7 @@
         // شريط الملخص (12/11/2026، أسلوب الأدراج): الرصيد كبير، وعلى اليسار عدد الحركات وآخر حركة.
         const big = codes.map((code) => {
             const v = balanceBy(code);
-            const cls = Math.abs(v) < 0.005 ? 'zero' : (v > 0 ? 'due' : 'credit');
+            const cls = tone(v);
             return `<b class="bl-big cs-v ${cls}" dir="ltr">${cls === 'zero' ? '0.00' : num(v)} ${esc(sym(code))}</b>`;
         }).join('');
         const settled = codes.every((code) => Math.abs(balanceBy(code)) < 0.005);

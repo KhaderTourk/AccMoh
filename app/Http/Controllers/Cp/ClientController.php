@@ -127,7 +127,7 @@ class ClientController extends Controller
             'late' => $late->sum('ils'),
             'lateCount' => $late->count(),
             'unpaidMonth' => $owed->filter(fn ($c) => ! $c['paidMonth'])->count(),
-            'top' => $top ? ['amount' => $top['ils'], 'name' => $top['org'] ?: $top['name']] : null,
+            'top' => $top ? ['amount' => $top['ils'], 'name' => $top['org'] ?: $top['name'], 'show' => $top['show']] : null,
             'services' => $svc,
             'servicesPct' => $pct($svc, $svcPrev),
             'payments' => $pay,
