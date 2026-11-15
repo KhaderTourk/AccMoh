@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="theme-color" content="#FB005B">
+    <link rel="apple-touch-icon" href="{{ asset('assets/icons/apple-touch-icon.png') }}">
+    <meta name="apple-mobile-web-app-title" content="حسابات براند">
     <title>تسجيل الدخول — لوحة التحكم</title>
     <script>
         (function () {
