@@ -96,9 +96,9 @@ class ForeignDrawerPaymentTest extends TestCase
 
         // The page says where the shekels came from (16/11/2026).
         $this->actingAs($this->user)->get(route('cp.persons.show', $person))
-            ->assertOk()->assertSee('5 دولار بسعر 3.7 · طلعت من درج الدولار', false);
+            ->assertOk()->assertSee('5 دولار بسعر 3.7', false)->assertDontSee('درج الدولار');
         $this->actingAs($this->user)->get(route('cp.clients.show', $client))
-            ->assertOk()->assertSee('100 دولار بسعر 3.7 · دخلت درج الدولار', false);
+            ->assertOk()->assertSee('100 دولار بسعر 3.7', false);
         $this->actingAs($this->user)->get(route('cp.balances.show', $this->bank))
             ->assertOk()->assertSee('= 18.50 شيكل · شخص', false);
 

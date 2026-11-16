@@ -2,11 +2,10 @@
 
 namespace App\Support;
 
-use App\Enums\PaymentDirection;
 use App\Models\CashPayment;
 
 /**
- * سطر العملة الأصلية (16/11/2026): «5 دولار بسعر 3.7 · طلعت من درج الدولار» تحت حركة انسجلت بالشيكل
+ * سطر العملة الأصلية (16/11/2026): «5 دولار بسعر 3.7» تحت حركة انسجلت بالشيكل
  * وهي انصرفت بعملة ثانية، عشان يبيّن الشيكل من وين إجا. للعرض بس.
  */
 class FxLabel
@@ -19,12 +18,6 @@ class FxLabel
 
         $cur = DrawerPlaces::curName($model->fxCurrency->code, $model->fxCurrency->name);
         $text = self::num($model->source_amount).' '.$cur.' بسعر '.self::num($model->exchange_rate);
-        if ($model instanceof CashPayment) {
-            $text .= $model->direction === PaymentDirection::Outgoing
-                ? ' · طلعت من درج ال'.$cur
-                : ' · دخلت درج ال'.$cur;
-        }
-
         return $text;
     }
 

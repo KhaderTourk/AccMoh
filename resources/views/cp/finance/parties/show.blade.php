@@ -236,7 +236,7 @@
         });
         return { list, before };
     }
-    // سطر العملة الأصلية (16/11/2026): «5 دولار بسعر 3.7 · طلعت من درج الدولار» قبل الملاحظة.
+    // سطر العملة الأصلية (16/11/2026): «5 دولار بسعر 3.7» قبل الملاحظة.
     function subLine(m) { const t = [m.fx, m.notes].filter(Boolean).join(' · '); return t ? `<small>${esc(t)}</small>` : ''; }
     function amountCell(m) {
         const cls = tone(m.delta);
