@@ -178,6 +178,7 @@ class ClientController extends Controller
                 'delta' => (float) $m['delta'],
                 'amount' => (float) $m['amount'],
                 'notes' => (string) ($m['notes'] ?? ''),
+                'fx' => $m['fx'] ?? null,
             ];
 
             return $row + match ($m['type']) {

@@ -94,6 +94,14 @@ class ForeignDrawerPaymentTest extends TestCase
         $this->assertSame($this->ils->id, (int) $payment->currency_id);
         $this->assertSame('18.50', (string) $payment->amount);
 
+        // The page says where the shekels came from (16/11/2026).
+        $this->actingAs($this->user)->get(route('cp.persons.show', $person))
+            ->assertOk()->assertSee('5 دولار بسعر 3.7 · طلعت من درج الدولار', false);
+        $this->actingAs($this->user)->get(route('cp.clients.show', $client))
+            ->assertOk()->assertSee('100 دولار بسعر 3.7 · دخلت درج الدولار', false);
+        $this->actingAs($this->user)->get(route('cp.balances.show', $this->bank))
+            ->assertOk()->assertSee('= 18.50 شيكل · شخص', false);
+
         // Cancelling gives the 5 $ back to the USD drawer.
         $this->actingAs($this->user)->delete(route('cp.payments.destroy', $payment))->assertSessionMissing('error');
         $this->assertSame('100.00', $this->drawer($this->usd));

@@ -224,6 +224,8 @@
         });
         return { list: inRange, before };
     }
+    // سطر العملة الأصلية (16/11/2026): «5 دولار بسعر 3.7 · طلعت من درج الدولار» قبل الملاحظة.
+    function subLine(m) { const t = [m.fx, m.notes].filter(Boolean).join(' · '); return t ? `<small>${esc(t)}</small>` : ''; }
     function amountCell(m) {
         const cls = m.delta > 0 ? 'due' : (m.delta < 0 ? 'credit' : 'zero');
         return `<span class="cl-amt ${cls}">${m.delta < 0 ? '−' : ''}${num(m.amount)} ${esc(m.symbol)}</span>`;
@@ -258,7 +260,7 @@
             $('csTable').innerHTML = ordered.length ? `<div class="cs-row cs-hrow">${cType === 'all' ? '<span></span>' : ''}<span>الحركة</span><span>المبلغ</span><span>${filtered ? '' : 'الرصيد بعدها'}</span><span></span></div>` + ordered.map((m, i) => `${i === 0 || ordered[i - 1].date !== m.date ? `<div class="cs-day">${dayHead(m.date)}</div>` : ''}
                 <div class="cs-row${cType === 'all' ? '' : ' no-ic'}" data-id="${esc(m.id)}">
                     ${cType === 'all' ? `<span class="cs-ic ${m.group}"><span class="material-symbols-outlined">${esc(m.icon)}</span></span>` : ''}
-                    <span class="cs-t"><b>${esc(m.title)}</b>${m.notes ? `<small>${esc(m.notes)}</small>` : ''}</span>
+                    <span class="cs-t"><b>${esc(m.title)}</b>${subLine(m)}</span>
                     ${amountCell(m)}
                     ${filtered ? '<span></span>' : balCell(m.after, m.currency)}
                     <span class="cs-act">${m.edit ? `<button type="button" class="cl-more" aria-label="خيارات">⋯</button>
@@ -274,7 +276,7 @@
             const body = list.map((m) => {
                 run[m.currency] = (run[m.currency] || 0) + m.delta;
                 if (m.delta > 0) dr += m.delta; else cr -= m.delta;
-                return `<div class="cs-st"><span>${dayLabel(m.date)}</span><span>${esc(m.title)}${m.notes ? `<small>${esc(m.notes)}</small>` : ''}</span><span>${m.delta > 0 ? num(m.delta) : ''}</span><span>${m.delta < 0 ? num(-m.delta) : ''}</span><span>${num(run[m.currency])} ${esc(sym(m.currency))}</span></div>`;
+                return `<div class="cs-st"><span>${dayLabel(m.date)}</span><span>${esc(m.title)}${subLine(m)}</span><span>${m.delta > 0 ? num(m.delta) : ''}</span><span>${m.delta < 0 ? num(-m.delta) : ''}</span><span>${num(run[m.currency])} ${esc(sym(m.currency))}</span></div>`;
             }).join('');
             const foot = `<div class="cs-st cs-foot"><span></span><span>المجموع</span><span>${num(dr)}</span><span>${num(cr)}</span><span>${Object.keys(run).map((c) => num(run[c]) + ' ' + esc(sym(c))).join('<br>') || '0.00'}</span></div>`;
             $('csTable').innerHTML = list.length || range ? head + opening + body + foot : '<p class="cl-empty">ما في حركات لسا.</p>';

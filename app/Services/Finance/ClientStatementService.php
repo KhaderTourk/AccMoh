@@ -195,15 +195,10 @@ class ClientStatementService
         ];
     }
 
-    /** «100 USD × 3.65» for a movement entered in a foreign currency, else null. */
+    /** «100 دولار بسعر 3.65» for a movement entered in a foreign currency, else null. */
     protected function fxNote($model): ?string
     {
-        if (! $model->fx_currency_id || ! $model->exchange_rate || ! $model->fxCurrency) {
-            return null;
-        }
-
-        return rtrim(rtrim((string) $model->source_amount, '0'), '.').' '.$model->fxCurrency->code
-            .' × '.rtrim(rtrim((string) $model->exchange_rate, '0'), '.');
+        return \App\Support\FxLabel::of($model);
     }
 
     /**

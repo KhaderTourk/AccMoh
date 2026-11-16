@@ -102,7 +102,7 @@
                 <td>{{ format_date($m['date']) }}</td>
                 <td class="desc">
                     {{ $m['title'] }}
-                    <div class="t">{{ $m['kind'] }}@if(!empty($m['fx'])) · سعر الصرف: {{ $m['fx'] }}@endif</div>
+                    <div class="t">{{ $m['kind'] }}@if(!empty($m['fx'])) · {{ $m['fx'] }}@endif</div>
                     @if(filled($m['notes']))<div class="t" style="white-space:pre-line;">{{ $m['notes'] }}</div>@endif
                 </td>
                 @if($isWorker)

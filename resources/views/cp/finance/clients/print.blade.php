@@ -144,7 +144,7 @@
                 <td>{{ format_date($m['date']) }}</td>
                 <td class="desc">
                     {{ $title }}
-                    <div class="t">{{ $m['kind'] ?? ($typeLabels[$m['type']] ?? '') }}@if(!empty($m['fx'])) · سعر الصرف: {{ $m['fx'] }}@endif @if(Money::isZero($d)) · لا تُحتسب في الرصيد @endif</div>
+                    <div class="t">{{ $m['kind'] ?? ($typeLabels[$m['type']] ?? '') }}@if(!empty($m['fx'])) · {{ $m['fx'] }}@endif @if(Money::isZero($d)) · لا تُحتسب في الرصيد @endif</div>
                     @if(filled($m['notes'] ?? null))<div class="t" style="white-space:pre-line;">{{ $m['notes'] }}</div>@endif
                 </td>
                 <td class="dr">{{ $isCredit ? '' : $amt }}</td>

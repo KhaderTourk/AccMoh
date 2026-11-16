@@ -147,7 +147,7 @@
                     @php $lastDay = $day; @endphp
                 @endif
                 <div class="bl-lrow">
-                    <span class="bl-ldesc">{{ $r['text'] }}@if($e->notes)<small>{{ $e->notes }}</small>@endif</span>
+                    <span class="bl-ldesc">{{ $r['text'] }}@php($fxNote = \App\Support\FxLabel::drawerNote($e->related))@if($fxNote)<small>{{ $fxNote }}</small>@endif @if($e->notes)<small>{{ $e->notes }}</small>@endif</span>
                     <span class="bl-lamt {{ $in ? 'in' : '' }}" dir="ltr">{{ $in ? '+' : '−' }}{{ $e->currency->format(abs((float) $e->amount)) }}</span>
                     <span class="bl-lafter {{ (float) $r['after'] < 0 ? 'due' : '' }}"><em>بعدها </em><span dir="ltr">{{ $fmt($e->currency, $r['after']) }}</span></span>
                 </div>
