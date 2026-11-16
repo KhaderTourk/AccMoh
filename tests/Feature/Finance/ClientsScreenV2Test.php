@@ -75,6 +75,27 @@ class ClientsScreenV2Test extends TestCase
         $this->assertSame(0, ClientSubscription::query()->count());
     }
 
+    public function test_unchecking_a_subscription_with_recorded_months_stops_it_and_keeps_months_linked(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-11-16'));
+        $client = Client::query()->create(['name' => 'إيليت بالاس', 'is_active' => true]);
+        $sub = ClientSubscription::query()->create([
+            'client_id' => $client->id, 'service_type_id' => $this->type->id, 'title' => $this->type->name,
+            'amount' => 900, 'currency_id' => $this->ils->id, 'starts_on' => '2026-10-01',
+        ]);
+        $month = ClientService::query()->create([
+            'client_id' => $client->id, 'service_type_id' => $this->type->id, 'title' => $this->type->name, 'amount' => 900,
+            'currency_id' => $this->ils->id, 'service_date' => '2026-10-31', 'status' => 'completed',
+        ]);
+        $month->forceFill(['subscription_id' => $sub->id, 'period' => '2026-10'])->save();
+
+        $this->editClient($client, [], false);
+
+        $this->assertSame('2026-11-16', $sub->fresh()->ends_on->toDateString());
+        $this->assertSame($sub->id, $month->fresh()->subscription_id);
+        $this->assertSame('2026-10', $month->fresh()->period);
+    }
+
     public function test_full_month_is_dated_on_the_last_day_and_cannot_be_added_twice_by_accident(): void
     {
         $this->travelTo(CarbonImmutable::parse('2026-11-15'));
