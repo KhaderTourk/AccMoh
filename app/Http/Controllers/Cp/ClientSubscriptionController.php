@@ -126,7 +126,7 @@ class ClientSubscriptionController extends Controller
                 'status' => \App\Enums\ClientServiceStatus::Completed->value,
             ]);
             if (! $linked) {
-                $service->forceFill(['subscription_id' => $subscription->id, 'period' => $period])->save();
+                $this->linkMonth($service, $subscription, $period);
             }
         });
 
@@ -150,9 +150,22 @@ class ClientSubscriptionController extends Controller
             'currency_id' => $sub->currency_id,
             'service_date' => $sub->serviceDateFor($period),
         ]);
-        $service->forceFill(['subscription_id' => $sub->id, 'period' => $period])->save();
+        $this->linkMonth($service, $sub, $period);
 
         return true;
+    }
+
+    /**
+     * بيربط خدمة الشهر بالاشتراك. شهر انحذف قبل بيضل بالسلة (حذف ناعم) وماسك نفس
+     * (subscription_id, period) بالفهرس الفريد، فبنفضّي الشهر عنه أول عشان ما يطلع خطأ 500.
+     */
+    protected function linkMonth(\App\Models\ClientService $service, ClientSubscription $sub, string $period): void
+    {
+        \App\Models\ClientService::onlyTrashed()
+            ->where('subscription_id', $sub->id)
+            ->where('period', $period)
+            ->update(['period' => null]);
+        $service->forceFill(['subscription_id' => $sub->id, 'period' => $period])->save();
     }
 
     /**
