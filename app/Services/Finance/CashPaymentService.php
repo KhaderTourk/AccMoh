@@ -38,13 +38,17 @@ class CashPaymentService
             throw new FinanceException('اسم الدفعة مطلوب.');
         }
 
-        return DB::transaction(function () use ($data, $direction, $pricing, $party, $fundId, $name) {
+        // الدرج بيتحرّك بالعملة اللي فعلاً انصرفت (16/11/2026): 5 $ من درج الدولار بتنزل 5 $ منه،
+        // ورصيد الطرف بيضل بالشيكل بسعر الصرف المدخل (amount على الدفعة).
+        [$drawerCurrencyId, $drawerAmount] = self::drawerMoney($pricing);
+
+        return DB::transaction(function () use ($data, $direction, $pricing, $party, $fundId, $name, $drawerCurrencyId, $drawerAmount) {
             if ($direction === PaymentDirection::Outgoing) {
                 $this->balances->assertSufficient(
                     $fundId,
                     (int) $data['payment_method_id'],
-                    (int) $pricing['currency_id'],
-                    $pricing['amount']
+                    $drawerCurrencyId,
+                    $drawerAmount
                 );
             }
 
@@ -69,8 +73,8 @@ class CashPaymentService
             ]);
 
             $signed = $direction === PaymentDirection::Incoming
-                ? $pricing['amount']
-                : Money::neg($pricing['amount']);
+                ? $drawerAmount
+                : Money::neg($drawerAmount);
 
             $groupId = $this->ledger->post([[
                 'type' => $direction === PaymentDirection::Incoming
@@ -78,7 +82,7 @@ class CashPaymentService
                     : TransactionType::OutgoingPayment,
                 'fund_id' => $fundId,
                 'payment_method_id' => $data['payment_method_id'],
-                'currency_id' => $pricing['currency_id'],
+                'currency_id' => $drawerCurrencyId,
                 'amount' => $signed,
                 'occurred_on' => $payment->occurred_on,
                 'description' => $direction->label().' — '.$name,
@@ -94,6 +98,22 @@ class CashPaymentService
 
             return $payment->fresh(['party', 'fund', 'currency', 'paymentMethod', 'fxCurrency']);
         });
+    }
+
+    /**
+     * The drawer side of a payment: the foreign currency and amount actually paid when the
+     * payment was entered in USD/JOD, otherwise the payment's own currency and amount.
+     *
+     * @param  array{amount: string, source_amount: string|null, fx_currency_id: int|null, currency_id: int}  $pricing
+     * @return array{0: int, 1: string}
+     */
+    public static function drawerMoney(array $pricing): array
+    {
+        if (filled($pricing['fx_currency_id'] ?? null) && filled($pricing['source_amount'] ?? null)) {
+            return [(int) $pricing['fx_currency_id'], Money::of($pricing['source_amount'])];
+        }
+
+        return [(int) $pricing['currency_id'], Money::of($pricing['amount'])];
     }
 
     /** «استرداد» is an outgoing payment to a client; «سلفة» an outgoing payment to a worker or supplier. */

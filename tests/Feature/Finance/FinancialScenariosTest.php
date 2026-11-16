@@ -303,7 +303,8 @@ class FinancialScenariosTest extends TestCase
         $this->assertSame('0.00', $client->fresh()->outstandingAmount($this->usd->id));
     }
 
-    public function test_usd_payment_posts_ils_cash(): void
+    /** 16/11/2026: the drawer moves in the currency really paid; the account stays in ILS. */
+    public function test_usd_payment_posts_usd_cash_and_ils_account(): void
     {
         $client = Client::query()->create(['name' => 'محمد', 'is_active' => true]);
         $payment = $this->pay([
@@ -319,8 +320,8 @@ class FinancialScenariosTest extends TestCase
         ]);
 
         $this->assertSame('182.50', Money::of($payment->amount));
-        $this->assertSame('182.50', app(BalanceService::class)->cash($this->business->id, $this->cash->id, $this->ils->id));
-        $this->assertSame('0.00', app(BalanceService::class)->cash($this->business->id, $this->cash->id, $this->usd->id));
+        $this->assertSame('0.00', app(BalanceService::class)->cash($this->business->id, $this->cash->id, $this->ils->id));
+        $this->assertSame('50.00', app(BalanceService::class)->cash($this->business->id, $this->cash->id, $this->usd->id));
         $this->assertSame('-182.50', $client->fresh()->outstandingAmount($this->ils->id));
     }
 
@@ -372,7 +373,8 @@ class FinancialScenariosTest extends TestCase
 
         $this->assertSame('365.00', Money::of($payment->amount));
         $this->assertTrue($payment->isFx());
-        $this->assertSame('365.00', app(BalanceService::class)->cash($this->family->id, $this->cash->id, $this->ils->id));
+        $this->assertSame('0.00', app(BalanceService::class)->cash($this->family->id, $this->cash->id, $this->ils->id));
+        $this->assertSame('100.00', app(BalanceService::class)->cash($this->family->id, $this->cash->id, $this->usd->id));
         $this->assertSame('365.00', $member->fresh()->incomingAmount($this->ils->id));
     }
 
