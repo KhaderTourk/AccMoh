@@ -229,6 +229,37 @@ class SettingsAndSubscriptionsTest extends TestCase
         $this->assertSame(['2026-09'], $periods);
     }
 
+    public function test_month_deleted_from_statement_can_be_added_again(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-11-16 10:00'));
+        $client = Client::query()->create(['name' => 'زبون حذف شهر', 'is_active' => true]);
+        $sub = ClientSubscription::query()->create([
+            'client_id' => $client->id, 'title' => 'إدارة حسابات التواصل', 'amount' => 500,
+            'currency_id' => $this->ils->id, 'starts_on' => '2026-10-01',
+        ]);
+        $add = fn () => $this->actingAs($this->user)->post(route('cp.subscriptions.month', $sub), [
+            'period' => '2026-11', 'amount' => 500, 'currency_id' => $this->ils->id, 'notes' => 'اشتراك 11/2026',
+        ]);
+
+        $add()->assertRedirect(route('cp.clients.show', $client));
+        $month = ClientService::query()->where('subscription_id', $sub->id)->where('period', '2026-11')->firstOrFail();
+        $this->actingAs($this->user)->delete(route('cp.client-services.destroy', $month))->assertRedirect();
+        $this->assertSoftDeleted($month);
+        $this->assertSame('0.00', $client->fresh()->outstandingAmount($this->ils->id));
+
+        // كان بيطلع 500: الشهر المحذوف ماسك نفس (subscription_id, period) بالفهرس الفريد
+        $add()->assertRedirect(route('cp.clients.show', $client))->assertSessionHasNoErrors();
+        $this->assertSame(1, ClientService::query()->where('subscription_id', $sub->id)->where('period', '2026-11')->count());
+        $this->assertSame('500.00', $client->fresh()->outstandingAmount($this->ils->id));
+
+        // ومن «بانتظار التأكيد» كمان، بعد حذف ثاني
+        ClientService::query()->where('subscription_id', $sub->id)->where('period', '2026-11')->firstOrFail()->delete();
+        $this->actingAs($this->user)->post(route('cp.subscriptions.confirm.store'), [
+            'items' => [$sub->id.'|2026-11' => ['on' => 1, 'amount' => '500.00']],
+        ])->assertRedirect();
+        $this->assertSame('500.00', $client->fresh()->outstandingAmount($this->ils->id));
+    }
+
     public function test_service_settings_have_no_billing_and_keep_phases(): void
     {
         // «طريقة الفوترة» انشالت من الإعدادات: الخدمة الجديدة لمرة وحدة، وتصميم وتنفيذ بيضل
