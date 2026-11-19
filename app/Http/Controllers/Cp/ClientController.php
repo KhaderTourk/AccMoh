@@ -385,7 +385,8 @@ class ClientController extends Controller
 
     /**
      * «إله اشتراك شهري» بتعديل الزبون (قرار 15، 14/11/2026): كل سطر خدمة ومبلغها الشهري، بدون «بيبلّش من».
-     * الجديد بيبلّش عدّه من شهر التفعيل. اللي انشال بينحذف، والأشهر اللي انضافت قبل بتضل حركات عادية.
+     * الجديد بيبلّش عدّه من شهر التفعيل. اللي انشال: إذا إله شهور منضافة بيوقف اليوم وبتضل حركاته
+     * مربوطة فيه، وإلا بينحذف (زي رواتب الموظفين بـVendorController::syncSalaries).
      */
     protected function syncSubscriptions(Request $request, Client $client): void
     {
@@ -406,7 +407,12 @@ class ClientController extends Controller
 
         \Illuminate\Support\Facades\DB::transaction(function () use ($wanted, $active, $client, $today, $ilsId) {
             foreach ($active as $typeId => $sub) {
-                if (! $wanted->has((int) $typeId)) {
+                if ($wanted->has((int) $typeId)) {
+                    continue;
+                }
+                if ($sub->months()->exists()) {
+                    $sub->update(['ends_on' => max($today->toDateString(), $sub->starts_on->toDateString())]);
+                } else {
                     $sub->delete();
                 }
             }
